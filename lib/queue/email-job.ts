@@ -1,0 +1,165 @@
+import type { BilingualEmailContentInput } from "@/lib/schemas"
+
+interface Guest {
+  id: string
+  firstName: string
+  lastName: string | null
+  title: string | null
+  salutation: string | null
+  email: string | null
+  position: string | null
+  entity: string | null
+  rsvpToken: string
+  category?: {
+    name: string
+    code: string
+  } | null
+}
+
+interface Event {
+  id: string
+  name: string
+  slug: string
+  venue: string | null
+  venueAddress: string | null
+  startDate: Date | null
+  endDate: Date | null
+  rsvpDeadline: Date | null
+}
+
+interface Template {
+  id: string
+  name: string
+  content: BilingualEmailContentInput
+  defaultLanguage: string
+  fromName: string | null
+  fromEmail: string | null
+  replyTo: string | null
+}
+
+interface RenderResult {
+  subject: string
+  html: string
+  text?: string
+  from?: string
+  replyTo?: string
+}
+
+/**
+ * Render an email template with variables replaced
+ */
+export function renderEmailTemplate(
+  template: Template,
+  guest: Guest,
+  event: Event,
+  language: "en" | "ar" = "en"
+): RenderResult {
+  // Get content for the specified language, fallback to English
+  // Arabic content has optional fields, so we only use it if subject and htmlContent exist
+  const arContent = template.content.ar
+  let subject: string
+  let htmlContent: string
+  let textContent: string | undefined
+
+  if (
+    language === "ar" &&
+    arContent?.subject &&
+    arContent?.htmlContent
+  ) {
+    subject = arContent.subject
+    htmlContent = arContent.htmlContent
+    textContent = arContent.textContent
+  } else {
+    // English content always has required fields
+    subject = template.content.en.subject
+    htmlContent = template.content.en.htmlContent
+    textContent = template.content.en.textContent
+  }
+
+  // Build the variables map
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  const rsvpBaseUrl = `${appUrl}/rsvp/${guest.rsvpToken}`
+
+  const variables: Record<string, string> = {
+    // Guest variables
+    "guest.firstName": guest.firstName || "",
+    "guest.lastName": guest.lastName || "",
+    "guest.fullName": [guest.firstName, guest.lastName].filter(Boolean).join(" "),
+    "guest.title": guest.title || "",
+    "guest.salutation": guest.salutation || "",
+    "guest.email": guest.email || "",
+    "guest.position": guest.position || "",
+    "guest.entity": guest.entity || "",
+    "guest.category": guest.category?.name || "",
+
+    // Event variables
+    "event.name": event.name,
+    "event.venue": event.venue || "",
+    "event.venueAddress": event.venueAddress || "",
+    "event.startDate": event.startDate ? formatDate(event.startDate, language) : "",
+    "event.endDate": event.endDate ? formatDate(event.endDate, language) : "",
+    "event.rsvpDeadline": event.rsvpDeadline
+      ? formatDate(event.rsvpDeadline, language)
+      : "",
+
+    // RSVP link variables
+    "rsvp.link": rsvpBaseUrl,
+    "rsvp.confirmLink": `${rsvpBaseUrl}?action=confirm`,
+    "rsvp.declineLink": `${rsvpBaseUrl}?action=decline`,
+
+    // Category variables
+    "category.name": guest.category?.name || "",
+    "category.code": guest.category?.code || "",
+  }
+
+  // Replace variables in content
+  const renderedSubject = replaceVariables(subject, variables)
+  const html = replaceVariables(htmlContent, variables)
+  const text = textContent ? replaceVariables(textContent, variables) : undefined
+
+  // Build from address
+  let from: string | undefined
+  if (template.fromEmail) {
+    from = template.fromName
+      ? `${template.fromName} <${template.fromEmail}>`
+      : template.fromEmail
+  }
+
+  return {
+    subject: renderedSubject,
+    html,
+    text,
+    from,
+    replyTo: template.replyTo || undefined,
+  }
+}
+
+/**
+ * Replace {{variable}} placeholders with actual values
+ */
+function replaceVariables(text: string, variables: Record<string, string>): string {
+  return text.replace(/\{\{(\w+\.\w+)\}\}/g, (match, key) => {
+    return variables[key] !== undefined ? variables[key] : match
+  })
+}
+
+/**
+ * Format a date based on language
+ */
+function formatDate(date: Date, language: "en" | "ar"): string {
+  // Use locale-appropriate formatting
+  const locale = language === "ar" ? "ar-SA" : "en-US"
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date)
+}
+
+/**
+ * Validate that a guest has an email address
+ */
+export function guestHasEmail(guest: { email: string | null }): boolean {
+  return !!guest.email && guest.email.includes("@")
+}

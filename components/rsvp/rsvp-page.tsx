@@ -1,0 +1,683 @@
+"use client"
+
+import { useEffect, useState, useRef } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { useTranslations } from "next-intl"
+import { Loader2 } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
+
+import { DynamicFormRenderer } from "./dynamic-form-renderer"
+import type { RsvpFormConfig, BilingualText } from "@/lib/rsvp/types"
+
+// Schema for the main form (response status + legacy fallback fields)
+const rsvpFormSchema = z.object({
+  responseStatus: z.enum(["confirmed", "declined", "maybe"]),
+  dietaryRequirements: z.string().optional(),
+  accessibilityNeeds: z.string().optional(),
+  companionInfo: z
+    .object({
+      bringing: z.boolean(),
+      count: z.number().optional(),
+      details: z
+        .array(
+          z.object({
+            name: z.string().optional(),
+            dietary: z.string().optional(),
+          })
+        )
+        .optional(),
+    })
+    .optional(),
+})
+
+type RsvpFormData = z.infer<typeof rsvpFormSchema>
+
+// Type for dynamic form ref
+interface DynamicFormRef {
+  getFormData: () => {
+    responseStatus: "confirmed" | "declined" | "maybe"
+    standardResponses: Record<string, unknown>
+    customResponses: Record<string, unknown>
+  }
+}
+
+interface GuestData {
+  guest: {
+    id: string
+    firstName: string
+    lastName: string
+    preferredName?: string
+    title?: string
+    salutation?: string
+    email?: string
+    status: string
+    hasCompanion?: boolean
+    companionDetails?: {
+      name?: string
+      email?: string
+      phone?: string
+      dietaryRequirements?: string
+    }
+    dietaryRequirements?: string
+    accessibilityNeeds?: string
+    rsvpRespondedAt?: string
+  }
+  event: {
+    id: string
+    name: string
+    description?: string
+    venue?: string
+    venueAddress?: string
+    startDate?: string
+    endDate?: string
+    timezone?: string
+    rsvpDeadline?: string
+    rsvpFormConfig?: RsvpFormConfig
+    branding?: {
+      logo?: string
+      logoDark?: string
+      primaryColor?: string
+      secondaryColor?: string
+      backgroundImage?: string
+    }
+    resolvedBranding?: {
+      logo?: string
+      logoDark?: string
+      primaryColor?: string
+      accentColor?: string
+      primaryColorDark?: string
+      accentColorDark?: string
+    }
+    settings?: {
+      allowPlusOne?: boolean
+      maxPlusOnes?: number
+    }
+    organization?: {
+      name: string
+      logo?: string
+    }
+  }
+  category: {
+    id: string
+    name: string
+    code: string
+    color?: string
+    rsvpPageConfig?: {
+      headline?: BilingualText
+      welcomeMessage?: BilingualText
+      backgroundImage?: string
+      showServiceDetails?: boolean
+    }
+    serviceAllocations?: Record<string, unknown>
+  }
+}
+
+interface RsvpPageProps {
+  token: string
+  locale: string
+}
+
+function getLocalizedText(text: BilingualText | undefined, locale: string): string {
+  if (!text) return ""
+  return (locale === "ar" ? text.ar : text.en) || text.en || ""
+}
+
+export function RsvpPage({ token, locale }: RsvpPageProps) {
+  const t = useTranslations("rsvp")
+  const tCommon = useTranslations("common")
+  const [guestData, setGuestData] = useState<GuestData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Reference to get dynamic form data
+  const dynamicFormRef = useRef<DynamicFormRef | null>(null)
+
+  // Language toggle - allows switching between EN/AR without URL change
+  const [displayLocale, setDisplayLocale] = useState<"en" | "ar">(locale as "en" | "ar")
+  const isRtl = displayLocale === "ar"
+
+  // Form for response status and legacy fallback fields
+  const form = useForm<RsvpFormData>({
+    resolver: zodResolver(rsvpFormSchema),
+    defaultValues: {
+      responseStatus: "confirmed",
+      companionInfo: {
+        bringing: false,
+      },
+    },
+  })
+
+  const watchResponseStatus = form.watch("responseStatus")
+  const watchBringingCompanion = form.watch("companionInfo.bringing")
+
+  useEffect(() => {
+    async function fetchGuest() {
+      try {
+        const res = await fetch(`/api/rsvp/${token}`)
+        if (!res.ok) {
+          const data = await res.json()
+          if (data.code === "EXPIRED") {
+            setError(t("expired"))
+          } else {
+            setError(data.error || "Invalid RSVP link")
+          }
+          return
+        }
+        const data = await res.json()
+        setGuestData(data)
+
+        // Pre-fill form with existing data
+        if (data.guest.dietaryRequirements) {
+          form.setValue("dietaryRequirements", data.guest.dietaryRequirements)
+        }
+        if (data.guest.accessibilityNeeds) {
+          form.setValue("accessibilityNeeds", data.guest.accessibilityNeeds)
+        }
+        if (data.guest.hasCompanion && data.guest.companionDetails) {
+          form.setValue("companionInfo", {
+            bringing: true,
+            details: [
+              {
+                name: data.guest.companionDetails.name,
+                dietary: data.guest.companionDetails.dietaryRequirements,
+              },
+            ],
+          })
+        }
+      } catch {
+        setError("Failed to load RSVP page")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchGuest()
+  }, [token, form, t])
+
+  async function onSubmit(data: RsvpFormData) {
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const hasFormConfig = !!guestData?.event.rsvpFormConfig?.sections?.length
+
+      // Build submission payload
+      const payload: Record<string, unknown> = {
+        responseStatus: data.responseStatus,
+      }
+
+      if (hasFormConfig && dynamicFormRef.current && data.responseStatus !== "declined") {
+        // Use data from dynamic form renderer
+        const dynamicData = dynamicFormRef.current.getFormData()
+        payload.standardResponses = dynamicData.standardResponses
+        payload.customResponses = dynamicData.customResponses
+      } else {
+        // Legacy fallback - use form data directly
+        payload.dietaryRequirements = data.dietaryRequirements
+        payload.accessibilityNeeds = data.accessibilityNeeds
+        payload.companionInfo = data.companionInfo
+      }
+
+      const res = await fetch(`/api/rsvp/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Failed to submit RSVP")
+      }
+
+      setSubmitted(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit RSVP")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <p>{tCommon("loading")}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <p className="text-center text-destructive">{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!guestData) {
+    return null
+  }
+
+  // Check if guest has already responded - block resubmission if amendments not allowed
+  const allowAmendments = guestData.event.rsvpFormConfig?.settings?.allowAmendments ?? false
+
+  if (guestData.guest.rsvpRespondedAt && !allowAmendments) {
+    const { guest, event, category } = guestData
+    const previousStatus = guest.status as "confirmed" | "declined" | "maybe"
+
+    // Use resolved branding with fallbacks
+    const brandLogo = event.resolvedBranding?.logo || event.branding?.logo || event.organization?.logo
+    const brandAccent = event.resolvedBranding?.accentColor || event.branding?.secondaryColor
+
+    // Inline translations for displayLocale (since t() uses URL locale, not toggled locale)
+    const alreadyRespondedText = {
+      title: displayLocale === "ar" ? "تم إرسال الرد مسبقاً" : "Response Already Submitted",
+      message: displayLocale === "ar"
+        ? "لقد قمت بإرسال ردك على هذه الفعالية."
+        : "You have already submitted your RSVP for this event.",
+      yourResponse: displayLocale === "ar" ? "ردك" : "Your response",
+      contactToChange: displayLocale === "ar"
+        ? "إذا كنت ترغب في تغيير ردك، يرجى التواصل مع منظم الفعالية."
+        : "If you need to change your response, please contact the event organizer.",
+      confirmed: displayLocale === "ar" ? "تأكيد الحضور" : "Confirmed",
+      declined: displayLocale === "ar" ? "اعتذار" : "Declined",
+      maybe: displayLocale === "ar" ? "ربما" : "Maybe",
+    }
+
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center p-4"
+        dir={isRtl ? "rtl" : "ltr"}
+        style={{
+          backgroundColor: brandAccent || undefined,
+          backgroundImage: category.rsvpPageConfig?.backgroundImage
+            ? `url(${category.rsvpPageConfig.backgroundImage})`
+            : undefined,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <Card className="w-full max-w-md relative">
+          {/* Language toggle */}
+          <button
+            type="button"
+            onClick={() => setDisplayLocale(prev => prev === "en" ? "ar" : "en")}
+            className="absolute top-4 right-4 text-sm text-muted-foreground hover:text-foreground transition-colors z-10"
+          >
+            {displayLocale === "en" ? "العربية" : "English"}
+          </button>
+
+          <CardContent className="pt-6 text-center">
+            {brandLogo && (
+              <img
+                src={brandLogo}
+                alt={event.organization?.name || event.name}
+                className="mx-auto mb-4 h-16 object-contain"
+              />
+            )}
+            <h2 className="text-2xl font-bold">
+              {alreadyRespondedText.title}
+            </h2>
+            <p className="mt-2 text-muted-foreground">
+              {alreadyRespondedText.message}
+            </p>
+
+            {/* Show their previous response */}
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                {alreadyRespondedText.yourResponse}:
+              </p>
+              <p className="font-semibold text-lg">
+                {alreadyRespondedText[previousStatus] || previousStatus}
+              </p>
+            </div>
+
+            <p className="mt-4 text-sm text-muted-foreground">
+              {alreadyRespondedText.contactToChange}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (submitted) {
+    const status = form.getValues("responseStatus")
+    const config = guestData.event.rsvpFormConfig
+
+    // Get confirmation message from config or use default
+    let confirmationMessage: string
+    if (status === "confirmed") {
+      confirmationMessage = config?.settings?.confirmationMessage
+        ? getLocalizedText(config.settings.confirmationMessage, displayLocale)
+        : t("confirmation.confirmed")
+    } else if (status === "declined") {
+      confirmationMessage = config?.settings?.declineMessage
+        ? getLocalizedText(config.settings.declineMessage, displayLocale)
+        : t("confirmation.declined")
+    } else {
+      confirmationMessage = t("confirmation.maybe")
+    }
+
+    // Use resolved branding with fallbacks
+    const brandLogo = guestData.event.resolvedBranding?.logo || guestData.event.branding?.logo || guestData.event.organization?.logo
+    const brandAccent = guestData.event.resolvedBranding?.accentColor || guestData.event.branding?.secondaryColor
+
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center p-4"
+        dir={isRtl ? "rtl" : "ltr"}
+        style={{
+          backgroundColor: brandAccent || undefined,
+          backgroundImage: guestData.category.rsvpPageConfig?.backgroundImage
+            ? `url(${guestData.category.rsvpPageConfig.backgroundImage})`
+            : undefined,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            {brandLogo && (
+              <img
+                src={brandLogo}
+                alt={guestData.event.organization?.name || guestData.event.name}
+                className="mx-auto mb-4 h-12 object-contain"
+              />
+            )}
+            <h2 className="text-2xl font-bold">{t("submitted")}</h2>
+            <p className="mt-2 text-muted-foreground">{confirmationMessage}</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const { guest, event, category } = guestData
+  const guestFullName = `${guest.title ? guest.title + " " : ""}${guest.firstName} ${guest.lastName}`
+
+  // Get localized welcome message (uses displayLocale for language toggle)
+  const welcomeMessage =
+    category.rsvpPageConfig?.welcomeMessage?.[displayLocale] ||
+    category.rsvpPageConfig?.welcomeMessage?.en
+
+  const headline =
+    category.rsvpPageConfig?.headline?.[displayLocale] ||
+    category.rsvpPageConfig?.headline?.en
+
+  const allowPlusOne = event.settings?.allowPlusOne ?? false
+  const hasFormConfig = !!event.rsvpFormConfig?.sections?.length
+
+  // Get submit button text from config or use default
+  const submitButtonText = event.rsvpFormConfig?.settings?.submitButtonText
+    ? getLocalizedText(event.rsvpFormConfig.settings.submitButtonText, displayLocale)
+    : tCommon("submit")
+
+  // Use resolved branding with fallbacks
+  const brandLogo = event.resolvedBranding?.logo || event.branding?.logo || event.organization?.logo
+  const brandPrimary = event.resolvedBranding?.primaryColor || event.branding?.primaryColor
+  const brandAccent = event.resolvedBranding?.accentColor || event.branding?.secondaryColor
+
+  return (
+    <div
+      className="flex min-h-screen items-center justify-center p-4"
+      dir={isRtl ? "rtl" : "ltr"}
+      style={{
+        backgroundColor: brandAccent || "#f5f5f5",
+        backgroundImage: category.rsvpPageConfig?.backgroundImage
+          ? `url(${category.rsvpPageConfig.backgroundImage})`
+          : undefined,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <Card className="w-full max-w-2xl relative">
+        {/* Language toggle */}
+        <button
+          type="button"
+          onClick={() => setDisplayLocale(prev => prev === "en" ? "ar" : "en")}
+          className="absolute top-4 right-4 text-sm text-muted-foreground hover:text-foreground transition-colors z-10"
+        >
+          {displayLocale === "en" ? "العربية" : "English"}
+        </button>
+
+        <CardHeader className="text-center">
+          {brandLogo && (
+            <img
+              src={brandLogo}
+              alt={event.organization?.name || event.name}
+              className="mx-auto mb-4 h-16 object-contain"
+            />
+          )}
+          <CardTitle className="text-2xl">{headline || event.name}</CardTitle>
+          <CardDescription className="mt-2">
+            {welcomeMessage || `Dear ${guestFullName}, you are invited to ${event.name}`}
+          </CardDescription>
+
+          {/* Event details */}
+          <div className="mt-4 space-y-1 text-sm text-muted-foreground">
+            {event.venue && (
+              <p>
+                <strong>{isRtl ? "المكان:" : "Venue:"}</strong> {event.venue}
+              </p>
+            )}
+            {event.startDate && (
+              <p>
+                <strong>{isRtl ? "التاريخ:" : "Date:"}</strong>{" "}
+                {new Date(event.startDate).toLocaleDateString(displayLocale, {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            )}
+            {event.rsvpDeadline && (
+              <p className="text-destructive">
+                <strong>{t("deadline")}:</strong>{" "}
+                {new Date(event.rsvpDeadline).toLocaleDateString(displayLocale, {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Response status selection */}
+              <FormField
+                control={form.control}
+                name="responseStatus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("title")}</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-2"
+                      >
+                        <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
+                          <FormControl>
+                            <RadioGroupItem value="confirmed" />
+                          </FormControl>
+                          <FormLabel className="font-normal">{t("confirm")}</FormLabel>
+                        </FormItem>
+                        <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
+                          <FormControl>
+                            <RadioGroupItem value="declined" />
+                          </FormControl>
+                          <FormLabel className="font-normal">{t("decline")}</FormLabel>
+                        </FormItem>
+                        <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
+                          <FormControl>
+                            <RadioGroupItem value="maybe" />
+                          </FormControl>
+                          <FormLabel className="font-normal">{t("maybe")}</FormLabel>
+                        </FormItem>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Show form fields only when not declined */}
+              {watchResponseStatus !== "declined" && (
+                <>
+                  {hasFormConfig ? (
+                    /* Dynamic form renderer for events with form config */
+                    <DynamicFormRenderer
+                      config={event.rsvpFormConfig!}
+                      categoryId={category.id}
+                      locale={displayLocale}
+                      onSubmit={async () => {}}
+                      disabled={submitting}
+                      embedded
+                      formRef={dynamicFormRef}
+                    />
+                  ) : (
+                    /* Legacy fallback fields for events without form config */
+                    <>
+                      {/* Companion section - only show if event allows plus ones */}
+                      {allowPlusOne && (
+                        <div className="space-y-4 rounded-lg border p-4">
+                          <FormField
+                            control={form.control}
+                            name="companionInfo.bringing"
+                            render={({ field }) => (
+                              <FormItem className={cn("flex flex-row items-start space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>{t("companion.bringing")}</FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
+                          {watchBringingCompanion && (
+                            <div className="space-y-4 pt-2">
+                              <div className="space-y-2">
+                                <Label>{t("companion.name")}</Label>
+                                <Input
+                                  placeholder={t("companion.name")}
+                                  {...form.register("companionInfo.details.0.name")}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>{t("companion.dietary")}</Label>
+                                <Input
+                                  placeholder={t("companion.dietary")}
+                                  {...form.register("companionInfo.details.0.dietary")}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Dietary requirements */}
+                      <FormField
+                        control={form.control}
+                        name="dietaryRequirements"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {isRtl ? "متطلبات غذائية خاصة" : "Dietary Requirements"}
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder={
+                                  isRtl
+                                    ? "أي حساسية أو متطلبات غذائية خاصة"
+                                    : "Any allergies or dietary restrictions"
+                                }
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Accessibility needs */}
+                      <FormField
+                        control={form.control}
+                        name="accessibilityNeeds"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {isRtl ? "احتياجات خاصة" : "Accessibility Requirements"}
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder={
+                                  isRtl
+                                    ? "أي احتياجات خاصة للوصول أو التنقل"
+                                    : "Any accessibility or mobility requirements"
+                                }
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                </>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={submitting}
+                style={brandPrimary ? { backgroundColor: brandPrimary } : undefined}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className={cn("h-4 w-4 animate-spin", isRtl ? "ml-2" : "mr-2")} />
+                    {tCommon("loading")}
+                  </>
+                ) : (
+                  submitButtonText
+                )}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
