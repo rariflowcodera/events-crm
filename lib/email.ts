@@ -1,5 +1,3 @@
-import "server-only"
-
 import { SMTP_FROM_ENV, SMTP_HOST_ENV, SMTP_PASS_ENV, SMTP_PORT_ENV, SMTP_USER_ENV } from "@/env"
 import nodemailer from "nodemailer"
 
