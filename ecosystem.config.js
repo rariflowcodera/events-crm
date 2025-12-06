@@ -9,7 +9,7 @@
  *
  * Logs:          pm2 logs
  * Status:        pm2 status
- * Restart:       pm2 restart all
+ * Restart:       deploypm2 restart all
  * Stop:          pm2 stop all
  */
 
