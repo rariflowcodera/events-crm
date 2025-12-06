@@ -44,8 +44,8 @@ jobs:
         run: |
           mkdir deploy_package
           cp -r .next public package.json next.config.ts ecosystem.config.js deploy_package/
-          # We copy node_modules so the server doesn't need to reinstall/build anything
-          cp -r node_modules deploy_package/
+          # We DO NOT copy node_modules to save upload time. 
+          # We will install them on the server.
 
       - name: Deploy to Server via rsync
         uses: easingthemes/ssh-deploy@main
@@ -56,10 +56,12 @@ jobs:
           REMOTE_HOST: ${{ secrets.SSH_HOST }}
           REMOTE_USER: ${{ secrets.SSH_USER }}
           REMOTE_PORT: ${{ secrets.SSH_PORT }}
-          # IMPORTANT: We deploy to your home directory, NOT the /var/www/... path
           TARGET: "/home/jelastic/ROOT/" 
           SCRIPT_AFTER: |
             cd /home/jelastic/ROOT
-            # Restart App
+            echo "Installing production dependencies on server..."
+            pnpm install --prod --frozen-lockfile
+            
+            echo "Restarting application..."
             pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
             echo "Deployment Complete!"
