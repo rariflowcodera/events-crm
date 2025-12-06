@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     const generatedFilename = getFilename(file.name)
 
     // Create upload directory if it doesn't exist
-    const uploadDir = path.join(process.cwd(), "public", "uploads", user.id)
+    const uploadDir = path.join(process.cwd(), "uploads", user.id)
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true })
     }
@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer())
     fs.writeFileSync(filePath, buffer)
 
-    // Return the public URL path
-    const imageUrl = `/uploads/${user.id}/${generatedFilename}`
+    // Return the API URL path to serve the file
+    const imageUrl = `/api/uploads/${user.id}/${generatedFilename}`
 
     return responses.successResponse({ imageUrl }, "Image uploaded successfully")
   } catch (error: any) {
