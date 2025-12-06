@@ -46,8 +46,8 @@ jobs:
           # Remove cache to speed up upload
           rm -rf .next/cache
           
-          # Copy essential files + LOCKFILE + TSCONFIG
-          cp -r .next public package.json pnpm-lock.yaml tsconfig.json next.config.ts ecosystem.config.js deploy_package/
+          # Copy essential files + LOCKFILE + TSCONFIG + SOURCE (for seeding/workers)
+          cp -r .next public package.json pnpm-lock.yaml tsconfig.json next.config.ts ecosystem.config.js server deploy_package/
           
           # We DO NOT copy node_modules to save upload time. 
           # We will install them on the server.
