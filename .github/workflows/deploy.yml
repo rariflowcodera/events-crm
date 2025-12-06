@@ -43,10 +43,12 @@ jobs:
       - name: Prepare deployment artifacts
         run: |
           mkdir deploy_package
-          # Remove cache to speed up upload (it contains thousands of small files)
+          # Remove cache to speed up upload
           rm -rf .next/cache
           
-          cp -r .next public package.json next.config.ts ecosystem.config.js deploy_package/
+          # Copy essential files + LOCKFILE
+          cp -r .next public package.json pnpm-lock.yaml next.config.ts ecosystem.config.js deploy_package/
+          
           # We DO NOT copy node_modules to save upload time. 
           # We will install them on the server.
 
