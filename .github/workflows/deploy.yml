@@ -63,13 +63,17 @@ jobs:
           REMOTE_PORT: ${{ secrets.SSH_PORT }}
           TARGET: "/home/jelastic/ROOT/" 
           SCRIPT_AFTER: |
+            export PATH=$PATH:/home/jelastic/.local/share/pnpm:/home/jelastic/.nvm/versions/node/v20.18.0/bin
             cd /home/jelastic/ROOT
+            
             echo "Creating logs directory..."
             mkdir -p logs
             
             echo "Installing ALL dependencies (needed for tsx/worker)..."
-            pnpm install --frozen-lockfile
+            # Try to install dependencies, retry once if fails
+            pnpm install --frozen-lockfile || { echo "Retry pnpm install..."; pnpm install --frozen-lockfile; }
             
             echo "Restarting application..."
-            pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
+            # Update env to pick up new port configs
+            pm2 restart ecosystem.config.js --update-env || pm2 start ecosystem.config.js
             echo "Deployment Complete!"
