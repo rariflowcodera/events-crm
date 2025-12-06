@@ -92,26 +92,31 @@ git push origin prod  # → Deploys to PROD
 
 ## 3. Server Setup (One-Time)
 
-### 3.1 Install Redis on App Server
+### 3.1 Create Redis Node on PaaS
 
+Create a managed Redis 7.x node in v2 Cloud SA (recommended over self-hosting):
+
+1. Go to **NoSQL Databases** in v2 Cloud SA dashboard
+2. Click **Create** and select **Redis 7.x**
+3. Configure:
+   - **Name**: `events-crm-redis` (or per environment: `events-crm-redis-dev`)
+   - **Resources**: Start with 256MB RAM (scale as needed)
+   - **Network**: Same VPC as app server (e.g., `10.100.2.x` range)
+4. Note the **Private IP** and **Port** (default: 6379)
+5. If password is required, note the **Auth Password**
+
+**Verify connection** (from app server):
 ```bash
 ssh user@10.100.2.248
-
-# Install Redis
-sudo apt update
-sudo apt install -y redis-server
-
-# Configure for local access only
-sudo sed -i 's/^bind .*/bind 127.0.0.1/' /etc/redis/redis.conf
-sudo sed -i 's/^# maxmemory .*/maxmemory 256mb/' /etc/redis/redis.conf
-
-# Enable and start
-sudo systemctl enable redis-server
-sudo systemctl start redis-server
-
-# Verify
-redis-cli ping  # → PONG
+redis-cli -h 10.100.2.XXX ping  # Replace XXX with Redis node IP
+# Should return: PONG
 ```
+
+**Why managed Redis?**
+- Separation of concerns - app server focuses on running the application
+- Easier maintenance - PaaS handles updates, monitoring, backups
+- Better reliability - dedicated resources, no competition with app
+- Scalability - upgrade Redis independently of app server
 
 ### 3.2 Install Dependencies
 
@@ -151,8 +156,9 @@ Set these in v2 Cloud SA config panel (not in git):
 DATABASE_URL=postgresql://user:pass@10.100.2.231:5432/events_crm_dev
 DATABASE_SSL=true
 
-# Redis (local to app server)
-REDIS_URL=redis://localhost:6379
+# Redis (managed node on PaaS)
+REDIS_URL=redis://10.100.2.XXX:6379
+# Or with password: redis://:your-password@10.100.2.XXX:6379
 
 # SMTP
 SMTP_HOST=smtp.yourprovider.sa
@@ -326,8 +332,8 @@ pm2 start ecosystem.config.js
 # Check worker logs
 pm2 logs events-crm-worker
 
-# Verify Redis connection
-redis-cli ping
+# Verify Redis connection (use Redis node IP)
+redis-cli -h 10.100.2.XXX ping
 
 # Check queue status (in app code or Drizzle Studio)
 ```
@@ -337,7 +343,7 @@ redis-cli ping
 ## 10. Deployment Checklist
 
 ### Before First Deploy
-- [ ] Redis installed on app server
+- [ ] Redis 7.x node created on PaaS (same VPC as app server)
 - [ ] Databases created (dev, test, prod)
 - [ ] Environment variables configured
 - [ ] Git-Push-Deploy add-on installed

@@ -90,26 +90,31 @@ git push origin dev
 
 ## PHASE 2: Server Infrastructure Setup
 
-### Step 2.1: Install Redis on App Server
+### Step 2.1: Create Redis Node on PaaS
 
+Create a managed Redis 7.x node in v2 Cloud SA (recommended over self-hosting on app server):
+
+1. Go to **NoSQL Databases** in v2 Cloud SA dashboard
+2. Click **Create** and select **Redis 7.x**
+3. Configure:
+   - **Name**: `events-crm-redis-dev` (create separate nodes for test/prod)
+   - **Resources**: Start with 256MB RAM (scale as needed)
+   - **Network**: Same VPC as app server (e.g., `10.100.2.x` range)
+4. Note the **Private IP** (e.g., `10.100.2.XXX`) and **Port** (default: 6379)
+5. If password is required, note the **Auth Password**
+
+**Verify connection** (from app server):
 ```bash
 ssh user@10.100.2.248
-
-# Install Redis
-sudo apt update
-sudo apt install -y redis-server
-
-# Configure for local access only
-sudo sed -i 's/^bind .*/bind 127.0.0.1/' /etc/redis/redis.conf
-sudo sed -i 's/^# maxmemory .*/maxmemory 256mb/' /etc/redis/redis.conf
-
-# Enable and start
-sudo systemctl enable redis-server
-sudo systemctl start redis-server
-
-# Verify
-redis-cli ping  # Should return: PONG
+redis-cli -h 10.100.2.XXX ping  # Replace XXX with your Redis node IP
+# Should return: PONG
 ```
+
+**Why managed Redis?**
+- Separation of concerns - app server focuses on running the application
+- Easier maintenance - PaaS handles updates, monitoring, backups
+- Better reliability - dedicated resources, no competition with app processes
+- Scalability - upgrade Redis independently of app server
 
 ### Step 2.2: Install Node.js, pnpm, PM2
 
@@ -173,8 +178,9 @@ Set these in v2 Cloud SA config panel (NOT in git):
 DATABASE_URL=postgresql://events_dev:password@10.100.2.231:5432/events_crm_dev
 DATABASE_SSL=false  # or true if using SSL between servers
 
-# Redis (local to app server)
-REDIS_URL=redis://localhost:6379
+# Redis (managed node on PaaS - use the private IP from Step 2.1)
+REDIS_URL=redis://10.100.2.XXX:6379
+# Or with password: redis://:your-password@10.100.2.XXX:6379
 
 # SMTP (get from your provider)
 SMTP_HOST=smtp.yourprovider.sa
@@ -343,7 +349,7 @@ lsof -i :3000  # Check if port is in use
 
 ```bash
 pm2 logs events-crm-worker
-redis-cli ping  # Verify Redis is running
+redis-cli -h 10.100.2.XXX ping  # Verify Redis connection (use your Redis node IP)
 ```
 
 ---
@@ -352,7 +358,7 @@ redis-cli ping  # Verify Redis is running
 
 ### Before First Deploy
 
-- [ ] Redis installed on app server
+- [ ] Redis 7.x node created on PaaS (same VPC as app server)
 - [ ] Databases created (dev, test, prod)
 - [ ] Environment variables configured in v2 Cloud SA
 - [ ] Git-Push-Deploy add-on installed (optional)
