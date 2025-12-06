@@ -10,11 +10,15 @@ const MIME_TYPES: Record<string, string> = {
   ".webp": "image/webp",
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ userId: string; filename: string }> }
-) {
-  const { userId, filename } = await params
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams
+  const userId = searchParams.get("user")
+  const filename = searchParams.get("name")
+
+  if (!userId || !filename) {
+    return new NextResponse("Missing user or name parameter", { status: 400 })
+  }
+
   const filePath = path.join(process.cwd(), "uploads", userId, filename)
 
   // Security: prevent directory traversal

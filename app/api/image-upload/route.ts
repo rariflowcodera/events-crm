@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       return responses.successResponse(
         {
           uploadUrl: `/api/local-upload`,
-          imageUrl: `/api/uploads/${user.id}/${generatedFilename}`,
+          imageUrl: `/api/file?user=${user.id}&name=${generatedFilename}`,
           storageProvider: "local",
         },
         "Ready for local upload"

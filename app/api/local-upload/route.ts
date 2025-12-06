@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     fs.writeFileSync(filePath, buffer)
 
     // Return the API URL path to serve the file
-    const imageUrl = `/api/uploads/${user.id}/${generatedFilename}`
+    const imageUrl = `/api/file?user=${user.id}&name=${generatedFilename}`
 
     return responses.successResponse({ imageUrl }, "Image uploaded successfully")
   } catch (error: any) {
