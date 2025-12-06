@@ -17,6 +17,8 @@ Build the admin dashboard UI for managing events and guests, aligned with Phase 
 | Excel Import | Include in MVP | Critical for testing with real data |
 | Modal Pattern | Sheet (slide-in) | Matches existing workspace modals |
 | State Management | URL state (nuqs) | Shareable/bookmarkable filter URLs |
+| Import Duplicates | Detect in preview, skip on import | User sees issues before committing, first occurrence wins |
+| Email Comparison | Case-insensitive | Standard email handling, avoids user confusion |
 
 ---
 
@@ -442,17 +444,27 @@ Excel Column          →    Guest Field
 - If category column is mapped, per-row category codes are used when valid
 - Invalid category codes skip the row with warning
 
-**Step 4: Preview**
-- Show first 5 rows with Name, Email, Entity, Category columns
-- Show total count
+**Step 4: Preview with Duplicate Detection**
+- Show first 5 rows with Name, Email, Entity, Category, Status columns
+- Duplicate detection runs automatically when entering preview:
+  - **Within-file duplicates**: Detected client-side (case-insensitive email comparison)
+  - **Existing guests**: Server-side check via `guests.checkExistingEmails` endpoint
+- Warning banners show duplicate counts with explanations
+- Duplicate rows displayed with reduced opacity and badge indicators ("Exists" or "Duplicate")
+- Import button shows actual count of valid guests (excluding duplicates)
+- Import button disabled if no valid guests remain
 
 **Step 5: Import**
 - Progress bar
 - Real-time count (50 of 200 imported)
-- Error summary at end showing skipped rows:
-  - Missing/invalid email count
-  - Invalid category count
-  - Missing name count
+- Automatically filters out:
+  - Within-file duplicates (first occurrence imported, others skipped)
+  - Emails that already exist in the event's guest list
+- Completion summary shows:
+  - Successfully imported count
+  - Skipped (duplicate in file) count
+  - Skipped (already exists) count
+  - Other validation errors (missing name, invalid email, invalid category)
 
 ### Import tRPC Router (New)
 
@@ -530,6 +542,11 @@ const handleDragEnd = (event) => {
 
 ### tRPC Endpoints Used
 
+**Import:**
+- `guests.bulkCreate({ eventId, guests })` - Bulk import guests
+- `guests.checkExistingEmails({ eventId, emails })` - Check for duplicate emails (used in preview step)
+
+**Categories:**
 - `guestCategories.getMany({ eventId })` - List categories
 - `guestCategories.create({ ... })` - Add category
 - `guestCategories.update({ categoryId, ... })` - Edit category
@@ -649,6 +666,10 @@ After completing Stage 5:
 - [x] Download template with sample data (category codes pre-filled)
 - [x] Category column support in import (per-row category assignment)
 - [x] Email required validation on import
+- [x] Duplicate detection in preview (within-file and existing guests)
+- [x] Duplicate rows shown with visual indicators in preview
+- [x] Import filters duplicates automatically (first occurrence only)
+- [x] Completion summary shows skipped duplicate counts
 - [ ] Drag-reorder UI (endpoint exists, UI not implemented - future enhancement)
 - [x] Cannot delete category with guests
 
@@ -726,8 +747,15 @@ After Stage 5, the foundation is complete for Phase 1 requirements:
   - Auto-detect column mapping
   - Column mapping UI
   - Default category selection
-  - Preview before import
+  - Preview with duplicate detection
   - Progress indicator
+- Duplicate detection:
+  - Within-file duplicates detected client-side (case-insensitive)
+  - Existing guests checked via `guests.checkExistingEmails` endpoint
+  - Warning banners in preview showing duplicate counts
+  - Visual indicators on duplicate rows (badges + reduced opacity)
+  - First occurrence imported, subsequent duplicates skipped
+  - Completion summary shows skipped counts by reason
 - Category management:
   - Add/Edit/Delete categories
   - Color picker with presets

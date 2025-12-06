@@ -684,4 +684,59 @@ export const guestsRouter = createTRPCRouter({
         importBatchId: batchId,
       }
     }),
+
+  // Check which emails already exist in the event (for import duplicate detection)
+  checkExistingEmails: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        emails: z.array(z.string()).max(1000),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, input.eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      // Check permission
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_EVENT,
+      })
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have permission to manage guests for this event",
+        })
+      }
+
+      // Get all guests for this event
+      const existingGuests = await db.query.guests.findMany({
+        where: eq(guests.eventId, input.eventId),
+        columns: { email: true },
+      })
+
+      // Normalize input emails to lowercase for comparison
+      const normalizedInputEmails = input.emails.map((e) =>
+        e.toLowerCase().trim()
+      )
+
+      // Find which input emails exist (case-insensitive)
+      const existingEmailsSet = new Set(
+        existingGuests
+          .map((g) => g.email?.toLowerCase())
+          .filter((e): e is string => !!e)
+      )
+
+      const duplicateEmails = normalizedInputEmails.filter((e) =>
+        existingEmailsSet.has(e)
+      )
+
+      return { existingEmails: [...new Set(duplicateEmails)] }
+    }),
 })

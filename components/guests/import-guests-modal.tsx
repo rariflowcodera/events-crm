@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { useTranslations } from "next-intl"
 import * as XLSX from "xlsx"
 
+import { trpc } from "@/trpc/client"
 import { useBulkCreateGuests } from "@/trpc/hooks/guests-hooks"
 import {
   Sheet,
@@ -33,6 +34,7 @@ import { Icons } from "@/components/global/icons"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 
 interface GuestCategory {
   id: string
@@ -107,14 +109,28 @@ export function ImportGuestsModal({
     categories.length > 0 ? categories[0].id : ""
   )
   const [importProgress, setImportProgress] = useState(0)
-  const [importResult, setImportResult] = useState<{ success: number; errors: string[] }>({
+  const [importResult, setImportResult] = useState<{
+    success: number
+    errors: string[]
+    skippedDuplicateInFile: number
+    skippedExisting: number
+  }>({
     success: 0,
     errors: [],
+    skippedDuplicateInFile: 0,
+    skippedExisting: 0,
   })
+
+  // Duplicate detection state
+  const [duplicateInfo, setDuplicateInfo] = useState<{
+    withinFile: Map<string, number[]> // email -> row indices (all occurrences)
+    existingGuests: Set<string> // emails that exist in DB (lowercase)
+    isChecking: boolean
+  }>({ withinFile: new Map(), existingGuests: new Set(), isChecking: false })
 
   const { mutate: bulkCreate, isPending } = useBulkCreateGuests({
     onSuccess: (data) => {
-      setImportResult({ success: data.createdCount, errors: [] })
+      setImportResult((prev) => ({ ...prev, success: data.createdCount }))
       setStep("complete")
     },
     onError: () => {
@@ -212,10 +228,132 @@ export function ImportGuestsModal({
   }
 
   // Helper to find category by code (case-insensitive)
-  const findCategoryByCode = useCallback((code: string) => {
-    const normalizedCode = code.trim().toUpperCase()
-    return categories.find((cat) => cat.code.toUpperCase() === normalizedCode)
-  }, [categories])
+  const findCategoryByCode = useCallback(
+    (code: string) => {
+      const normalizedCode = code.trim().toUpperCase()
+      return categories.find((cat) => cat.code.toUpperCase() === normalizedCode)
+    },
+    [categories]
+  )
+
+  // Detect duplicates within the file (case-insensitive)
+  const detectWithinFileDuplicates = useCallback(
+    (data: ParsedRow[]) => {
+      const emailToRows = new Map<string, number[]>()
+
+      data.forEach((row, index) => {
+        const email = String(row[mapping.email] || "")
+          .toLowerCase()
+          .trim()
+        if (email) {
+          const existing = emailToRows.get(email) || []
+          emailToRows.set(email, [...existing, index])
+        }
+      })
+
+      // Keep only emails with multiple occurrences
+      const duplicates = new Map<string, number[]>()
+      emailToRows.forEach((rows, email) => {
+        if (rows.length > 1) duplicates.set(email, rows)
+      })
+
+      return duplicates
+    },
+    [mapping.email]
+  )
+
+  // tRPC utilities for checking existing emails
+  const utils = trpc.useUtils()
+
+  // Check for duplicates when transitioning to preview
+  const handlePreviewClick = useCallback(async () => {
+    setDuplicateInfo((prev) => ({ ...prev, isChecking: true }))
+
+    // 1. Client-side: detect within-file duplicates
+    const withinFile = detectWithinFileDuplicates(parsedData)
+
+    // 2. Server-side: check existing emails
+    const allEmails = parsedData
+      .map((row) => String(row[mapping.email] || "").toLowerCase().trim())
+      .filter(Boolean)
+    const uniqueEmails = [...new Set(allEmails)]
+
+    try {
+      const { existingEmails } = await utils.guests.checkExistingEmails.fetch({
+        eventId,
+        emails: uniqueEmails,
+      })
+
+      setDuplicateInfo({
+        withinFile,
+        existingGuests: new Set(existingEmails),
+        isChecking: false,
+      })
+    } catch {
+      // If check fails, proceed without existing guest info
+      setDuplicateInfo({
+        withinFile,
+        existingGuests: new Set(),
+        isChecking: false,
+      })
+    }
+
+    setStep("preview")
+  }, [detectWithinFileDuplicates, parsedData, mapping.email, eventId, utils])
+
+  // Calculate import counts with duplicate filtering
+  const importCounts = useMemo(() => {
+    const seenEmails = new Set<string>()
+    let validCount = 0
+    let duplicateInFileCount = 0
+    let existingCount = 0
+
+    parsedData.forEach((row) => {
+      const email = String(row[mapping.email] || "")
+        .toLowerCase()
+        .trim()
+
+      if (!email) return
+
+      // Check if this is a within-file duplicate (not the first occurrence)
+      if (seenEmails.has(email)) {
+        duplicateInFileCount++
+        return
+      }
+      seenEmails.add(email)
+
+      // Check if exists in database
+      if (duplicateInfo.existingGuests.has(email)) {
+        existingCount++
+        return
+      }
+
+      validCount++
+    })
+
+    return { validCount, duplicateInFileCount, existingCount }
+  }, [parsedData, mapping.email, duplicateInfo.existingGuests])
+
+  // Check if a row is a duplicate (for preview display)
+  const getRowDuplicateStatus = useCallback(
+    (rowIndex: number, email: string) => {
+      const normalizedEmail = email.toLowerCase().trim()
+
+      // Check if exists in database
+      if (duplicateInfo.existingGuests.has(normalizedEmail)) {
+        return "existing"
+      }
+
+      // Check if it's a within-file duplicate (not the first occurrence)
+      const occurrences = duplicateInfo.withinFile.get(normalizedEmail)
+      if (occurrences && occurrences.length > 1 && occurrences[0] !== rowIndex) {
+        return "duplicate"
+      }
+
+      return null
+    },
+    [duplicateInfo]
+  )
 
   // Handle import
   const handleImport = useCallback(() => {
@@ -227,12 +365,16 @@ export function ImportGuestsModal({
     let skippedMissingEmail = 0
     let skippedInvalidCategory = 0
     let skippedMissingName = 0
+    let skippedDuplicateInFile = 0
+    let skippedExisting = 0
+    const seenEmails = new Set<string>()
 
     const guests = parsedData
       .filter((row) => {
         const firstName = String(row[mapping.firstName] || "").trim()
         const lastName = String(row[mapping.lastName] || "").trim()
         const email = String(row[mapping.email] || "").trim()
+        const normalizedEmail = email.toLowerCase()
 
         // Check required fields
         if (!firstName || !lastName) {
@@ -243,6 +385,19 @@ export function ImportGuestsModal({
         // Email is now required
         if (!email || !isValidEmail(email)) {
           skippedMissingEmail++
+          return false
+        }
+
+        // Skip duplicate emails within file (keep first only)
+        if (seenEmails.has(normalizedEmail)) {
+          skippedDuplicateInFile++
+          return false
+        }
+        seenEmails.add(normalizedEmail)
+
+        // Skip emails that already exist in the database
+        if (duplicateInfo.existingGuests.has(normalizedEmail)) {
+          skippedExisting++
           return false
         }
 
@@ -275,36 +430,76 @@ export function ImportGuestsModal({
           firstName: String(row[mapping.firstName] || "").trim(),
           lastName: String(row[mapping.lastName] || "").trim(),
           email: String(row[mapping.email] || "").trim(),
-          phone: mapping.phone ? String(row[mapping.phone] || "").trim() || undefined : undefined,
-          position: mapping.position ? String(row[mapping.position] || "").trim() || undefined : undefined,
-          entity: mapping.entity ? String(row[mapping.entity] || "").trim() || undefined : undefined,
-          department: mapping.department ? String(row[mapping.department] || "").trim() || undefined : undefined,
+          phone: mapping.phone
+            ? String(row[mapping.phone] || "").trim() || undefined
+            : undefined,
+          position: mapping.position
+            ? String(row[mapping.position] || "").trim() || undefined
+            : undefined,
+          entity: mapping.entity
+            ? String(row[mapping.entity] || "").trim() || undefined
+            : undefined,
+          department: mapping.department
+            ? String(row[mapping.department] || "").trim() || undefined
+            : undefined,
         }
       })
 
-    const totalSkipped = skippedMissingName + skippedMissingEmail + skippedInvalidCategory
+    const totalSkipped =
+      skippedMissingName +
+      skippedMissingEmail +
+      skippedInvalidCategory +
+      skippedDuplicateInFile +
+      skippedExisting
 
     if (guests.length === 0) {
       const errorMessages: string[] = []
-      if (skippedMissingName > 0) errorMessages.push(`${skippedMissingName} missing name`)
-      if (skippedMissingEmail > 0) errorMessages.push(`${skippedMissingEmail} missing/invalid email`)
-      if (skippedInvalidCategory > 0) errorMessages.push(`${skippedInvalidCategory} invalid category`)
+      if (skippedMissingName > 0)
+        errorMessages.push(`${skippedMissingName} missing name`)
+      if (skippedMissingEmail > 0)
+        errorMessages.push(`${skippedMissingEmail} missing/invalid email`)
+      if (skippedInvalidCategory > 0)
+        errorMessages.push(`${skippedInvalidCategory} invalid category`)
+      if (skippedDuplicateInFile > 0)
+        errorMessages.push(`${skippedDuplicateInFile} duplicate in file`)
+      if (skippedExisting > 0)
+        errorMessages.push(`${skippedExisting} already exist`)
       setImportResult({
         success: 0,
-        errors: [errorMessages.length > 0 ? `Skipped all rows: ${errorMessages.join(", ")}` : "No valid guests found in file"]
+        errors: [
+          errorMessages.length > 0
+            ? `Skipped all rows: ${errorMessages.join(", ")}`
+            : "No valid guests found in file",
+        ],
+        skippedDuplicateInFile,
+        skippedExisting,
       })
       setStep("complete")
       return
     }
 
     // Store skip info for result display
-    const skipInfo = totalSkipped > 0
-      ? `Skipped ${totalSkipped} row${totalSkipped !== 1 ? "s" : ""}: ${[
-          skippedMissingEmail > 0 ? `${skippedMissingEmail} missing/invalid email` : "",
-          skippedInvalidCategory > 0 ? `${skippedInvalidCategory} invalid category` : "",
-          skippedMissingName > 0 ? `${skippedMissingName} missing name` : "",
-        ].filter(Boolean).join(", ")}`
-      : ""
+    const skipInfoParts = [
+      skippedMissingEmail > 0
+        ? `${skippedMissingEmail} missing/invalid email`
+        : "",
+      skippedInvalidCategory > 0
+        ? `${skippedInvalidCategory} invalid category`
+        : "",
+      skippedMissingName > 0 ? `${skippedMissingName} missing name` : "",
+    ].filter(Boolean)
+
+    const skipInfo =
+      skipInfoParts.length > 0
+        ? `Skipped ${
+            skippedMissingEmail + skippedInvalidCategory + skippedMissingName
+          } row${
+            skippedMissingEmail + skippedInvalidCategory + skippedMissingName !==
+            1
+              ? "s"
+              : ""
+          }: ${skipInfoParts.join(", ")}`
+        : ""
 
     // Simulate progress
     const progressInterval = setInterval(() => {
@@ -317,7 +512,9 @@ export function ImportGuestsModal({
         onSuccess: (data) => {
           setImportResult({
             success: data.createdCount,
-            errors: skipInfo ? [skipInfo] : []
+            errors: skipInfo ? [skipInfo] : [],
+            skippedDuplicateInFile,
+            skippedExisting,
           })
           setStep("complete")
         },
@@ -327,7 +524,15 @@ export function ImportGuestsModal({
         },
       }
     )
-  }, [parsedData, mapping, defaultCategoryId, eventId, bulkCreate, findCategoryByCode])
+  }, [
+    parsedData,
+    mapping,
+    defaultCategoryId,
+    eventId,
+    bulkCreate,
+    findCategoryByCode,
+    duplicateInfo.existingGuests,
+  ])
 
   // Reset and close
   const handleClose = useCallback(() => {
@@ -346,7 +551,17 @@ export function ImportGuestsModal({
       category: "",
     })
     setImportProgress(0)
-    setImportResult({ success: 0, errors: [] })
+    setImportResult({
+      success: 0,
+      errors: [],
+      skippedDuplicateInFile: 0,
+      skippedExisting: 0,
+    })
+    setDuplicateInfo({
+      withinFile: new Map(),
+      existingGuests: new Set(),
+      isChecking: false,
+    })
     onClose()
   }, [onClose])
 
@@ -543,8 +758,18 @@ export function ImportGuestsModal({
                 <Button variant="outline" onClick={() => setStep("upload")}>
                   Back
                 </Button>
-                <Button onClick={() => setStep("preview")} disabled={!isMappingValid}>
-                  Preview Import
+                <Button
+                  onClick={handlePreviewClick}
+                  disabled={!isMappingValid || duplicateInfo.isChecking}
+                >
+                  {duplicateInfo.isChecking ? (
+                    <>
+                      <Icons.loader className="mr-2 h-4 w-4 animate-spin" />
+                      Checking...
+                    </>
+                  ) : (
+                    "Preview Import"
+                  )}
                 </Button>
               </div>
             </div>
@@ -556,9 +781,39 @@ export function ImportGuestsModal({
               <div>
                 <h4 className="text-sm font-medium">Preview (first 5 rows)</h4>
                 <p className="text-sm text-muted-foreground">
-                  {parsedData.length} total guests will be imported
+                  {importCounts.validCount} of {parsedData.length} guests will be
+                  imported
                 </p>
               </div>
+
+              {/* Duplicate warnings */}
+              {(importCounts.duplicateInFileCount > 0 ||
+                importCounts.existingCount > 0) && (
+                <div className="space-y-2">
+                  {importCounts.duplicateInFileCount > 0 && (
+                    <Alert
+                      variant="warning"
+                      icon="alertTriangle"
+                      title={`${importCounts.duplicateInFileCount} duplicate email${importCounts.duplicateInFileCount !== 1 ? "s" : ""} in file`}
+                    >
+                      <span className="text-xs text-muted-foreground">
+                        (first occurrence will be imported, others skipped)
+                      </span>
+                    </Alert>
+                  )}
+                  {importCounts.existingCount > 0 && (
+                    <Alert
+                      variant="warning"
+                      icon="alertTriangle"
+                      title={`${importCounts.existingCount} email${importCounts.existingCount !== 1 ? "s" : ""} already exist${importCounts.existingCount === 1 ? "s" : ""}`}
+                    >
+                      <span className="text-xs text-muted-foreground">
+                        (will be skipped)
+                      </span>
+                    </Alert>
+                  )}
+                </div>
+              )}
 
               <ScrollArea className="h-[300px] rounded-md border">
                 <Table>
@@ -568,19 +823,38 @@ export function ImportGuestsModal({
                       <TableHead>Email</TableHead>
                       <TableHead>Entity</TableHead>
                       <TableHead>Category</TableHead>
+                      <TableHead className="w-[80px]">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {getPreviewData().map((row, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="font-medium">
-                          {row.firstName} {row.lastName}
-                        </TableCell>
-                        <TableCell>{row.email || "-"}</TableCell>
-                        <TableCell>{row.entity || "-"}</TableCell>
-                        <TableCell>{row.category || "(default)"}</TableCell>
-                      </TableRow>
-                    ))}
+                    {getPreviewData().map((row, i) => {
+                      const duplicateStatus = getRowDuplicateStatus(i, row.email)
+                      return (
+                        <TableRow
+                          key={i}
+                          className={duplicateStatus ? "opacity-60" : ""}
+                        >
+                          <TableCell className="font-medium">
+                            {row.firstName} {row.lastName}
+                          </TableCell>
+                          <TableCell>{row.email || "-"}</TableCell>
+                          <TableCell>{row.entity || "-"}</TableCell>
+                          <TableCell>{row.category || "(default)"}</TableCell>
+                          <TableCell>
+                            {duplicateStatus === "existing" && (
+                              <Badge variant="secondary" className="text-xs">
+                                Exists
+                              </Badge>
+                            )}
+                            {duplicateStatus === "duplicate" && (
+                              <Badge variant="secondary" className="text-xs">
+                                Duplicate
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </ScrollArea>
@@ -589,8 +863,12 @@ export function ImportGuestsModal({
                 <Button variant="outline" onClick={() => setStep("mapping")}>
                   Back
                 </Button>
-                <Button onClick={handleImport}>
-                  Import {parsedData.length} Guests
+                <Button
+                  onClick={handleImport}
+                  disabled={importCounts.validCount === 0}
+                >
+                  Import {importCounts.validCount} Guest
+                  {importCounts.validCount !== 1 ? "s" : ""}
                 </Button>
               </div>
             </div>
@@ -621,8 +899,27 @@ export function ImportGuestsModal({
                   <div>
                     <h4 className="text-lg font-medium">Import Complete!</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Successfully imported {importResult.success} guest{importResult.success !== 1 ? "s" : ""}
+                      Successfully imported {importResult.success} guest
+                      {importResult.success !== 1 ? "s" : ""}
                     </p>
+                    {/* Show duplicate skip summary */}
+                    {(importResult.skippedDuplicateInFile > 0 ||
+                      importResult.skippedExisting > 0) && (
+                      <div className="mt-3 text-sm text-muted-foreground">
+                        {importResult.skippedDuplicateInFile > 0 && (
+                          <p>
+                            {importResult.skippedDuplicateInFile} skipped
+                            (duplicate in file)
+                          </p>
+                        )}
+                        {importResult.skippedExisting > 0 && (
+                          <p>
+                            {importResult.skippedExisting} skipped (already
+                            exists)
+                          </p>
+                        )}
+                      </div>
+                    )}
                     {importResult.errors.length > 0 && (
                       <p className="text-sm text-amber-600 mt-2">
                         {importResult.errors[0]}
@@ -638,7 +935,8 @@ export function ImportGuestsModal({
                   <div>
                     <h4 className="text-lg font-medium">Import Failed</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {importResult.errors[0] || "An error occurred during import"}
+                      {importResult.errors[0] ||
+                        "An error occurred during import"}
                     </p>
                   </div>
                 </>
