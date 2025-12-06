@@ -59,7 +59,7 @@ jobs:
         with:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           # Exclude logs, node_modules, and environment files from being deleted on the server
-          ARGS: "-rlgoDzvc -i --delete --exclude=logs --exclude=node_modules --exclude=.env.local"
+          ARGS: "-rlgoDzvc -i --delete --exclude=logs --exclude=node_modules --exclude=.env.local --exclude=uploads"
           SOURCE: "deploy_package/"
           REMOTE_HOST: ${{ secrets.SSH_HOST }}
           REMOTE_USER: ${{ secrets.SSH_USER }}
