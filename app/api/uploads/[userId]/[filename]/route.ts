@@ -12,10 +12,10 @@ const MIME_TYPES: Record<string, string> = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
+  { params }: { params: Promise<{ userId: string; filename: string }> }
 ) {
-  const { path: pathSegments } = await params
-  const filePath = path.join(process.cwd(), "uploads", ...pathSegments)
+  const { userId, filename } = await params
+  const filePath = path.join(process.cwd(), "uploads", userId, filename)
 
   // Security: prevent directory traversal
   const normalizedPath = path.normalize(filePath)
