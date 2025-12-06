@@ -13,16 +13,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Install pnpm FIRST (required for setup-node caching)
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -31,15 +32,13 @@ jobs:
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
-          # Add any build-time env vars here if needed, 
-          # but usually NEXT_PUBLIC_ vars need to be baked in at build time.
-          # For now, we assume runtime vars are on the server.
 
       - name: Prepare deployment artifacts
         run: |
           mkdir deploy_package
           cp -r .next public package.json next.config.ts ecosystem.config.js deploy_package/
-          cp -r node_modules deploy_package/  # Optional: Copying node_modules saves server from installing
+          # We copy node_modules so the server doesn't need to reinstall/build anything
+          cp -r node_modules deploy_package/
 
       - name: Deploy to Server via rsync
         uses: easingthemes/ssh-deploy@main
@@ -50,13 +49,10 @@ jobs:
           REMOTE_HOST: ${{ secrets.SSH_HOST }}
           REMOTE_USER: ${{ secrets.SSH_USER }}
           REMOTE_PORT: ${{ secrets.SSH_PORT }}
-          TARGET: "/home/jelastic/ROOT/"
+          # IMPORTANT: We deploy to your home directory, NOT the /var/www/... path
+          TARGET: "/home/jelastic/ROOT/" 
           SCRIPT_AFTER: |
             cd /home/jelastic/ROOT
-            # If we didn't copy node_modules, we'd run pnpm install here
-            # pnpm install --prod --frozen-lockfile
-            
             # Restart App
             pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
             echo "Deployment Complete!"
-
