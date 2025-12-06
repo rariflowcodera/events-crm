@@ -31,6 +31,7 @@ const trustedOrigins = [
 
 export const auth = betterAuth({
   appName: "Events CRM",
+  baseURL: BETTER_AUTH_URL_ENV,
   trustedOrigins,
   database: drizzleAdapter(db, {
     provider: "pg",
