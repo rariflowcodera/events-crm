@@ -32,6 +32,13 @@ jobs:
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+          # Build-time variables (values don't need to be real prod secrets, just present)
+          BETTER_AUTH_SECRET: "build-time-secret-placeholder"
+          BETTER_AUTH_URL: "http://localhost:3000"
+          AWS_REGION: "me-south-1"
+          AWS_ACCESS_KEY_ID: "build-placeholder"
+          AWS_SECRET_ACCESS_KEY: "build-placeholder"
+
 
       - name: Prepare deployment artifacts
         run: |
