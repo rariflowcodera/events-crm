@@ -47,7 +47,8 @@ jobs:
           rm -rf .next/cache
           
           # Copy essential files + LOCKFILE + TSCONFIG + SOURCE (for seeding/workers)
-          cp -r .next public package.json pnpm-lock.yaml tsconfig.json next.config.ts ecosystem.config.js server deploy_package/
+          # We include 'lib', 'hooks', 'messages', 'i18n', 'types' because server-side code (workers/seeds) imports them via alias @/
+          cp -r .next public package.json pnpm-lock.yaml tsconfig.json next.config.ts ecosystem.config.js server lib hooks messages i18n types deploy_package/
           
           # We DO NOT copy node_modules to save upload time. 
           # We will install them on the server.
