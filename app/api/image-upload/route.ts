@@ -1,7 +1,7 @@
 import * as crypto from "crypto"
 import * as path from "path"
 import { NextRequest } from "next/server"
-import { NEXT_PUBLIC_APP_URL_ENV, S3_UPLOAD_BUCKET_ENV, STORAGE_PROVIDER_ENV } from "@/env"
+import { S3_UPLOAD_BUCKET_ENV, STORAGE_PROVIDER_ENV } from "@/env"
 import { getCurrentUser } from "@/server/queries/auth-queries"
 import { PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
@@ -47,11 +47,10 @@ export async function POST(req: NextRequest) {
     // Local storage mode - return URL to local upload endpoint
     if (STORAGE_PROVIDER_ENV === "local") {
       const generatedFilename = getFilename(filename)
-      const baseUrl = NEXT_PUBLIC_APP_URL_ENV || "http://localhost:3000"
       return responses.successResponse(
         {
-          uploadUrl: `${baseUrl}/api/local-upload`,
-          imageUrl: `/uploads/${user.id}/${generatedFilename}`,
+          uploadUrl: `/api/local-upload`,
+          imageUrl: `/api/uploads/${user.id}/${generatedFilename}`,
           storageProvider: "local",
         },
         "Ready for local upload"
