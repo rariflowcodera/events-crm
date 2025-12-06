@@ -17,6 +17,7 @@ type BrandingSettingsPageProps = {
 export default async function BrandingSettingsPage({ params }: BrandingSettingsPageProps) {
   const { slug } = await params
 
+  void trpc.workspaces.getOne.prefetch({ slug })
   void trpc.workspaces.getBranding.prefetch({ slug })
 
   return (
