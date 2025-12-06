@@ -24,7 +24,7 @@ export const brandingImageSchema = z
       // Allow empty string
       if (url === "") return true
       // Allow local storage paths (for development)
-      if (url.startsWith("/uploads/")) return true
+      if (url.startsWith("/uploads/") || url.startsWith("/api/file")) return true
       // Allow HTTPS URLs from allowed domains
       if (url.startsWith("https://")) {
         return (
