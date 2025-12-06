@@ -20,6 +20,8 @@ export const GITHUB_CLIENT_SECRET_ENV = process.env.GITHUB_CLIENT_SECRET || ""
 
 // Auth
 export const BETTER_AUTH_URL_ENV = process.env.BETTER_AUTH_URL || ""
+export const BETTER_AUTH_TRUSTED_ORIGINS_ENV =
+  process.env.BETTER_AUTH_TRUSTED_ORIGINS || ""
 
 // Storage Provider
 export const STORAGE_PROVIDER_ENV = process.env.STORAGE_PROVIDER || "local"

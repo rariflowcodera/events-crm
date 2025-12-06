@@ -119,7 +119,7 @@ redis-cli -h 10.100.2.XXX ping  # Replace XXX with your Redis node IP
 ### Step 2.2: Install Node.js, pnpm, PM2
 
 ```bash
-# Still on app server (10.100.2.248)
+# Still on app server (Web SSH)
 
 # Install Node.js 20 (or your preferred version)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -129,44 +129,60 @@ sudo apt install -y nodejs
 npm install -g pnpm pm2
 
 # Create app directory and logs folder
-sudo mkdir -p /opt/events-crm/logs
-sudo chown -R $USER:$USER /opt/events-crm
+# NOTE: Jelastic/CloudSigma standard app path is /home/jelastic/ROOT
+# We will use this path instead of /opt/events-crm
+mkdir -p /home/jelastic/ROOT/logs
 ```
+
+### Step 2.2b: Generate Deployment SSH Key
+
+Since we are deploying via GitHub Actions, we need an SSH key pair specifically for deployment.
+
+1. **Generate a new SSH key pair locally** (do not use your personal key):
+   ```bash
+   ssh-keygen -t ed25519 -C "deploy_key" -f deploy_key
+   ```
+   This creates `deploy_key` (private) and `deploy_key.pub` (public).
+
+2. **Add Public Key to Server**:
+   - Go to your CloudSigma/Jelastic dashboard.
+   - Navigate to **Settings > SSH Access**.
+   - Click **Add Public Key**.
+   - Paste the contents of `deploy_key.pub`.
+
+3. **Add Private Key to GitHub Secrets**:
+   - Go to your GitHub Repo > **Settings > Secrets and variables > Actions**.
+   - Create new Repository Secrets:
+     - `SSH_PRIVATE_KEY`: Paste the contents of `deploy_key`.
+     - `SSH_HOST`: Your environment domain (e.g., `node12345-env-123456.paas.v2.sa` or public IP).
+     - `SSH_USER`: Usually `nodes` or specific ID (e.g., `7002` or `nodejs`). Check dashboard.
+     - `SSH_PORT`: `22` (or `3022` if using the Gate).
 
 ### Step 2.3: Create Databases on PostgreSQL Server
 
-```bash
-ssh user@10.100.2.231
+Access the PostgreSQL database via **phpPgAdmin** (link in dashboard email) or Web SSH.
 
-# Connect to PostgreSQL (may need sudo -u postgres psql)
-psql -U postgres
-```
+**Note:** If using phpPgAdmin, execute these commands **individually** to avoid "CREATE DATABASE cannot run inside a transaction block" errors.
 
 ```sql
--- Create databases
+-- 1. Create databases
 CREATE DATABASE events_crm_dev;
 CREATE DATABASE events_crm_test;
 CREATE DATABASE events_crm_prod;
 
--- Create users (replace 'your_secure_password' with actual passwords)
+-- 2. Create users (replace 'your_secure_password' with actual passwords)
 CREATE USER events_dev WITH PASSWORD 'your_secure_password';
 CREATE USER events_test WITH PASSWORD 'your_secure_password';
 CREATE USER events_prod WITH PASSWORD 'your_secure_password';
 
--- Grant privileges
+-- 3. Grant privileges
 GRANT ALL PRIVILEGES ON DATABASE events_crm_dev TO events_dev;
 GRANT ALL PRIVILEGES ON DATABASE events_crm_test TO events_test;
 GRANT ALL PRIVILEGES ON DATABASE events_crm_prod TO events_prod;
 
--- Also grant schema permissions (PostgreSQL 15+ requirement)
-\c events_crm_dev
-GRANT ALL ON SCHEMA public TO events_dev;
-\c events_crm_test
-GRANT ALL ON SCHEMA public TO events_test;
+-- 4. Grant schema ownership (Critical for migrations)
 \c events_crm_prod
-GRANT ALL ON SCHEMA public TO events_prod;
-
-\q
+ALTER SCHEMA public OWNER TO events_prod;
 ```
 
 ### Step 2.4: Configure Environment Variables
@@ -211,103 +227,86 @@ SMTP_RATE_LIMIT=10
 
 ---
 
-## PHASE 3: First Deployment to DEV
+## PHASE 3: First Deployment via GitHub Actions
 
-### Step 3.1: Clone repository on app server
+We use GitHub Actions to build locally (saving server resources) and `rsync` artifacts to the server.
+
+### Step 3.1: Verify Workflow Configuration
+
+Ensure `.github/workflows/deploy.yml` is configured correctly. Key requirements for Jelastic/CloudSigma:
+
+1.  **Target Directory**: Must be `/home/jelastic/ROOT/`.
+2.  **Rsync Exclusions**: Crucial to prevent deleting logs and dependencies.
+    ```yaml
+    ARGS: "-rlgoDzvc -i --delete --exclude=logs --exclude=node_modules --exclude=.env.local"
+    ```
+3.  **Artifacts to Copy**:
+    - `.next`, `public`, `package.json`, `pnpm-lock.yaml`, `ecosystem.config.js`, `next.config.ts`
+    - **CRITICAL for Worker**: `server`, `lib`, `hooks`, `messages`, `i18n`, `types`, `env.ts`, `drizzle.config.ts`
+    - *Note: `tsx` runs backend code directly from source, so these folders must exist on the server.*
+
+### Step 3.2: Push to Production
 
 ```bash
-ssh user@10.100.2.248
-cd /opt
-git clone <your-repo-url> events-crm
-cd events-crm
-git checkout dev
+git checkout prod
+git merge dev
+git push origin prod
 ```
 
-### Step 3.2: Install dependencies
+This triggers the workflow:
+1.  Installs dependencies & builds Next.js.
+2.  Copies artifacts to `/home/jelastic/ROOT/`.
+3.  Runs `pnpm install --frozen-lockfile` on the server (to get runtime deps).
+4.  Restarts PM2.
+
+### Step 3.3: Verify Deployment & Port
+
+1.  **Check Logs**:
+    ```bash
+    cd /home/jelastic/ROOT
+    pm2 logs events-crm-web --lines 50
+    ```
+2.  **Verify Port**:
+    - Ensure the app is listening on **Port 8080**.
+    - `ecosystem.config.js` should have: `PORT: 8080`.
+    - Logs should show: `- Local: http://localhost:8080`.
+
+### Step 3.4: Seed Database (First Time Only)
+
+Once code is deployed:
 
 ```bash
-pnpm install --frozen-lockfile
-```
-
-### Step 3.3: Run migrations and seed
-
-```bash
-pnpm db:migrate   # Apply all migrations to remote DB
-pnpm db:seed      # Create roles/permissions (first time only)
-```
-
-### Step 3.4: Build the application
-
-```bash
-pnpm build
-```
-
-### Step 3.5: Start with PM2
-
-```bash
-pm2 start ecosystem.config.js
-pm2 save
-pm2 startup  # Follow the instructions it outputs to enable on boot
-```
-
-### Step 3.6: Verify everything is running
-
-```bash
-pm2 status              # Both processes should be "online"
-pm2 logs --lines 50     # Check for errors
-curl http://localhost:3000  # Should return HTML
+# On server
+cd /home/jelastic/ROOT
+pnpm db:migrate
+pnpm db:seed
 ```
 
 ---
 
-## PHASE 4: Set Up Git-Push-Deploy (Optional but Recommended)
+## PHASE 4: Worker Configuration
 
-### Step 4.1: Create deploy hook directory
+The Email Worker runs as a separate process alongside the web app.
 
-```bash
-# On app server
-mkdir -p /opt/events-crm/.deploy
-```
-
-### Step 4.2: Create post-receive hook
-
-Create `/opt/events-crm/.deploy/post-receive`:
+### Step 4.1: Check Worker Status
 
 ```bash
-#!/bin/bash
-set -e
-
-echo "Starting deployment..."
-
-cd /opt/events-crm
-
-# Install dependencies
-pnpm install --frozen-lockfile
-
-# Run database migrations
-pnpm db:migrate
-
-# Build application
-pnpm build
-
-# Restart services
-pm2 restart ecosystem.config.js
-
-echo "Deployment complete!"
+pm2 list
+# events-crm-worker should be "online"
 ```
 
-Make it executable:
+### Step 4.2: Troubleshooting Worker
 
+If `events-crm-worker` is **errored**:
+1.  Check error logs: `cat logs/worker-error.log`.
+2.  Common issue: Missing source files (`lib`, `env.ts`) causing `Cannot find module` errors.
+3.  Common issue: Path aliases (`@/`) failing if `tsconfig.json` is missing.
+
+**Manual Test Command**:
 ```bash
-chmod +x /opt/events-crm/.deploy/post-receive
+# Run worker manually to see immediate errors
+./node_modules/.bin/tsx server/workers/email-worker.ts
 ```
-
-### Step 4.3: Configure in v2 Cloud SA
-
-1. Go to **Application Servers > Add-Ons**
-2. Install "Git-Push-Deploy Add-On"
-3. Connect your GitHub/GitLab repository
-4. Map branches: `dev` > dev server, `test` > staging, `prod` > production
 
 ---
 
@@ -338,19 +337,30 @@ pnpm db:studio  # Inspect database state
 psql $DATABASE_URL -c "SELECT * FROM __drizzle_migrations;"
 ```
 
-### App won't start?
+### App won't start / URL Unreachable?
 
-```bash
-pm2 logs events-crm-web --lines 100
-lsof -i :3000  # Check if port is in use
-```
+1.  **Check Port**: App MUST listen on **8080** (CloudSigma default).
+    ```bash
+    pm2 logs events-crm-web
+    # Should see: "Local: http://localhost:8080"
+    ```
+2.  **Check `ecosystem.config.js`**: Ensure `PORT: 8080` is set.
 
-### Worker not processing emails?
+### Worker Error / "Cannot find module"?
 
-```bash
-pm2 logs events-crm-worker
-redis-cli -h 10.100.2.XXX ping  # Verify Redis connection (use your Redis node IP)
-```
+The worker uses `tsx` to run TypeScript code directly. It requires all imported source files to be present on the server.
+
+1.  **Check Files**: Verify `lib/`, `server/`, `hooks/`, `env.ts` exist in `/home/jelastic/ROOT/`.
+2.  **Run Manually**:
+    ```bash
+    ./node_modules/.bin/tsx server/workers/email-worker.ts
+    ```
+
+### Logs missing or empty?
+
+If `logs/` folder is missing, `rsync` might have deleted it.
+- Check `deploy.yml`: Ensure `logs` is in `--exclude`.
+- Recreate manually: `mkdir -p logs`.
 
 ---
 

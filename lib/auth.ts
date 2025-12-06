@@ -1,4 +1,6 @@
 import {
+  BETTER_AUTH_TRUSTED_ORIGINS_ENV,
+  BETTER_AUTH_URL_ENV,
   GITHUB_CLIENT_ID_ENV,
   GITHUB_CLIENT_SECRET_ENV,
   GOOGLE_CLIENT_ID_ENV,
@@ -18,8 +20,18 @@ import { configuration } from "@/lib/config"
 import { email } from "@/lib/email"
 import { MagicLinkMail } from "@/components/mail/magic-link-mail"
 
+// Build trusted origins array from environment variables
+// Supports both primary URL and additional comma-separated origins
+const trustedOrigins = [
+  BETTER_AUTH_URL_ENV,
+  ...BETTER_AUTH_TRUSTED_ORIGINS_ENV.split(","),
+]
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
 export const auth = betterAuth({
   appName: "Events CRM",
+  trustedOrigins,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
