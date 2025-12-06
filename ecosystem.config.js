@@ -22,7 +22,7 @@ module.exports = {
       cwd: __dirname,
       env: {
         NODE_ENV: "production",
-        PORT: process.env.PORT || 3000,
+        PORT: 8080,
       },
       instances: 1,
       autorestart: true,
