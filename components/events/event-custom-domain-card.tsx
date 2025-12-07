@@ -73,11 +73,7 @@ export function EventCustomDomainCard({
     },
   })
 
-  const { mutate: updateDomain, isPending: isUpdating } = useUpdateEventCustomDomain({
-    onSuccess: () => {
-      form.reset()
-    },
-  })
+  const { mutate: updateDomain, isPending: isUpdating } = useUpdateEventCustomDomain()
 
   const { mutate: verifyDomain, isPending: isVerifying } = useVerifyEventCustomDomain()
   const { mutate: removeDomain, isPending: isRemoving } = useRemoveEventCustomDomain({

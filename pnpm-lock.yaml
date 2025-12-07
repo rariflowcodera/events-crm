@@ -215,6 +215,9 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.1.17)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.20.6
       uuid:
         specifier: ^10.0.0
         version: 10.0.0
@@ -291,9 +294,6 @@ importers:
       ts-prune:
         specifier: ^0.10.3
         version: 0.10.3
-      tsx:
-        specifier: ^4.20.6
-        version: 4.20.6
       typescript:
         specifier: ^5.8.3
         version: 5.9.3

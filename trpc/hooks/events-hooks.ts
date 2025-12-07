@@ -143,6 +143,7 @@ export const useUpdateEventCustomDomain = ({
     onSuccess: (data) => {
       toast.success(data.message)
       utils.events.getOne.invalidate()
+      utils.events.getBySlug.invalidate()
       onSuccess?.(data)
     },
     onError: (error) => {
@@ -167,6 +168,7 @@ export const useVerifyEventCustomDomain = ({
     onSuccess: (data) => {
       toast.success(data.message)
       utils.events.getOne.invalidate()
+      utils.events.getBySlug.invalidate()
       onSuccess?.()
     },
     onError: (error) => {
@@ -191,6 +193,7 @@ export const useRemoveEventCustomDomain = ({
     onSuccess: (data) => {
       toast.success(data.message)
       utils.events.getOne.invalidate()
+      utils.events.getBySlug.invalidate()
       onSuccess?.()
     },
     onError: (error) => {
