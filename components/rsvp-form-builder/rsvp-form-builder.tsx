@@ -425,6 +425,84 @@ export function RsvpFormBuilder({
 
               <Separator />
 
+              {/* RSVP Question Section */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium">{t("rsvpQuestionSection")}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {t("rsvpQuestionSectionDescription")}
+                  </p>
+                </div>
+
+                {/* Show Maybe Option Toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>{t("showMaybeOption")}</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {t("showMaybeOptionDescription")}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={config.settings.showMaybeOption ?? true}
+                    onCheckedChange={(checked) =>
+                      handleUpdateSettings({ showMaybeOption: checked })
+                    }
+                  />
+                </div>
+
+                {/* RSVP Question Label */}
+                <BilingualInput
+                  label={t("rsvpQuestionLabel")}
+                  description={t("rsvpQuestionLabelDescription")}
+                  value={config.settings.rsvpQuestionLabel || { en: "RSVP", ar: "تأكيد الحضور" }}
+                  onChange={(value) =>
+                    handleUpdateSettings({
+                      rsvpQuestionLabel: value as BilingualText,
+                    })
+                  }
+                />
+
+                {/* Confirm Option Label */}
+                <BilingualInput
+                  label={t("confirmOptionLabel")}
+                  description={t("confirmOptionLabelDescription")}
+                  value={config.settings.confirmOptionLabel || { en: "Confirm Attendance", ar: "تأكيد الحضور" }}
+                  onChange={(value) =>
+                    handleUpdateSettings({
+                      confirmOptionLabel: value as BilingualText,
+                    })
+                  }
+                />
+
+                {/* Decline Option Label */}
+                <BilingualInput
+                  label={t("declineOptionLabel")}
+                  description={t("declineOptionLabelDescription")}
+                  value={config.settings.declineOptionLabel || { en: "Decline", ar: "اعتذار" }}
+                  onChange={(value) =>
+                    handleUpdateSettings({
+                      declineOptionLabel: value as BilingualText,
+                    })
+                  }
+                />
+
+                {/* Maybe Option Label - only show if Maybe is enabled */}
+                {(config.settings.showMaybeOption ?? true) && (
+                  <BilingualInput
+                    label={t("maybeOptionLabel")}
+                    description={t("maybeOptionLabelDescription")}
+                    value={config.settings.maybeOptionLabel || { en: "Maybe", ar: "ربما" }}
+                    onChange={(value) =>
+                      handleUpdateSettings({
+                        maybeOptionLabel: value as BilingualText,
+                      })
+                    }
+                  />
+                )}
+              </div>
+
+              <Separator />
+
               {/* Confirmation Message */}
               <BilingualInput
                 label={t("confirmationMessage")}

@@ -84,6 +84,12 @@ export type RsvpFormSettings = {
   declineMessage?: BilingualText
   maybeMessage?: BilingualText
   submitButtonText?: BilingualText
+  // RSVP question customization
+  rsvpQuestionLabel?: BilingualText
+  confirmOptionLabel?: BilingualText
+  declineOptionLabel?: BilingualText
+  maybeOptionLabel?: BilingualText
+  showMaybeOption?: boolean // Default: true
 }
 
 /** Complete RSVP form configuration */

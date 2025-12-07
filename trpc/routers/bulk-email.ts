@@ -9,6 +9,7 @@ import {
   emailTemplates,
   events,
   guests,
+  guestCategories,
 } from "@/server/db/schemas"
 import { addBulkEmailJob } from "@/lib/queue/queues"
 import { emailTemplateTypeValues } from "@/lib/schemas"
@@ -187,6 +188,166 @@ export const bulkEmailRouter = createTRPCRouter({
       return {
         bulkJobId,
         totalEmails: guestsWithEmail.length,
+      }
+    }),
+
+  /**
+   * Send emails using category-assigned templates
+   * Each guest receives their category's default invitation template
+   */
+  sendBulkByCategory: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        emailType: z.enum(emailTemplateTypeValues),
+        guestIds: z.array(z.string().uuid()).min(1, "Select at least one guest"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { eventId, emailType, guestIds } = input
+
+      // Verify event exists
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, eventId),
+        columns: { id: true, workspaceId: true },
+      })
+
+      if (!event) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Event not found",
+        })
+      }
+
+      // Fetch guests with their categories
+      const guestList = await db.query.guests.findMany({
+        where: and(
+          inArray(guests.id, guestIds),
+          eq(guests.eventId, eventId)
+        ),
+        with: {
+          category: {
+            columns: {
+              id: true,
+              name: true,
+              code: true,
+              defaultEmailTemplateId: true,
+            },
+          },
+        },
+        columns: { id: true, email: true, categoryId: true },
+      })
+
+      // Filter guests with valid emails
+      const guestsWithEmail = guestList.filter(
+        (g) => g.email && g.email.includes("@")
+      )
+
+      if (guestsWithEmail.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No guests with valid email addresses selected",
+        })
+      }
+
+      // Group guests by their category's template
+      const guestsByTemplate = new Map<string, { guests: typeof guestsWithEmail; categoryName: string }>()
+      const categoriesWithoutTemplate: string[] = []
+
+      for (const guest of guestsWithEmail) {
+        const templateId = guest.category?.defaultEmailTemplateId
+        if (!templateId) {
+          if (guest.category && !categoriesWithoutTemplate.includes(guest.category.name)) {
+            categoriesWithoutTemplate.push(guest.category.name)
+          }
+          continue
+        }
+
+        const existing = guestsByTemplate.get(templateId)
+        if (existing) {
+          existing.guests.push(guest)
+        } else {
+          guestsByTemplate.set(templateId, {
+            guests: [guest],
+            categoryName: guest.category?.name || "Unknown",
+          })
+        }
+      }
+
+      // Check if any categories are missing templates
+      if (categoriesWithoutTemplate.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `The following categories do not have an invitation template configured: ${categoriesWithoutTemplate.join(", ")}. Please configure templates in the Categories tab.`,
+        })
+      }
+
+      if (guestsByTemplate.size === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No guests could be processed. Please check category template configuration.",
+        })
+      }
+
+      // Verify all referenced templates exist
+      const templateIds = Array.from(guestsByTemplate.keys())
+      const templates = await db.query.emailTemplates.findMany({
+        where: and(
+          inArray(emailTemplates.id, templateIds),
+          eq(emailTemplates.eventId, eventId)
+        ),
+        columns: { id: true, name: true },
+      })
+
+      const validTemplateIds = new Set(templates.map((t) => t.id))
+      const invalidTemplateIds = templateIds.filter((id) => !validTemplateIds.has(id))
+
+      if (invalidTemplateIds.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Some category templates no longer exist. Please reconfigure category templates.",
+        })
+      }
+
+      // Create a bulk job for each template
+      const jobs: { bulkJobId: string; templateId: string; guestCount: number }[] = []
+
+      for (const [templateId, { guests: templateGuests }] of guestsByTemplate) {
+        const bulkJobId = uuidv4()
+
+        await db.insert(bulkEmailJobs).values({
+          id: bulkJobId,
+          eventId,
+          templateId,
+          emailType,
+          status: "pending",
+          totalEmails: templateGuests.length,
+          guestIds: templateGuests.map((g) => g.id),
+          createdBy: ctx.user.id,
+          createdAt: new Date(),
+        })
+
+        // Add job to BullMQ queue
+        await addBulkEmailJob({
+          type: "bulk",
+          bulkJobId,
+          eventId,
+          templateId,
+          emailType,
+          guestIds: templateGuests.map((g) => g.id),
+        })
+
+        jobs.push({
+          bulkJobId,
+          templateId,
+          guestCount: templateGuests.length,
+        })
+      }
+
+      return {
+        jobs,
+        totalEmails: guestsWithEmail.length,
+        skippedCount: guestIds.length - guestsWithEmail.length,
       }
     }),
 

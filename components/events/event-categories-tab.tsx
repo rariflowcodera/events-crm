@@ -34,6 +34,7 @@ interface GuestCategory {
   description: string | null
   color: string | null
   sortOrder: number
+  defaultEmailTemplateId: string | null
 }
 
 interface Event {

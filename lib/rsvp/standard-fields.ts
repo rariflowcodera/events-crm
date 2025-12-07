@@ -433,6 +433,24 @@ export function createDefaultFormConfig(): import("@/server/db/schemas/event").R
         en: "Submit RSVP",
         ar: "إرسال تأكيد الحضور",
       },
+      // RSVP question customization
+      showMaybeOption: true,
+      rsvpQuestionLabel: {
+        en: "RSVP",
+        ar: "تأكيد الحضور",
+      },
+      confirmOptionLabel: {
+        en: "Confirm Attendance",
+        ar: "تأكيد الحضور",
+      },
+      declineOptionLabel: {
+        en: "Decline",
+        ar: "اعتذار",
+      },
+      maybeOptionLabel: {
+        en: "Maybe",
+        ar: "ربما",
+      },
     },
   }
 }

@@ -38,6 +38,43 @@ export const useSendBulkEmail = ({
 }
 
 /**
+ * Send bulk emails using category-assigned templates
+ */
+export const useSendBulkByCategory = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (data: {
+    jobs: { bulkJobId: string; templateId: string; guestCount: number }[]
+    totalEmails: number
+    skippedCount: number
+  }) => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.bulkEmail.sendBulkByCategory.useMutation({
+    onSuccess: (data, variables) => {
+      if (data.skippedCount > 0) {
+        toast.success(
+          `Sending ${data.totalEmails} emails (${data.skippedCount} guests skipped - no email)`
+        )
+      } else {
+        toast.success(`Sending ${data.totalEmails} emails`)
+      }
+      utils.bulkEmail.listJobs.invalidate({ eventId: variables.eventId })
+      onSuccess?.(data)
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}
+
+/**
  * Send to all guests using default template
  */
 export const useSendToAllGuests = ({

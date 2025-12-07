@@ -9,6 +9,7 @@ import {
   useCreateGuestCategory,
   useUpdateGuestCategory,
 } from "@/trpc/hooks/guest-categories-hooks"
+import { useEmailTemplates } from "@/trpc/hooks/email-hooks"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -21,6 +22,13 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Icons } from "@/components/global/icons"
 
 interface GuestCategory {
@@ -30,6 +38,7 @@ interface GuestCategory {
   description: string | null
   color: string | null
   sortOrder: number
+  defaultEmailTemplateId: string | null
 }
 
 interface CategoryFormProps {
@@ -48,6 +57,7 @@ const categorySchema = z.object({
     .regex(/^[A-Za-z0-9]+$/, "Code can only contain letters and numbers"),
   description: z.string().optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
+  defaultEmailTemplateId: z.string().uuid().nullable().optional(),
 })
 
 type CategoryFormValues = z.infer<typeof categorySchema>
@@ -74,6 +84,12 @@ export function CategoryForm({
   const t = useTranslations("guest")
   const isEditing = !!category
 
+  // Fetch invitation templates for this event
+  const { data: invitationTemplates, isLoading: loadingTemplates } = useEmailTemplates({
+    eventId,
+    type: "invitation",
+  })
+
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
@@ -81,6 +97,7 @@ export function CategoryForm({
       code: category?.code || "",
       description: category?.description || "",
       color: category?.color || "#6366f1",
+      defaultEmailTemplateId: category?.defaultEmailTemplateId || null,
     },
   })
 
@@ -107,6 +124,7 @@ export function CategoryForm({
         code: values.code,
         description: values.description || undefined,
         color: values.color,
+        defaultEmailTemplateId: values.defaultEmailTemplateId,
       })
     } else {
       createCategory({
@@ -115,6 +133,7 @@ export function CategoryForm({
         code: values.code,
         description: values.description || undefined,
         color: values.color,
+        defaultEmailTemplateId: values.defaultEmailTemplateId,
       })
     }
   }
@@ -224,6 +243,41 @@ export function CategoryForm({
                   </div>
                 </div>
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="defaultEmailTemplateId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("invitationTemplate")}</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(value === "none" ? null : value)}
+                value={field.value || "none"}
+                disabled={isPending || loadingTemplates}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("selectTemplate")} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">
+                    <span className="text-muted-foreground">{t("noTemplateSelected")}</span>
+                  </SelectItem>
+                  {invitationTemplates?.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                {t("invitationTemplateDescription")}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

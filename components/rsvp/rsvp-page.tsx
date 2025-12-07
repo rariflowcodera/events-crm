@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useLayoutEffect, useState, useRef, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -57,6 +57,12 @@ interface DynamicFormRef {
     standardResponses: Record<string, unknown>
     customResponses: Record<string, unknown>
   }
+  getSectionsWithFields: () => Array<{
+    id: string
+    fieldKeys: string[]
+    requiredFieldKeys: string[]
+  }>
+  triggerValidation: (fieldKeys: string[]) => Promise<boolean>
 }
 
 interface GuestData {
@@ -156,6 +162,11 @@ export function RsvpPage({ token, locale }: RsvpPageProps) {
   const [displayLocale, setDisplayLocale] = useState<"en" | "ar">(locale as "en" | "ar")
   const isRtl = displayLocale === "ar"
 
+  // Multi-step form state
+  const [currentStep, setCurrentStep] = useState(0)
+  const [actualSectionCount, setActualSectionCount] = useState<number | null>(null)
+  const [transitioningStep, setTransitioningStep] = useState(false)
+
   // Form for response status and legacy fallback fields
   const form = useForm<RsvpFormData>({
     resolver: zodResolver(rsvpFormSchema),
@@ -169,6 +180,26 @@ export function RsvpPage({ token, locale }: RsvpPageProps) {
 
   const watchResponseStatus = form.watch("responseStatus")
   const watchBringingCompanion = form.watch("companionInfo.bringing")
+
+  // Calculate enabled sections for multi-step form (must be before any conditional returns)
+  const enabledSections = useMemo(() => {
+    if (!guestData?.event?.rsvpFormConfig?.sections) return []
+    return guestData.event.rsvpFormConfig.sections
+      .filter(s => s.enabled)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+  }, [guestData?.event?.rsvpFormConfig?.sections])
+
+  // Update actualSectionCount when DynamicFormRenderer populates the ref
+  // Use useLayoutEffect for synchronous update before paint
+  // Must be before any conditional returns to satisfy Rules of Hooks
+  useLayoutEffect(() => {
+    if (dynamicFormRef.current) {
+      const sections = dynamicFormRef.current.getSectionsWithFields()
+      if (sections.length !== actualSectionCount) {
+        setActualSectionCount(sections.length)
+      }
+    }
+  }, [guestData, displayLocale, actualSectionCount])
 
   useEffect(() => {
     async function fetchGuest() {
@@ -214,6 +245,9 @@ export function RsvpPage({ token, locale }: RsvpPageProps) {
   }, [token, form, t])
 
   async function onSubmit(data: RsvpFormData) {
+    // Prevent submission during step transitions (fixes auto-submit bug)
+    if (transitioningStep) return
+
     setSubmitting(true)
     setError(null)
 
@@ -294,6 +328,18 @@ export function RsvpPage({ token, locale }: RsvpPageProps) {
     const brandLogo = event.resolvedBranding?.logo || event.branding?.logo || event.organization?.logo
     const brandAccent = event.resolvedBranding?.accentColor || event.branding?.secondaryColor
 
+    // Get custom labels from config or use defaults
+    const formConfig = event.rsvpFormConfig
+    const confirmedLabel = formConfig?.settings?.confirmOptionLabel
+      ? getLocalizedText(formConfig.settings.confirmOptionLabel, displayLocale)
+      : (displayLocale === "ar" ? "تأكيد الحضور" : "Confirmed")
+    const declinedLabel = formConfig?.settings?.declineOptionLabel
+      ? getLocalizedText(formConfig.settings.declineOptionLabel, displayLocale)
+      : (displayLocale === "ar" ? "اعتذار" : "Declined")
+    const maybeLabel = formConfig?.settings?.maybeOptionLabel
+      ? getLocalizedText(formConfig.settings.maybeOptionLabel, displayLocale)
+      : (displayLocale === "ar" ? "ربما" : "Maybe")
+
     // Inline translations for displayLocale (since t() uses URL locale, not toggled locale)
     const alreadyRespondedText = {
       title: displayLocale === "ar" ? "تم إرسال الرد مسبقاً" : "Response Already Submitted",
@@ -304,9 +350,9 @@ export function RsvpPage({ token, locale }: RsvpPageProps) {
       contactToChange: displayLocale === "ar"
         ? "إذا كنت ترغب في تغيير ردك، يرجى التواصل مع منظم الفعالية."
         : "If you need to change your response, please contact the event organizer.",
-      confirmed: displayLocale === "ar" ? "تأكيد الحضور" : "Confirmed",
-      declined: displayLocale === "ar" ? "اعتذار" : "Declined",
-      maybe: displayLocale === "ar" ? "ربما" : "Maybe",
+      confirmed: confirmedLabel,
+      declined: declinedLabel,
+      maybe: maybeLabel,
     }
 
     return (
@@ -433,10 +479,47 @@ export function RsvpPage({ token, locale }: RsvpPageProps) {
   const allowPlusOne = event.settings?.allowPlusOne ?? false
   const hasFormConfig = !!event.rsvpFormConfig?.sections?.length
 
+  // Multi-step form logic (enabledSections calculated earlier to satisfy Rules of Hooks)
+  // Use actualSectionCount (from DynamicFormRenderer) if available, otherwise fall back to enabledSections.length
+  const sectionCount = actualSectionCount ?? enabledSections.length
+  const isMultiStep = hasFormConfig && sectionCount > 0
+  const totalSteps = isMultiStep ? 1 + sectionCount : 1
+  const isLastStep = currentStep === totalSteps - 1
+  const showSubmitButton = watchResponseStatus === "declined" || isLastStep || !isMultiStep
+
   // Get submit button text from config or use default
   const submitButtonText = event.rsvpFormConfig?.settings?.submitButtonText
     ? getLocalizedText(event.rsvpFormConfig.settings.submitButtonText, displayLocale)
     : tCommon("submit")
+
+  // Handler for Next button - validates current step before advancing
+  const handleNextClick = async () => {
+    setTransitioningStep(true)
+
+    if (currentStep === 0) {
+      // Step 0: RSVP question - just advance (responseStatus has a default)
+      setCurrentStep(s => s + 1)
+      requestAnimationFrame(() => setTransitioningStep(false))
+      return
+    }
+
+    // Section steps: validate required fields using DynamicFormRenderer's form
+    const sections = dynamicFormRef.current?.getSectionsWithFields() || []
+    const currentSection = sections[currentStep - 1]
+
+    if (currentSection?.requiredFieldKeys?.length > 0) {
+      // Use triggerValidation from DynamicFormRenderer (which owns the form with these fields)
+      const isValid = await dynamicFormRef.current?.triggerValidation(currentSection.requiredFieldKeys)
+      if (isValid) {
+        setCurrentStep(s => s + 1)
+      }
+    } else {
+      // No required fields in this section, just advance
+      setCurrentStep(s => s + 1)
+    }
+
+    requestAnimationFrame(() => setTransitioningStep(false))
+  }
 
   // Use resolved branding with fallbacks
   const brandLogo = event.resolvedBranding?.logo || event.branding?.logo || event.organization?.logo
@@ -510,170 +593,224 @@ export function RsvpPage({ token, locale }: RsvpPageProps) {
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="min-h-[300px] flex flex-col">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Response status selection */}
-              <FormField
-                control={form.control}
-                name="responseStatus"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("title")}</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-2"
-                      >
-                        <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
-                          <FormControl>
-                            <RadioGroupItem value="confirmed" />
-                          </FormControl>
-                          <FormLabel className="font-normal">{t("confirm")}</FormLabel>
-                        </FormItem>
-                        <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
-                          <FormControl>
-                            <RadioGroupItem value="declined" />
-                          </FormControl>
-                          <FormLabel className="font-normal">{t("decline")}</FormLabel>
-                        </FormItem>
-                        <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
-                          <FormControl>
-                            <RadioGroupItem value="maybe" />
-                          </FormControl>
-                          <FormLabel className="font-normal">{t("maybe")}</FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col">
+              {/* Form content */}
+              <div className="space-y-6 flex-1">
+              {/* Step 0: RSVP Question */}
+              {currentStep === 0 && (
+                <FormField
+                  control={form.control}
+                  name="responseStatus"
+                  render={({ field }) => {
+                    const formConfig = event.rsvpFormConfig
+                    const questionLabel = formConfig?.settings?.rsvpQuestionLabel
+                      ? getLocalizedText(formConfig.settings.rsvpQuestionLabel, displayLocale)
+                      : t("title")
+                    const confirmLabel = formConfig?.settings?.confirmOptionLabel
+                      ? getLocalizedText(formConfig.settings.confirmOptionLabel, displayLocale)
+                      : t("confirm")
+                    const declineLabel = formConfig?.settings?.declineOptionLabel
+                      ? getLocalizedText(formConfig.settings.declineOptionLabel, displayLocale)
+                      : t("decline")
+                    const maybeLabel = formConfig?.settings?.maybeOptionLabel
+                      ? getLocalizedText(formConfig.settings.maybeOptionLabel, displayLocale)
+                      : t("maybe")
+                    const showMaybeOption = formConfig?.settings?.showMaybeOption ?? true
 
-              {/* Show form fields only when not declined */}
-              {watchResponseStatus !== "declined" && (
-                <>
-                  {hasFormConfig ? (
-                    /* Dynamic form renderer for events with form config */
-                    <DynamicFormRenderer
-                      config={event.rsvpFormConfig!}
-                      categoryId={category.id}
-                      locale={displayLocale}
-                      onSubmit={async () => {}}
-                      disabled={submitting}
-                      embedded
-                      formRef={dynamicFormRef}
-                    />
-                  ) : (
-                    /* Legacy fallback fields for events without form config */
-                    <>
-                      {/* Companion section - only show if event allows plus ones */}
-                      {allowPlusOne && (
-                        <div className="space-y-4 rounded-lg border p-4">
-                          <FormField
-                            control={form.control}
-                            name="companionInfo.bringing"
-                            render={({ field }) => (
-                              <FormItem className={cn("flex flex-row items-start space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
+                    return (
+                      <FormItem>
+                        <FormLabel>{questionLabel}</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-2"
+                          >
+                            <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
+                              <FormControl>
+                                <RadioGroupItem value="confirmed" />
+                              </FormControl>
+                              <FormLabel className="font-normal">{confirmLabel}</FormLabel>
+                            </FormItem>
+                            <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
+                              <FormControl>
+                                <RadioGroupItem value="declined" />
+                              </FormControl>
+                              <FormLabel className="font-normal">{declineLabel}</FormLabel>
+                            </FormItem>
+                            {showMaybeOption && (
+                              <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
                                 <FormControl>
-                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                  <RadioGroupItem value="maybe" />
                                 </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>{t("companion.bringing")}</FormLabel>
-                                </div>
+                                <FormLabel className="font-normal">{maybeLabel}</FormLabel>
                               </FormItem>
                             )}
-                          />
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )
+                  }}
+                />
+              )}
 
-                          {watchBringingCompanion && (
-                            <div className="space-y-4 pt-2">
-                              <div className="space-y-2">
-                                <Label>{t("companion.name")}</Label>
-                                <Input
-                                  placeholder={t("companion.name")}
-                                  {...form.register("companionInfo.details.0.name")}
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>{t("companion.dietary")}</Label>
-                                <Input
-                                  placeholder={t("companion.dietary")}
-                                  {...form.register("companionInfo.details.0.dietary")}
-                                />
-                              </div>
+              {/* Section pages (multi-step mode) - always render to populate formRef, hide on step 0 */}
+              {isMultiStep && watchResponseStatus !== "declined" && (
+                <div className={currentStep === 0 ? "hidden" : ""}>
+                  <DynamicFormRenderer
+                    config={event.rsvpFormConfig!}
+                    categoryId={category.id}
+                    locale={displayLocale}
+                    onSubmit={async () => {}}
+                    disabled={submitting}
+                    embedded
+                    formRef={dynamicFormRef}
+                    sectionIndex={Math.max(0, currentStep - 1)}
+                  />
+                </div>
+              )}
+
+              {/* Legacy fallback: Show all fields at once for events without form config */}
+              {!isMultiStep && currentStep === 0 && watchResponseStatus !== "declined" && (
+                <>
+                  {/* Companion section - only show if event allows plus ones */}
+                  {allowPlusOne && (
+                    <div className="space-y-4 rounded-lg border p-4">
+                      <FormField
+                        control={form.control}
+                        name="companionInfo.bringing"
+                        render={({ field }) => (
+                          <FormItem className={cn("flex flex-row items-start space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>{t("companion.bringing")}</FormLabel>
                             </div>
-                          )}
+                          </FormItem>
+                        )}
+                      />
+
+                      {watchBringingCompanion && (
+                        <div className="space-y-4 pt-2">
+                          <div className="space-y-2">
+                            <Label>{t("companion.name")}</Label>
+                            <Input
+                              placeholder={t("companion.name")}
+                              {...form.register("companionInfo.details.0.name")}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("companion.dietary")}</Label>
+                            <Input
+                              placeholder={t("companion.dietary")}
+                              {...form.register("companionInfo.details.0.dietary")}
+                            />
+                          </div>
                         </div>
                       )}
-
-                      {/* Dietary requirements */}
-                      <FormField
-                        control={form.control}
-                        name="dietaryRequirements"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {isRtl ? "متطلبات غذائية خاصة" : "Dietary Requirements"}
-                            </FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder={
-                                  isRtl
-                                    ? "أي حساسية أو متطلبات غذائية خاصة"
-                                    : "Any allergies or dietary restrictions"
-                                }
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Accessibility needs */}
-                      <FormField
-                        control={form.control}
-                        name="accessibilityNeeds"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {isRtl ? "احتياجات خاصة" : "Accessibility Requirements"}
-                            </FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder={
-                                  isRtl
-                                    ? "أي احتياجات خاصة للوصول أو التنقل"
-                                    : "Any accessibility or mobility requirements"
-                                }
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </>
+                    </div>
                   )}
+
+                  {/* Dietary requirements */}
+                  <FormField
+                    control={form.control}
+                    name="dietaryRequirements"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {isRtl ? "متطلبات غذائية خاصة" : "Dietary Requirements"}
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder={
+                              isRtl
+                                ? "أي حساسية أو متطلبات غذائية خاصة"
+                                : "Any allergies or dietary restrictions"
+                            }
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Accessibility needs */}
+                  <FormField
+                    control={form.control}
+                    name="accessibilityNeeds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {isRtl ? "احتياجات خاصة" : "Accessibility Requirements"}
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder={
+                              isRtl
+                                ? "أي احتياجات خاصة للوصول أو التنقل"
+                                : "Any accessibility or mobility requirements"
+                            }
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </>
               )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={submitting}
-                style={brandPrimary ? { backgroundColor: brandPrimary } : undefined}
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className={cn("h-4 w-4 animate-spin", isRtl ? "ml-2" : "mr-2")} />
-                    {tCommon("loading")}
-                  </>
-                ) : (
-                  submitButtonText
+              </div>
+
+              {/* Navigation buttons */}
+              <div className={cn("flex gap-2 mt-auto pt-6", currentStep > 0 ? "justify-between" : "")}>
+                {/* Back button */}
+                {currentStep > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCurrentStep(s => s - 1)}
+                    disabled={submitting}
+                  >
+                    {t("back")}
+                  </Button>
                 )}
-              </Button>
+
+                {/* Next or Submit button */}
+                {showSubmitButton ? (
+                  <Button
+                    key={`submit-${currentStep}`}
+                    type="submit"
+                    className={cn(currentStep === 0 ? "w-full" : "flex-1")}
+                    disabled={submitting}
+                    style={brandPrimary ? { backgroundColor: brandPrimary } : undefined}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className={cn("h-4 w-4 animate-spin", isRtl ? "ml-2" : "mr-2")} />
+                        {tCommon("loading")}
+                      </>
+                    ) : (
+                      submitButtonText
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    key={`next-${currentStep}`}
+                    type="button"
+                    className="w-full"
+                    onClick={handleNextClick}
+                    style={brandPrimary ? { backgroundColor: brandPrimary } : undefined}
+                  >
+                    {t("next")}
+                  </Button>
+                )}
+              </div>
             </form>
           </Form>
         </CardContent>

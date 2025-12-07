@@ -23,6 +23,15 @@ export const useGuestStats = (eventId: string) => {
   return trpc.guests.getStats.useQuery({ eventId }, { enabled: !!eventId })
 }
 
+export const useGuestsWithCategories = (params: {
+  eventId: string
+  guestIds: string[]
+}) => {
+  return trpc.guests.getGuestsWithCategories.useQuery(params, {
+    enabled: !!params.eventId && params.guestIds.length > 0,
+  })
+}
+
 // Mutation hooks
 export const useCreateGuest = ({
   onSuccess,

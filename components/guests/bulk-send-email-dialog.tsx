@@ -12,18 +12,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Icons } from "@/components/global/icons"
-import { useSendBulkEmail, useBulkEmailJobStatus } from "@/trpc/hooks/bulk-email-hooks"
-import { useEmailTemplates, useDefaultEmailTemplates } from "@/trpc/hooks/email-hooks"
+import { useSendBulkByCategory, useBulkEmailJobStatus } from "@/trpc/hooks/bulk-email-hooks"
+import { useGuestCategories } from "@/trpc/hooks/guest-categories-hooks"
 import type { EmailTemplateType } from "@/lib/schemas"
 
 interface BulkSendEmailDialogProps {
@@ -32,6 +26,7 @@ interface BulkSendEmailDialogProps {
   eventId: string
   guestIds: string[]
   emailType: EmailTemplateType
+  workspaceSlug?: string
   onSuccess?: () => void
 }
 
@@ -41,60 +36,55 @@ export function BulkSendEmailDialog({
   eventId,
   guestIds,
   emailType,
+  workspaceSlug,
   onSuccess,
 }: BulkSendEmailDialogProps) {
   const t = useTranslations("bulkEmail")
 
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
-  const [activeJobId, setActiveJobId] = useState<string | null>(null)
+  const [activeJobIds, setActiveJobIds] = useState<string[]>([])
 
-  // Fetch templates for the email type
-  const { data: templates, isLoading: loadingTemplates } = useEmailTemplates({
-    eventId,
-    type: emailType,
-  })
+  // Fetch ALL event categories to check if they have templates configured
+  const {
+    data: categories,
+    isLoading: loadingCategories,
+  } = useGuestCategories(eventId)
 
-  // Fetch default templates
-  const { data: defaultTemplates } = useDefaultEmailTemplates(eventId)
+  // Track the first job for progress display (or aggregate multiple)
+  const firstJobId = activeJobIds[0] ?? null
 
   // Get job status with polling when active
-  const { data: jobStatus } = useBulkEmailJobStatus(activeJobId, {
-    refetchInterval: activeJobId ? 1000 : false,
+  const { data: jobStatus } = useBulkEmailJobStatus(firstJobId, {
+    refetchInterval: firstJobId ? 1000 : false,
   })
 
-  // Send bulk email mutation
-  const { mutate: sendBulk, isPending: isSending } = useSendBulkEmail({
+  // Send bulk email by category mutation
+  const { mutate: sendBulkByCategory, isPending: isSending } = useSendBulkByCategory({
     onSuccess: (data) => {
-      setActiveJobId(data.bulkJobId)
+      setActiveJobIds(data.jobs.map((j) => j.bulkJobId))
     },
   })
-
-  // Set default template when dialog opens
-  useEffect(() => {
-    if (isOpen && defaultTemplates && defaultTemplates[emailType]) {
-      setSelectedTemplateId(defaultTemplates[emailType].id)
-    } else if (isOpen && templates?.length) {
-      setSelectedTemplateId(templates[0].id)
-    }
-  }, [isOpen, defaultTemplates, emailType, templates])
 
   // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
-      setActiveJobId(null)
-      setSelectedTemplateId(null)
+      setActiveJobIds([])
     }
   }, [isOpen])
 
-  // Check if job is complete
+  // Check if all jobs are complete
   const isJobComplete = jobStatus?.status === "completed" || jobStatus?.status === "failed"
 
-  const handleSend = () => {
-    if (!selectedTemplateId) return
+  // Check ALL categories have templates configured (simpler upfront check)
+  const categoriesWithoutTemplate = categories?.filter(c => !c.defaultEmailTemplateId) ?? []
+  const allHaveTemplates = categories ? categoriesWithoutTemplate.length === 0 : false
 
-    sendBulk({
+  // For now, use the selected guest count directly
+  // The actual email filtering happens on the backend
+  const guestsToSend = guestIds.length
+
+  const handleSend = () => {
+    sendBulkByCategory({
       eventId,
-      templateId: selectedTemplateId,
       emailType,
       guestIds,
     })
@@ -107,8 +97,6 @@ export function BulkSendEmailDialog({
     onClose()
   }
 
-  const templatesList = templates ?? []
-
   // Get human-readable email type label
   const emailTypeLabel: Record<EmailTemplateType, string> = {
     invitation: t("types.invitation"),
@@ -118,6 +106,17 @@ export function BulkSendEmailDialog({
     update: t("types.update"),
     cancellation: t("types.cancellation"),
     custom: t("types.custom"),
+  }
+
+  // Get contrasting text color for category badge
+  const getContrastColor = (hexColor: string | null) => {
+    if (!hexColor) return "#ffffff"
+    const hex = hexColor.replace("#", "")
+    const r = parseInt(hex.substring(0, 2), 16)
+    const g = parseInt(hex.substring(2, 4), 16)
+    const b = parseInt(hex.substring(4, 6), 16)
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    return luminance > 0.5 ? "#000000" : "#ffffff"
   }
 
   return (
@@ -130,47 +129,70 @@ export function BulkSendEmailDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Template Selection (only before sending) */}
-        {!activeJobId && (
+        {/* Loading State */}
+        {loadingCategories && !activeJobIds.length && (
+          <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+            <Icons.loader className="h-5 w-5 animate-spin" />
+            <span>{t("loading")}</span>
+          </div>
+        )}
+
+        {/* Missing Templates Error State */}
+        {!loadingCategories && !activeJobIds.length && categoriesWithoutTemplate.length > 0 && (
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="template">{t("selectTemplate")}</Label>
-              {loadingTemplates ? (
-                <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                  <Icons.loader className="h-4 w-4 animate-spin" />
-                  Loading templates...
-                </div>
-              ) : templatesList.length === 0 ? (
-                <p className="text-destructive text-sm">
-                  {t("noTemplates", { type: emailTypeLabel[emailType] })}
-                </p>
-              ) : (
-                <Select
-                  value={selectedTemplateId ?? ""}
-                  onValueChange={setSelectedTemplateId}
+            <Alert variant="destructive">
+              <Icons.alertTriangle className="h-4 w-4" />
+              <AlertTitle>{t("missingTemplates")}</AlertTitle>
+              <AlertDescription>
+                {t("missingTemplatesDescription")}
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex flex-wrap gap-2">
+              {categoriesWithoutTemplate.map((category) => (
+                <Badge
+                  key={category.id}
+                  variant="secondary"
+                  style={{
+                    backgroundColor: category.color || "#6366f1",
+                    color: getContrastColor(category.color),
+                  }}
                 >
-                  <SelectTrigger id="template">
-                    <SelectValue placeholder={t("selectTemplatePlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templatesList.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        {template.name}
-                        {template.isDefault && " (Default)"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+                  {category.code}
+                </Badge>
+              ))}
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              {t("configureCategories")}
+            </p>
+          </div>
+        )}
+
+        {/* Ready to Send State */}
+        {!loadingCategories && !activeJobIds.length && allHaveTemplates && guestsToSend > 0 && (
+          <div className="py-4">
+            <div className="rounded-lg border bg-muted/50 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <Icons.mail className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium">{t("readyToSend")}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("guestsWillReceive", { count: guestsToSend })}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* Progress Display */}
-        {activeJobId && jobStatus && (
+        {activeJobIds.length > 0 && jobStatus && (
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-3">
-              {jobStatus.status === "processing" && (
+              {(jobStatus.status === "pending" || jobStatus.status === "processing") && (
                 <Icons.loader className="h-5 w-5 animate-spin text-primary" />
               )}
               {jobStatus.status === "completed" && (
@@ -207,17 +229,22 @@ export function BulkSendEmailDialog({
         )}
 
         <DialogFooter>
-          {!activeJobId ? (
+          {activeJobIds.length === 0 ? (
             <>
               <Button variant="outline" onClick={handleClose}>
                 {t("cancel")}
               </Button>
               <Button
                 onClick={handleSend}
-                disabled={!selectedTemplateId || isSending}
+                disabled={
+                  loadingCategories ||
+                  !allHaveTemplates ||
+                  guestsToSend === 0 ||
+                  isSending
+                }
               >
                 {isSending && <Icons.loader className="mr-2 h-4 w-4 animate-spin" />}
-                {t("send")}
+                {t("sendCount", { count: guestsToSend })}
               </Button>
             </>
           ) : (

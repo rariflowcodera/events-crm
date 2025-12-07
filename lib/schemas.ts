@@ -466,6 +466,12 @@ export const rsvpFormSettingsSchema = z.object({
   declineMessage: bilingualTextSchema.optional(),
   maybeMessage: bilingualTextSchema.optional(),
   submitButtonText: bilingualTextSchema.optional(),
+  // RSVP question customization
+  rsvpQuestionLabel: bilingualTextSchema.optional(),
+  confirmOptionLabel: bilingualTextSchema.optional(),
+  declineOptionLabel: bilingualTextSchema.optional(),
+  maybeOptionLabel: bilingualTextSchema.optional(),
+  showMaybeOption: z.boolean().optional(),
 })
 
 export type RsvpFormSettingsInput = z.infer<typeof rsvpFormSettingsSchema>

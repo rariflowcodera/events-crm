@@ -134,8 +134,8 @@ export function EventOverviewTab({ event, workspaceSlug }: EventOverviewTabProps
             Export Guest List
           </Button>
           <Button variant="outline" className="w-full justify-start" disabled>
-            <Icons.copy className="mr-2 h-4 w-4" />
-            Copy RSVP Link Template
+            <Icons.userPlus className="mr-2 h-4 w-4" />
+            Import Guests
           </Button>
         </CardContent>
       </Card>

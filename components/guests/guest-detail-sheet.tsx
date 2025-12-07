@@ -443,20 +443,6 @@ export function GuestDetailSheet({
 
                 <FormField
                   control={form.control}
-                  name="dietaryRequirements"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dietary Requirements</FormLabel>
-                      <FormControl>
-                        <Input disabled={isUpdating} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="internalNotes"
                   render={({ field }) => (
                     <FormItem>
@@ -546,10 +532,6 @@ export function GuestDetailSheet({
                           ? format(new Date(guest.rsvpRespondedAt), "MMM d, yyyy h:mm a")
                           : "-"}
                       </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Dietary Requirements</p>
-                      <p className="text-sm">{guest.dietaryRequirements || "-"}</p>
                     </div>
                   </div>
                 </div>

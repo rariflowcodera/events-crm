@@ -739,4 +739,101 @@ export const guestsRouter = createTRPCRouter({
 
       return { existingEmails: [...new Set(duplicateEmails)] }
     }),
+
+  // Get guests with their category info (for bulk email validation)
+  getGuestsWithCategories: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        guestIds: z.array(z.string().uuid()).min(1).max(5000),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, input.eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      // Check permission
+      const canView = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.VIEW_GUESTS,
+      })
+
+      if (!canView) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to view guests",
+        })
+      }
+
+      // Fetch guests with their categories
+      const guestList = await db.query.guests.findMany({
+        where: and(
+          eq(guests.eventId, input.eventId),
+          sql`${guests.id} = ANY(${input.guestIds})`
+        ),
+        with: {
+          category: {
+            columns: {
+              id: true,
+              name: true,
+              code: true,
+              color: true,
+              defaultEmailTemplateId: true,
+            },
+          },
+        },
+        columns: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          categoryId: true,
+        },
+      })
+
+      // Group guests by category and identify categories without templates
+      const categoriesMap = new Map<
+        string,
+        {
+          id: string
+          name: string
+          code: string
+          color: string | null
+          defaultEmailTemplateId: string | null
+          guestCount: number
+        }
+      >()
+
+      for (const guest of guestList) {
+        if (!guest.category) continue
+
+        const existing = categoriesMap.get(guest.category.id)
+        if (existing) {
+          existing.guestCount++
+        } else {
+          categoriesMap.set(guest.category.id, {
+            ...guest.category,
+            guestCount: 1,
+          })
+        }
+      }
+
+      const categories = Array.from(categoriesMap.values())
+      const categoriesWithoutTemplate = categories.filter(
+        (c) => !c.defaultEmailTemplateId
+      )
+
+      return {
+        guests: guestList,
+        categories,
+        categoriesWithoutTemplate,
+        allHaveTemplates: categoriesWithoutTemplate.length === 0,
+      }
+    }),
 })

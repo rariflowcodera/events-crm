@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo } from "react"
 import { useForm, FormProvider } from "react-hook-form"
 import { useTranslations } from "next-intl"
 import { Loader2 } from "lucide-react"
@@ -34,7 +34,17 @@ interface DynamicFormRendererProps {
   /** If true, renders only the sections without form wrapper and submit button */
   embedded?: boolean
   /** Ref to expose form methods for embedded mode */
-  formRef?: React.MutableRefObject<{ getFormData: () => FormData } | null>
+  formRef?: React.MutableRefObject<{
+    getFormData: () => FormData
+    getSectionsWithFields: () => Array<{
+      id: string
+      fieldKeys: string[]
+      requiredFieldKeys: string[]
+    }>
+    triggerValidation: (fieldKeys: string[]) => Promise<boolean>
+  } | null>
+  /** If provided, only render this specific section (0-indexed) */
+  sectionIndex?: number
 }
 
 interface FormData {
@@ -103,49 +113,19 @@ export function DynamicFormRenderer({
   disabled = false,
   embedded = false,
   formRef,
+  sectionIndex,
 }: DynamicFormRendererProps) {
   const t = useTranslations("rsvp")
   const tCommon = useTranslations("common")
   const isRtl = locale === "ar"
 
   const [submitting, setSubmitting] = useState(false)
-  const [openSections, setOpenSections] = useState<Set<string>>(() => {
-    // Open first enabled section by default
-    const firstEnabled = config.sections.find((s) => s.enabled)
-    return new Set(firstEnabled ? [firstEnabled.id] : [])
-  })
 
   const methods = useForm({
     defaultValues: initialValues,
   })
 
   const formValues = methods.watch()
-
-  // Expose form data getter for embedded mode
-  if (formRef) {
-    formRef.current = {
-      getFormData: () => {
-        const data = methods.getValues()
-        const standardResponses: Record<string, unknown> = {}
-        const customResponses: Record<string, unknown> = {}
-
-        for (const [key, value] of Object.entries(data)) {
-          if (key.startsWith("custom_")) {
-            const customFieldId = key.replace("custom_", "")
-            customResponses[customFieldId] = value
-          } else if (isStandardField(key)) {
-            standardResponses[key] = value
-          }
-        }
-
-        return {
-          responseStatus: "confirmed", // Will be set by parent
-          standardResponses,
-          customResponses,
-        }
-      },
-    }
-  }
 
   /**
    * Convert form config sections into renderable field props
@@ -242,18 +222,6 @@ export function DynamicFormRenderer({
     })
   }, [config.sections, categoryId, locale, formValues, disabled])
 
-  const handleSectionToggle = useCallback((sectionId: string) => {
-    setOpenSections((prev) => {
-      const next = new Set(prev)
-      if (next.has(sectionId)) {
-        next.delete(sectionId)
-      } else {
-        next.add(sectionId)
-      }
-      return next
-    })
-  }, [])
-
   const handleFormSubmit = async (data: Record<string, unknown>) => {
     setSubmitting(true)
 
@@ -290,23 +258,65 @@ export function DynamicFormRenderer({
   // Filter to only sections with fields
   const sectionsWithFields = renderedSections.filter((s) => s.fields.length > 0)
 
+  // Expose form data getter and section info for embedded mode
+  if (formRef) {
+    formRef.current = {
+      getFormData: () => {
+        const data = methods.getValues()
+        const standardResponses: Record<string, unknown> = {}
+        const customResponses: Record<string, unknown> = {}
+
+        for (const [key, value] of Object.entries(data)) {
+          if (key.startsWith("custom_")) {
+            const customFieldId = key.replace("custom_", "")
+            customResponses[customFieldId] = value
+          } else if (isStandardField(key)) {
+            standardResponses[key] = value
+          }
+        }
+
+        return {
+          responseStatus: "confirmed", // Will be set by parent
+          standardResponses,
+          customResponses,
+        }
+      },
+      getSectionsWithFields: () => sectionsWithFields.map(s => ({
+        id: s.id,
+        fieldKeys: s.fields.map(f => f.fieldKey),
+        requiredFieldKeys: s.fields.filter(f => f.required).map(f => f.fieldKey),
+      })),
+      triggerValidation: async (fieldKeys: string[]) => {
+        if (fieldKeys.length === 0) return true
+        return await methods.trigger(fieldKeys)
+      },
+    }
+  }
+
+  // If sectionIndex is provided, only render that specific section
+  const sectionsToRender = sectionIndex !== undefined
+    ? [sectionsWithFields[sectionIndex]].filter(Boolean)
+    : sectionsWithFields
+
   // In embedded mode, render just the sections without form wrapper
   if (embedded) {
     return (
       <FormProvider {...methods}>
         <div className="space-y-4">
-          {sectionsWithFields.map((section, index) => (
-            <FormSection
-              key={section.id}
-              {...section}
-              locale={locale}
-              isOpen={openSections.has(section.id)}
-              onToggle={() => handleSectionToggle(section.id)}
-              showProgress={showProgress}
-              sectionIndex={index}
-              totalSections={sectionsWithFields.length}
-            />
-          ))}
+          {sectionsToRender.map((section, index) => {
+            // Calculate actual index in the full list for proper numbering
+            const actualIndex = sectionIndex !== undefined ? sectionIndex : index
+            return (
+              <FormSection
+                key={section.id}
+                {...section}
+                locale={locale}
+                showProgress={showProgress}
+                sectionIndex={actualIndex}
+                totalSections={sectionsWithFields.length}
+              />
+            )
+          })}
         </div>
       </FormProvider>
     )
@@ -315,18 +325,19 @@ export function DynamicFormRenderer({
   return (
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(handleFormSubmit)} className="space-y-4">
-        {sectionsWithFields.map((section, index) => (
-          <FormSection
-            key={section.id}
-            {...section}
-            locale={locale}
-            isOpen={openSections.has(section.id)}
-            onToggle={() => handleSectionToggle(section.id)}
-            showProgress={showProgress}
-            sectionIndex={index}
-            totalSections={sectionsWithFields.length}
-          />
-        ))}
+        {sectionsToRender.map((section, index) => {
+          const actualIndex = sectionIndex !== undefined ? sectionIndex : index
+          return (
+            <FormSection
+              key={section.id}
+              {...section}
+              locale={locale}
+              showProgress={showProgress}
+              sectionIndex={actualIndex}
+              totalSections={sectionsWithFields.length}
+            />
+          )
+        })}
 
         <Button
           type="submit"

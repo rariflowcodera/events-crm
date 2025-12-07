@@ -109,6 +109,7 @@ export const guestCategoriesRouter = createTRPCRouter({
             showServiceDetails: z.boolean().optional(),
           })
           .optional(),
+        defaultEmailTemplateId: z.string().uuid().nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -169,6 +170,7 @@ export const guestCategoriesRouter = createTRPCRouter({
           sortOrder,
           serviceAllocations: input.serviceAllocations,
           rsvpPageConfig: input.rsvpPageConfig,
+          defaultEmailTemplateId: input.defaultEmailTemplateId,
         })
         .returning()
 
@@ -218,6 +220,7 @@ export const guestCategoriesRouter = createTRPCRouter({
           })
           .optional(),
         isActive: z.boolean().optional(),
+        defaultEmailTemplateId: z.string().uuid().nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

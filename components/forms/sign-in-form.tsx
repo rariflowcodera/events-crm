@@ -2,7 +2,6 @@
 
 import { ComponentProps, useState } from "react"
 import Image from "next/image"
-import Link from "next/link"
 import { RedirectType, useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -24,8 +23,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
-import { SignInSocialsForm } from "@/components/forms/sign-in-socials-form"
 import { Icons } from "@/components/global/icons"
 
 type SignInFormProps = ComponentProps<typeof Card> & {
@@ -97,6 +94,7 @@ export function SignInForm({ className, isLoggedIn, ...props }: SignInFormProps)
 
   return (
     <div className="w-full">
+      <h1 className="mb-8 text-center text-4xl font-bold">Events CRM</h1>
       <Card className={cn("mx-auto w-full md:w-[400px]", className)} {...props}>
         <CardHeader>
           <Image
@@ -106,7 +104,7 @@ export function SignInForm({ className, isLoggedIn, ...props }: SignInFormProps)
             height={45}
             className="mb-2"
           />
-          <CardTitle className="text-lg">Sign in or sign up</CardTitle>
+          <CardTitle className="text-lg">Sign in</CardTitle>
           <CardDescription>{configuration.site.shortDescription}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -167,26 +165,8 @@ export function SignInForm({ className, isLoggedIn, ...props }: SignInFormProps)
               </div>
             </form>
           </Form>
-
-          <div className="my-2 flex items-center gap-x-4">
-            <Separator className="bg-border h-px flex-1" />
-            <span className="text-muted-foreground text-xs font-medium">or continue with</span>
-            <Separator className="bg-border h-px flex-1" />
-          </div>
-          <SignInSocialsForm />
         </CardContent>
       </Card>
-      <div className="text-primary/60 mx-auto mt-4 max-w-[40ch] px-8 text-center text-xs">
-        By signing up, you agree to our{" "}
-        <Link prefetch className="underline" href={createRoute("terms").href} target="_blank">
-          Terms of Service
-        </Link>{" "}
-        and{" "}
-        <Link prefetch href={createRoute("privacy").href} className="underline" target="_blank">
-          Privacy Policy
-        </Link>
-        .
-      </div>
     </div>
   )
 }

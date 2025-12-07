@@ -25,5 +25,5 @@ export default async function CallbackPage() {
     return redirectToRoute("dashboard", { slug: memberWorkspaces[0].slug })
   }
 
-  return redirect("/join")
+  return redirect("/access-denied")
 }
