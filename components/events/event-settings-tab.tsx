@@ -35,6 +35,7 @@ import { Switch } from "@/components/ui/switch"
 import { Icons } from "@/components/global/icons"
 import { EmailConfigurationCard } from "@/components/events/email-configuration-card"
 import { EventCustomDomainCard } from "@/components/events/event-custom-domain-card"
+import { EventEmailSenderCard } from "@/components/events/event-email-sender-card"
 
 type EventStatus = "draft" | "planning" | "invitations_sent" | "rsvp_open" | "rsvp_closed" | "in_progress" | "completed" | "cancelled"
 
@@ -56,6 +57,10 @@ interface Event {
     maxPlusOnes?: number
     requireApproval?: boolean
     sendReminders?: boolean
+    emailSettings?: {
+      fromEmail?: string
+      fromName?: string
+    }
   } | null
   // Custom domain fields
   customDomain: string | null
@@ -535,6 +540,14 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
           </Button>
         </div>
       </form>
+
+      {/* Email Sender Settings - separate from form since it has its own mutations */}
+      <div className="mt-6">
+        <EventEmailSenderCard
+          eventId={event.id}
+          emailSettings={event.settings?.emailSettings}
+        />
+      </div>
 
       {/* Email Configuration - separate from form since it has its own mutations */}
       <div className="mt-6">

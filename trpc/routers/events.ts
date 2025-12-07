@@ -263,6 +263,12 @@ export const eventsRouter = createTRPCRouter({
             requireApproval: z.boolean().optional(),
             sendReminders: z.boolean().optional(),
             reminderDays: z.array(z.number()).optional(),
+            emailSettings: z
+              .object({
+                fromEmail: z.string().email().optional(),
+                fromName: z.string().max(100).optional(),
+              })
+              .optional(),
           })
           .optional(),
         rsvpFormConfig: z

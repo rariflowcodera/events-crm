@@ -1,6 +1,56 @@
 import { SMTP_FROM_ENV, SMTP_HOST_ENV, SMTP_PASS_ENV, SMTP_PORT_ENV, SMTP_USER_ENV } from "@/env"
 import nodemailer from "nodemailer"
 
+// ============================================================================
+// Email Sender Resolution Helpers
+// ============================================================================
+
+export type EmailSenderSettings = {
+  fromEmail?: string
+  fromName?: string
+}
+
+/**
+ * Format an email sender string with optional display name
+ * @example formatEmailSender("hello@example.com", "Company Name") => "Company Name <hello@example.com>"
+ * @example formatEmailSender("hello@example.com") => "hello@example.com"
+ */
+export function formatEmailSender(email: string, name?: string): string {
+  if (name && name.trim()) {
+    return `${name.trim()} <${email}>`
+  }
+  return email
+}
+
+/**
+ * Resolve email sender with fallback chain
+ * Priority: explicitFrom > levelSettings > defaultFrom
+ *
+ * @param explicitFrom - Explicit from address (e.g., from template.fromEmail)
+ * @param levelSettings - Level-specific settings (workspace or event)
+ * @param defaultFrom - Default fallback (SMTP_FROM env variable)
+ */
+export function resolveEmailSender(options: {
+  explicitFrom?: string
+  levelSettings?: EmailSenderSettings | null
+  defaultFrom: string
+}): string {
+  const { explicitFrom, levelSettings, defaultFrom } = options
+
+  // 1. Explicit from (highest priority - e.g., template override)
+  if (explicitFrom && explicitFrom.trim()) {
+    return explicitFrom
+  }
+
+  // 2. Level-specific settings (workspace or event)
+  if (levelSettings?.fromEmail && levelSettings.fromEmail.trim()) {
+    return formatEmailSender(levelSettings.fromEmail, levelSettings.fromName)
+  }
+
+  // 3. Default env fallback
+  return defaultFrom
+}
+
 // Create reusable transporter
 const transporter = nodemailer.createTransport({
   host: SMTP_HOST_ENV,

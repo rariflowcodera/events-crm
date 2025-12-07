@@ -8,7 +8,8 @@ import {
   events,
   guests,
 } from "@/server/db/schemas"
-import { email } from "@/lib/email"
+import { SMTP_FROM_ENV } from "@/env"
+import { email, resolveEmailSender } from "@/lib/email"
 import { addSingleEmailJob } from "@/lib/queue/queues"
 import { renderEmailTemplate, guestHasEmail } from "@/lib/queue/email-job"
 import type {
@@ -182,13 +183,23 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
       .set({ subject: rendered.subject, status: "queued" })
       .where(eq(emailLogs.id, emailLog.id))
 
+    // Resolve email sender with fallback chain:
+    // 1. Template fromEmail (highest priority)
+    // 2. Event emailSettings
+    // 3. SMTP_FROM env (default)
+    const fromAddress = resolveEmailSender({
+      explicitFrom: rendered.from,
+      levelSettings: event.settings?.emailSettings,
+      defaultFrom: SMTP_FROM_ENV,
+    })
+
     // Send email via nodemailer
     const result = await email.send({
       to: guest.email,
       subject: rendered.subject,
       html: rendered.html,
       text: rendered.text,
-      from: rendered.from,
+      from: fromAddress,
     })
 
     if (result.error) {

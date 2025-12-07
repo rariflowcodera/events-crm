@@ -157,3 +157,35 @@ export const useUpdateWorkspaceBranding = ({
 
   return { mutate, isPending }
 }
+
+// ============================================================================
+// Workspace Email Settings Hooks
+// ============================================================================
+
+export const useWorkspaceEmailSettings = (slug: string) => {
+  return trpc.workspaces.getEmailSettings.useQuery({ slug }, { enabled: !!slug })
+}
+
+export const useUpdateWorkspaceEmailSettings = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: () => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.workspaces.updateEmailSettings.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message)
+      utils.workspaces.getEmailSettings.invalidate()
+      onSuccess?.()
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}

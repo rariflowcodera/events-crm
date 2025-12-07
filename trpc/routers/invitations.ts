@@ -11,7 +11,7 @@ import { z } from "zod"
 
 import { RoleTypesType } from "@/types/types"
 import { configuration } from "@/lib/config"
-import { email } from "@/lib/email"
+import { email, resolveEmailSender } from "@/lib/email"
 import { generateUniqueToken } from "@/lib/invitation"
 import { invitationSchema, workspaceSchema } from "@/lib/schemas"
 import { InvitationMail } from "@/components/mail/invitation-mail"
@@ -55,6 +55,7 @@ export const invitationsRouter = createTRPCRouter({
           name: workspaces.name,
           slug: workspaces.slug,
           logo: workspaces.logo,
+          emailSettings: workspaces.emailSettings,
           members: count(workspaceMembers.userId),
         })
         .from(workspaces)
@@ -178,8 +179,14 @@ export const invitationsRouter = createTRPCRouter({
         })
       )
 
+      // Resolve email sender with workspace settings fallback
+      const fromAddress = resolveEmailSender({
+        levelSettings: workspace.emailSettings,
+        defaultFrom: configuration.smtp.from,
+      })
+
       await email.send({
-        from: configuration.smtp.from,
+        from: fromAddress,
         to: inviteeEmail,
         subject: `Invitation to join the ${workspace.name} workspace | ${configuration.site.name}`,
         html,
@@ -204,9 +211,15 @@ export const invitationsRouter = createTRPCRouter({
       const { emails, workspaceId } = input
 
       await dbClient.transaction(async (trx) => {
-        // Get workspace
+        // Get workspace with email settings
         const [workspace] = await trx
-          .select()
+          .select({
+            id: workspaces.id,
+            name: workspaces.name,
+            slug: workspaces.slug,
+            logo: workspaces.logo,
+            emailSettings: workspaces.emailSettings,
+          })
           .from(workspaces)
           .where(eq(workspaces.id, workspaceId))
           .limit(1)
@@ -340,8 +353,14 @@ export const invitationsRouter = createTRPCRouter({
             })
           )
 
+          // Resolve email sender with workspace settings fallback
+          const fromAddress = resolveEmailSender({
+            levelSettings: workspace.emailSettings,
+            defaultFrom: configuration.smtp.from,
+          })
+
           await email.send({
-            from: configuration.smtp.from,
+            from: fromAddress,
             to: emailAddr,
             subject: `Invitation to join the ${workspace.name} workspace | ${configuration.site.name}`,
             html,

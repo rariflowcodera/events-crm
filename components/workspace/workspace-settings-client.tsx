@@ -13,6 +13,10 @@ import {
   WorkspaceDangerZone,
   WorkspaceDangerZoneSkeleton,
 } from "@/components/workspace/workspace-danger-zone"
+import {
+  WorkspaceEmailSettingsCard,
+  WorkspaceEmailSettingsCardSkeleton,
+} from "@/components/workspace/workspace-email-settings-card"
 
 type WorkspaceSettingsClientProps = {
   slug: WorkspaceType["slug"]
@@ -24,6 +28,7 @@ export function WorkspaceSettingsClient({ slug }: WorkspaceSettingsClientProps) 
       fallback={
         <div className="max-w-2xl space-y-4">
           <WorkspaceCardSkeleton />
+          <WorkspaceEmailSettingsCardSkeleton />
           <WorkspaceDangerZoneSkeleton />
         </div>
       }
@@ -63,6 +68,12 @@ function WorkspaceSettingsClientSuspense({ slug }: WorkspaceSettingsClientProps)
         workspace={workspace}
         isOwner={isOwner}
         owner={workspace.owner!}
+      />
+
+      <WorkspaceEmailSettingsCard
+        workspaceId={workspace.id}
+        slug={slug}
+        canEdit={canEdit}
       />
 
       <WorkspaceDangerZone

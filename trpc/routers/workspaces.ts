@@ -12,6 +12,7 @@ import {
   deleteWorkspaceSchema,
   updateWorkspaceSchema,
   updateWorkspaceBrandingSchema,
+  updateWorkspaceEmailSettingsSchema,
   workspaceSchema,
 } from "@/lib/schemas"
 import { slugify } from "@/lib/utils"
@@ -458,6 +459,95 @@ export const workspacesRouter = createTRPCRouter({
       return {
         message: "Workspace branding updated successfully",
         branding: updated.branding,
+      }
+    }),
+
+  // Get workspace email settings
+  getEmailSettings: protectedProcedure
+    .input(z.object({ slug: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(workspaces.slug, input.slug),
+        columns: {
+          id: true,
+          emailSettings: true,
+        },
+      })
+
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Workspace not found" })
+      }
+
+      // Check membership
+      const isMember = await db.query.workspaceMembers.findFirst({
+        where: and(
+          eq(workspaceMembers.workspaceId, workspace.id),
+          eq(workspaceMembers.userId, ctx.user.id)
+        ),
+      })
+
+      if (!isMember) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not a member of this workspace" })
+      }
+
+      return {
+        workspaceId: workspace.id,
+        emailSettings: workspace.emailSettings ?? null,
+      }
+    }),
+
+  // Update workspace email settings
+  updateEmailSettings: protectedProcedure
+    .input(updateWorkspaceEmailSettingsSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { workspaceId, emailSettings } = input
+
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(workspaces.id, workspaceId),
+      })
+
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Workspace not found" })
+      }
+
+      const canUpdate = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: workspace.id,
+        permissionName: PERMISSIONS.MANAGE_WORKSPACE,
+      })
+
+      if (!canUpdate) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not authorized to update workspace email settings",
+        })
+      }
+
+      // Clean up empty strings - treat them as null/undefined
+      const cleanedSettings = {
+        fromEmail: emailSettings.fromEmail?.trim() || undefined,
+        fromName: emailSettings.fromName?.trim() || undefined,
+      }
+
+      // If both are empty, set to null
+      const settingsToSave =
+        cleanedSettings.fromEmail || cleanedSettings.fromName ? cleanedSettings : null
+
+      const [updated] = await db
+        .update(workspaces)
+        .set({
+          emailSettings: settingsToSave,
+          updatedAt: new Date(),
+        })
+        .where(eq(workspaces.id, workspaceId))
+        .returning({
+          id: workspaces.id,
+          emailSettings: workspaces.emailSettings,
+        })
+
+      return {
+        message: "Workspace email settings updated successfully",
+        emailSettings: updated.emailSettings,
       }
     }),
 

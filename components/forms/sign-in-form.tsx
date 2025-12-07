@@ -94,16 +94,16 @@ export function SignInForm({ className, isLoggedIn, ...props }: SignInFormProps)
 
   return (
     <div className="w-full">
-      <h1 className="mb-8 text-center text-4xl font-bold">Events CRM</h1>
+      <Image
+        src={"/logo.png"}
+        alt={`${configuration.site.name} Logo`}
+        width={400}
+        height={249}
+        className="mx-auto mb-4 h-auto max-w-xs"
+      />
+      <h1 className="mb-8 text-center text-2xl font-bold">Events CRM</h1>
       <Card className={cn("mx-auto w-full md:w-[400px]", className)} {...props}>
         <CardHeader>
-          <Image
-            src={"/logo.svg"}
-            alt={`${configuration.site.name} Logo`}
-            width={45}
-            height={45}
-            className="mb-2"
-          />
           <CardTitle className="text-lg">Sign in</CardTitle>
           <CardDescription>{configuration.site.shortDescription}</CardDescription>
         </CardHeader>

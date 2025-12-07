@@ -113,6 +113,15 @@ export type EventBranding = {
 }
 
 // ============================================================================
+// Event Email Settings Type
+// ============================================================================
+
+export type EventEmailSettings = {
+  fromEmail?: string // Sender email address for event emails
+  fromName?: string // Sender display name for event emails
+}
+
+// ============================================================================
 // Event Schema
 // ============================================================================
 
@@ -170,6 +179,7 @@ export const events = pgTable(
       requireApproval?: boolean
       sendReminders?: boolean
       reminderDays?: number[]
+      emailSettings?: EventEmailSettings
     }>(),
 
     createdBy: text("created_by").references(() => users.id, {

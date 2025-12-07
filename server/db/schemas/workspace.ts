@@ -15,6 +15,15 @@ export type WorkspaceBranding = {
   accentColorDark?: string // Dark mode accent color
 }
 
+// ============================================================================
+// Workspace Email Settings Type
+// ============================================================================
+
+export type WorkspaceEmailSettings = {
+  fromEmail?: string // Sender email address (e.g., "invitations@company.com")
+  fromName?: string // Sender display name (e.g., "Company Events Team")
+}
+
 export const workspaces = pgTable(
   "workspace",
   {
@@ -33,6 +42,7 @@ export const workspaces = pgTable(
     logo: text("logo"),
 
     branding: json("branding").$type<WorkspaceBranding>(),
+    emailSettings: json("email_settings").$type<WorkspaceEmailSettings>(),
 
     createdAt: timestamp("created_at", { mode: "date" })
       .notNull()

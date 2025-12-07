@@ -82,6 +82,41 @@ export const updateEventBrandingSchema = z.object({
 
 export type UpdateEventBrandingInput = z.infer<typeof updateEventBrandingSchema>
 
+// ============================================================================
+// Email Sender Settings Schemas
+// ============================================================================
+
+/** Reusable email sender settings schema for workspace and event levels */
+export const emailSenderSettingsSchema = z.object({
+  fromEmail: z
+    .string()
+    .email("Invalid email address")
+    .optional()
+    .or(z.literal("")),
+  fromName: z
+    .string()
+    .max(100, "Sender name must be 100 characters or less")
+    .optional(),
+})
+
+export type EmailSenderSettingsInput = z.infer<typeof emailSenderSettingsSchema>
+
+/** Update workspace email settings schema */
+export const updateWorkspaceEmailSettingsSchema = z.object({
+  workspaceId: z.string().uuid("Invalid workspace ID"),
+  emailSettings: emailSenderSettingsSchema,
+})
+
+export type UpdateWorkspaceEmailSettingsInput = z.infer<typeof updateWorkspaceEmailSettingsSchema>
+
+/** Update event email settings schema */
+export const updateEventEmailSettingsSchema = z.object({
+  eventId: z.string().uuid("Invalid event ID"),
+  emailSettings: emailSenderSettingsSchema,
+})
+
+export type UpdateEventEmailSettingsInput = z.infer<typeof updateEventEmailSettingsSchema>
+
 // Base schema for string validations with common options
 const baseStringSchema = ({
   minChar = 1,
