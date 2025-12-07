@@ -55,12 +55,18 @@ interface Guest {
   rsvpRespondedAt: Date | null
 }
 
+interface EventCustomDomain {
+  customDomain: string | null
+  customDomainVerified: boolean | null
+}
+
 interface GuestsTableProps {
   guests: Guest[]
   selectedIds: Set<string>
   onSelectionChange: (ids: Set<string>) => void
   onGuestClick: (guest: Guest) => void
   eventId: string
+  event: EventCustomDomain
 }
 
 const ROW_HEIGHT = 56
@@ -71,6 +77,7 @@ export function GuestsTable({
   onSelectionChange,
   onGuestClick,
   eventId,
+  event,
 }: GuestsTableProps) {
   const parentRef = useRef<HTMLDivElement>(null)
 
@@ -188,7 +195,7 @@ export function GuestsTable({
                   <GuestStatusBadge status={guest.status} />
                 </div>
                 <div className="w-[70px] p-2 flex-shrink-0">
-                  <GuestRowActions guest={guest} eventId={eventId} />
+                  <GuestRowActions guest={guest} eventId={eventId} event={event} />
                 </div>
               </div>
             )

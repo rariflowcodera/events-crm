@@ -1,4 +1,5 @@
 import type { BilingualEmailContentInput } from "@/lib/schemas"
+import { getRsvpUrl, getRsvpConfirmUrl, getRsvpDeclineUrl } from "@/lib/rsvp-url"
 
 interface Guest {
   id: string
@@ -25,6 +26,8 @@ interface Event {
   startDate: Date | null
   endDate: Date | null
   rsvpDeadline: Date | null
+  customDomain: string | null
+  customDomainVerified: boolean | null
 }
 
 interface Template {
@@ -77,8 +80,10 @@ export function renderEmailTemplate(
   }
 
   // Build the variables map
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-  const rsvpBaseUrl = `${appUrl}/rsvp/${guest.rsvpToken}`
+  // Use custom domain if configured and verified, otherwise use app URL
+  const rsvpLink = getRsvpUrl(event, guest.rsvpToken)
+  const rsvpConfirmLink = getRsvpConfirmUrl(event, guest.rsvpToken)
+  const rsvpDeclineLink = getRsvpDeclineUrl(event, guest.rsvpToken)
 
   const variables: Record<string, string> = {
     // Guest variables
@@ -102,10 +107,10 @@ export function renderEmailTemplate(
       ? formatDate(event.rsvpDeadline, language)
       : "",
 
-    // RSVP link variables
-    "rsvp.link": rsvpBaseUrl,
-    "rsvp.confirmLink": `${rsvpBaseUrl}?action=confirm`,
-    "rsvp.declineLink": `${rsvpBaseUrl}?action=decline`,
+    // RSVP link variables (uses custom domain if configured)
+    "rsvp.link": rsvpLink,
+    "rsvp.confirmLink": rsvpConfirmLink,
+    "rsvp.declineLink": rsvpDeclineLink,
 
     // Category variables
     "category.name": guest.category?.name || "",

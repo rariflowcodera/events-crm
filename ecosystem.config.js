@@ -35,9 +35,7 @@ module.exports = {
     },
     {
       name: "events-crm-worker",
-      script: "server/workers/email-worker.ts",
-      interpreter: "node",
-      interpreter_args: "--import tsx",
+      script: "node --import tsx server/workers/email-worker.ts",
       cwd: __dirname,
       env: {
         NODE_ENV: "production",

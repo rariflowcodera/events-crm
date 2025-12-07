@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
 import { useDeleteGuest } from "@/trpc/hooks/guests-hooks"
+import { getRsvpUrl } from "@/lib/rsvp-url"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -47,12 +48,18 @@ interface Guest {
   status: GuestStatus
 }
 
+interface EventCustomDomain {
+  customDomain: string | null
+  customDomainVerified: boolean | null
+}
+
 interface GuestRowActionsProps {
   guest: Guest
   eventId: string
+  event: EventCustomDomain
 }
 
-export function GuestRowActions({ guest, eventId }: GuestRowActionsProps) {
+export function GuestRowActions({ guest, eventId, event }: GuestRowActionsProps) {
   const t = useTranslations("guest")
   const router = useRouter()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -65,7 +72,7 @@ export function GuestRowActions({ guest, eventId }: GuestRowActionsProps) {
   })
 
   const handleCopyRsvpLink = () => {
-    const rsvpUrl = `${window.location.origin}/rsvp/${guest.rsvpToken}`
+    const rsvpUrl = getRsvpUrl(event, guest.rsvpToken)
     navigator.clipboard.writeText(rsvpUrl)
   }
 

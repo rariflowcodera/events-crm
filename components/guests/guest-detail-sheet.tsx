@@ -8,6 +8,7 @@ import { z } from "zod"
 import { format } from "date-fns"
 
 import { useUpdateGuest, useRegenerateRsvpToken } from "@/trpc/hooks/guests-hooks"
+import { getRsvpUrl } from "@/lib/rsvp-url"
 import {
   Sheet,
   SheetContent,
@@ -77,12 +78,18 @@ interface Guest {
   rsvpRespondedAt: Date | null
 }
 
+interface EventCustomDomain {
+  customDomain: string | null
+  customDomainVerified: boolean | null
+}
+
 interface GuestDetailSheetProps {
   guest: Guest | null
   isOpen: boolean
   onClose: () => void
   categories: GuestCategory[]
   eventId: string
+  event: EventCustomDomain
 }
 
 const statusOptions: { value: GuestStatus; label: string }[] = [
@@ -133,6 +140,7 @@ export function GuestDetailSheet({
   onClose,
   categories,
   eventId,
+  event,
 }: GuestDetailSheetProps) {
   const t = useTranslations("guest")
   const [isEditing, setIsEditing] = useState(false)
@@ -200,7 +208,7 @@ export function GuestDetailSheet({
 
   const handleCopyRsvpLink = () => {
     if (!guest) return
-    const rsvpUrl = `${window.location.origin}/rsvp/${guest.rsvpToken}`
+    const rsvpUrl = getRsvpUrl(event, guest.rsvpToken)
     navigator.clipboard.writeText(rsvpUrl)
   }
 

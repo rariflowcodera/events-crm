@@ -64,6 +64,8 @@ interface Event {
   name: string
   slug: string
   guestCategories: GuestCategory[]
+  customDomain: string | null
+  customDomainVerified: boolean | null
 }
 
 interface EventGuestsTabProps {
@@ -208,6 +210,10 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
             onSelectionChange={setSelectedIds}
             onGuestClick={handleGuestClick}
             eventId={event.id}
+            event={{
+              customDomain: event.customDomain,
+              customDomainVerified: event.customDomainVerified,
+            }}
           />
         </>
       ) : (
@@ -239,6 +245,10 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
         onClose={() => setSelectedGuest(null)}
         categories={event.guestCategories}
         eventId={event.id}
+        event={{
+          customDomain: event.customDomain,
+          customDomainVerified: event.customDomainVerified,
+        }}
       />
 
       {/* Bulk Delete Dialog */}

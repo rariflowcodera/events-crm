@@ -1,0 +1,42 @@
+/**
+ * Utility functions for generating RSVP URLs
+ * Uses custom domain when configured and verified, otherwise falls back to app URL
+ */
+
+interface EventWithCustomDomain {
+  customDomain: string | null
+  customDomainVerified: boolean | null
+}
+
+/**
+ * Get the base URL for RSVP links for an event
+ * Uses custom domain if verified, otherwise falls back to app URL
+ */
+export function getRsvpBaseUrl(event: EventWithCustomDomain): string {
+  if (event.customDomain && event.customDomainVerified) {
+    return `https://${event.customDomain}`
+  }
+  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+}
+
+/**
+ * Get full RSVP URL for a guest
+ */
+export function getRsvpUrl(event: EventWithCustomDomain, rsvpToken: string): string {
+  const baseUrl = getRsvpBaseUrl(event)
+  return `${baseUrl}/rsvp/${rsvpToken}`
+}
+
+/**
+ * Get RSVP confirm link (direct confirmation)
+ */
+export function getRsvpConfirmUrl(event: EventWithCustomDomain, rsvpToken: string): string {
+  return `${getRsvpUrl(event, rsvpToken)}?action=confirm`
+}
+
+/**
+ * Get RSVP decline link (direct decline)
+ */
+export function getRsvpDeclineUrl(event: EventWithCustomDomain, rsvpToken: string): string {
+  return `${getRsvpUrl(event, rsvpToken)}?action=decline`
+}
