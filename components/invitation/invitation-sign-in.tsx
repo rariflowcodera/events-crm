@@ -13,7 +13,6 @@ import { configuration } from "@/lib/config"
 import { createRoute } from "@/lib/routes"
 import { userSchema } from "@/lib/schemas"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import {
   Form,
   FormControl,
@@ -23,7 +22,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { SignInSocialsForm } from "@/components/forms/sign-in-socials-form"
 import { FormError } from "@/components/global/form-error"
 import { FormSuccess } from "@/components/global/form-success"
 import { Icons } from "@/components/global/icons"
@@ -138,14 +136,6 @@ export function InvitationSignIn({ callbackUrl, email, workspace }: InvitationSi
             Join
             <Icons.arrowRight />
           </Button>
-
-          <Card className="mx-auto w-full max-w-64 border-none bg-transparent p-0 shadow-none">
-            <SignInSocialsForm
-              buttonVariant="secondary"
-              className="mt-0"
-              callbackUrl={callbackUrl}
-            />
-          </Card>
 
           <FormError message={error} />
           <FormSuccess message={success} />
