@@ -3,12 +3,15 @@ import { events, workspaces, workspaceMembers, users, guestCategories } from "@/
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import { TRPCError } from "@trpc/server"
-import { and, desc, eq, getTableColumns } from "drizzle-orm"
+import { and, desc, eq, ne, getTableColumns } from "drizzle-orm"
 import { z } from "zod"
+import { randomBytes } from "crypto"
+import dns from "dns/promises"
 
 import { slugify } from "@/lib/utils"
 import { resolveBranding } from "@/lib/branding"
 import { eventBrandingSchema } from "@/lib/schemas"
+import { invalidateDomainCache, isValidDomainFormat } from "@/lib/domain"
 
 const eventStatusValues = [
   "draft",
@@ -469,5 +472,259 @@ export const eventsRouter = createTRPCRouter({
       await db.delete(events).where(eq(events.id, input.eventId))
 
       return { success: true }
+    }),
+
+  // ============================================================================
+  // Custom Domain Management
+  // ============================================================================
+
+  // Update custom domain for event
+  updateCustomDomain: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        customDomain: z.string().min(1),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { eventId, customDomain } = input
+      const normalizedDomain = customDomain.toLowerCase().trim()
+
+      // Validate domain format
+      if (!isValidDomainFormat(normalizedDomain)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid domain format. Please enter a valid domain (e.g., events.example.com)",
+        })
+      }
+
+      // Get event and check permissions
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_EVENT,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to manage this event",
+        })
+      }
+
+      // Check if domain is already in use by another event
+      const existingEvent = await db.query.events.findFirst({
+        where: and(
+          eq(events.customDomain, normalizedDomain),
+          ne(events.id, eventId)
+        ),
+      })
+
+      if (existingEvent) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "This domain is already in use by another event",
+        })
+      }
+
+      // Invalidate old domain cache if changing
+      if (event.customDomain && event.customDomain !== normalizedDomain) {
+        await invalidateDomainCache(event.customDomain)
+      }
+
+      // Generate verification token
+      const verificationToken = randomBytes(32).toString("hex")
+
+      const [updated] = await db
+        .update(events)
+        .set({
+          customDomain: normalizedDomain,
+          customDomainVerified: false,
+          customDomainVerifiedAt: null,
+          customDomainVerificationToken: verificationToken,
+          updatedAt: new Date(),
+        })
+        .where(eq(events.id, eventId))
+        .returning()
+
+      return {
+        customDomain: updated.customDomain,
+        verificationToken,
+        message: "Custom domain added. Please configure DNS and verify.",
+      }
+    }),
+
+  // Verify custom domain DNS configuration
+  verifyCustomDomain: protectedProcedure
+    .input(z.object({ eventId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const { eventId } = input
+
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, eventId),
+      })
+
+      if (!event || !event.customDomain) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Event or custom domain not found",
+        })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_EVENT,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to manage this event",
+        })
+      }
+
+      // Get main app domain for CNAME verification
+      const mainAppDomain = process.env.NEXT_PUBLIC_APP_URL
+        ? new URL(process.env.NEXT_PUBLIC_APP_URL).host
+        : null
+
+      if (!mainAppDomain) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Main app domain not configured",
+        })
+      }
+
+      try {
+        // Check CNAME or A record
+        let hasValidDns = false
+        let dnsError = ""
+
+        // Try CNAME first
+        try {
+          const cnameRecords = await dns.resolveCname(event.customDomain)
+          hasValidDns = cnameRecords.some((record) =>
+            record.toLowerCase().includes(mainAppDomain.toLowerCase())
+          )
+          if (!hasValidDns) {
+            dnsError = `CNAME record found but points to ${cnameRecords.join(", ")} instead of ${mainAppDomain}`
+          }
+        } catch (cnameErr) {
+          // CNAME not found, try A record
+          try {
+            const aRecords = await dns.resolve4(event.customDomain)
+            // For A records, we can't easily verify they point to us
+            // Just check that the domain resolves
+            if (aRecords.length > 0) {
+              hasValidDns = true
+            }
+          } catch {
+            dnsError = `No DNS records found for ${event.customDomain}. Please configure a CNAME record pointing to ${mainAppDomain}`
+          }
+        }
+
+        if (!hasValidDns && dnsError) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: dnsError,
+          })
+        }
+
+        // Check TXT verification record
+        const txtRecordName = `_events-verify.${event.customDomain}`
+        let hasTxtRecord = false
+
+        try {
+          const txtRecords = await dns.resolveTxt(txtRecordName)
+          hasTxtRecord = txtRecords.some((records) =>
+            records.some((record) => record === event.customDomainVerificationToken)
+          )
+        } catch {
+          // TXT record not found
+        }
+
+        if (!hasTxtRecord) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `TXT verification record not found. Please add a TXT record with name "_events-verify" and value "${event.customDomainVerificationToken}"`,
+          })
+        }
+
+        // Mark as verified
+        await db
+          .update(events)
+          .set({
+            customDomainVerified: true,
+            customDomainVerifiedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(events.id, eventId))
+
+        // Invalidate cache to pick up verified status
+        await invalidateDomainCache(event.customDomain)
+
+        return { success: true, message: "Domain verified successfully!" }
+      } catch (error) {
+        if (error instanceof TRPCError) throw error
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error instanceof Error ? error.message : "DNS verification failed",
+        })
+      }
+    }),
+
+  // Remove custom domain from event
+  removeCustomDomain: protectedProcedure
+    .input(z.object({ eventId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const { eventId } = input
+
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_EVENT,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to manage this event",
+        })
+      }
+
+      // Invalidate cache before removing
+      if (event.customDomain) {
+        await invalidateDomainCache(event.customDomain)
+      }
+
+      await db
+        .update(events)
+        .set({
+          customDomain: null,
+          customDomainVerified: false,
+          customDomainVerifiedAt: null,
+          customDomainVerificationToken: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(events.id, eventId))
+
+      return { success: true, message: "Custom domain removed" }
     }),
 })

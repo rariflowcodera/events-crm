@@ -125,3 +125,79 @@ export const useUpdateEventBranding = ({
 
   return { mutate, isPending }
 }
+
+// ============================================================================
+// Custom Domain Hooks
+// ============================================================================
+
+export const useUpdateEventCustomDomain = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (data: { customDomain: string | null; verificationToken: string; message: string }) => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.events.updateCustomDomain.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message)
+      utils.events.getOne.invalidate()
+      onSuccess?.(data)
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}
+
+export const useVerifyEventCustomDomain = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: () => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.events.verifyCustomDomain.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message)
+      utils.events.getOne.invalidate()
+      onSuccess?.()
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}
+
+export const useRemoveEventCustomDomain = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: () => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.events.removeCustomDomain.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message)
+      utils.events.getOne.invalidate()
+      onSuccess?.()
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}

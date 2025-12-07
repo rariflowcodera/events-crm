@@ -139,6 +139,7 @@ interface GuestData {
 interface RsvpPageProps {
   token: string
   locale: string
+  customDomain?: string // If set, this page is accessed via a custom domain
 }
 
 function getLocalizedText(text: BilingualText | undefined, locale: string): string {
@@ -146,7 +147,7 @@ function getLocalizedText(text: BilingualText | undefined, locale: string): stri
   return (locale === "ar" ? text.ar : text.en) || text.en || ""
 }
 
-export function RsvpPage({ token, locale }: RsvpPageProps) {
+export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
   const t = useTranslations("rsvp")
   const tCommon = useTranslations("common")
   const [guestData, setGuestData] = useState<GuestData | null>(null)
@@ -161,6 +162,18 @@ export function RsvpPage({ token, locale }: RsvpPageProps) {
   // Language toggle - allows switching between EN/AR without URL change
   const [displayLocale, setDisplayLocale] = useState<"en" | "ar">(locale as "en" | "ar")
   const isRtl = displayLocale === "ar"
+
+  // Handle language toggle - uses query param for custom domains, state for main app
+  const handleLanguageToggle = () => {
+    const newLocale = displayLocale === "en" ? "ar" : "en"
+    if (customDomain) {
+      // Custom domain: use query param for language
+      window.location.href = `?lang=${newLocale}`
+    } else {
+      // Main app: just toggle the state (no page reload)
+      setDisplayLocale(newLocale)
+    }
+  }
 
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(0)
@@ -372,7 +385,7 @@ export function RsvpPage({ token, locale }: RsvpPageProps) {
           {/* Language toggle */}
           <button
             type="button"
-            onClick={() => setDisplayLocale(prev => prev === "en" ? "ar" : "en")}
+            onClick={handleLanguageToggle}
             className="absolute top-4 right-4 text-sm text-muted-foreground hover:text-foreground transition-colors z-10"
           >
             {displayLocale === "en" ? "العربية" : "English"}
@@ -543,7 +556,7 @@ export function RsvpPage({ token, locale }: RsvpPageProps) {
         {/* Language toggle */}
         <button
           type="button"
-          onClick={() => setDisplayLocale(prev => prev === "en" ? "ar" : "en")}
+          onClick={handleLanguageToggle}
           className="absolute top-4 right-4 text-sm text-muted-foreground hover:text-foreground transition-colors z-10"
         >
           {displayLocale === "en" ? "العربية" : "English"}

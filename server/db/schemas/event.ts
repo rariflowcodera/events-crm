@@ -158,7 +158,11 @@ export const events = pgTable(
 
     branding: json("branding").$type<EventBranding>(),
 
+    // Custom domain configuration for RSVP pages
     customDomain: text("custom_domain").unique(),
+    customDomainVerified: boolean("custom_domain_verified").default(false),
+    customDomainVerifiedAt: timestamp("custom_domain_verified_at", { mode: "date" }),
+    customDomainVerificationToken: text("custom_domain_verification_token"),
 
     settings: json("settings").$type<{
       allowPlusOne?: boolean
@@ -181,6 +185,7 @@ export const events = pgTable(
     index("event_slug_workspace_idx").on(table.workspaceId, table.slug),
     index("event_status_idx").on(table.status),
     index("event_start_date_idx").on(table.startDate),
+    index("event_custom_domain_idx").on(table.customDomain),
   ]
 )
 

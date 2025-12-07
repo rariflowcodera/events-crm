@@ -15,6 +15,13 @@
       "when": 1764927304740,
       "tag": "0001_handy_wonder_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765124637952,
+      "tag": "0002_wakeful_scalphunter",
+      "breakpoints": true
     }
   ]
 }

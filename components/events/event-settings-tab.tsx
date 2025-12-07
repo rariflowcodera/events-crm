@@ -34,6 +34,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Switch } from "@/components/ui/switch"
 import { Icons } from "@/components/global/icons"
 import { EmailConfigurationCard } from "@/components/events/email-configuration-card"
+import { EventCustomDomainCard } from "@/components/events/event-custom-domain-card"
 
 type EventStatus = "draft" | "planning" | "invitations_sent" | "rsvp_open" | "rsvp_closed" | "in_progress" | "completed" | "cancelled"
 
@@ -56,6 +57,10 @@ interface Event {
     requireApproval?: boolean
     sendReminders?: boolean
   } | null
+  // Custom domain fields
+  customDomain: string | null
+  customDomainVerified: boolean | null
+  customDomainVerificationToken: string | null
 }
 
 interface EventSettingsTabProps {
@@ -537,6 +542,16 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
           eventId={event.id}
           eventSlug={event.slug}
           workspaceSlug={workspaceSlug}
+        />
+      </div>
+
+      {/* Custom Domain Configuration */}
+      <div className="mt-6">
+        <EventCustomDomainCard
+          eventId={event.id}
+          customDomain={event.customDomain}
+          customDomainVerified={event.customDomainVerified}
+          customDomainVerificationToken={event.customDomainVerificationToken}
         />
       </div>
     </Form>

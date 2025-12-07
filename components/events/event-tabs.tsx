@@ -53,6 +53,10 @@ interface Event {
   } | null
   guestCategories: GuestCategory[]
   createdAt: Date
+  // Custom domain fields
+  customDomain: string | null
+  customDomainVerified: boolean | null
+  customDomainVerificationToken: string | null
 }
 
 interface EventTabsProps {
