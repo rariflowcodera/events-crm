@@ -23,16 +23,16 @@ export function FormSection({
   const isRtl = locale === "ar"
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Section header */}
       <div className={cn("flex items-center gap-3", isRtl && "flex-row-reverse")}>
         {showProgress && (
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
+          <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-muted text-xs sm:text-sm font-medium">
             {sectionIndex + 1}
           </div>
         )}
         <div className={cn("text-left", isRtl && "text-right")}>
-          <h3 className="font-semibold text-base">{title}</h3>
+          <h3 className="font-semibold text-sm sm:text-base">{title}</h3>
           {description && (
             <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
           )}
@@ -41,7 +41,7 @@ export function FormSection({
 
       {/* Fields - always visible */}
       {fields.length > 0 ? (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {fields.map((field) => (
             <DynamicField
               key={field.fieldKey}

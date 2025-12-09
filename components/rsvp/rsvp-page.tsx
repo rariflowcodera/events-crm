@@ -305,7 +305,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center p-2 sm:p-4">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
           <p>{tCommon("loading")}</p>
@@ -316,9 +316,9 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
+      <div className="flex min-h-screen items-center justify-center p-2 sm:p-4">
+        <Card className="w-full max-w-md rounded-lg sm:rounded-xl">
+          <CardContent className="pt-6 p-4 sm:p-6 sm:pt-6">
             <p className="text-center text-destructive">{error}</p>
           </CardContent>
         </Card>
@@ -370,7 +370,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
 
     return (
       <div
-        className="flex min-h-screen items-center justify-center p-4"
+        className="flex min-h-screen items-center justify-center p-2 sm:p-4"
         dir={isRtl ? "rtl" : "ltr"}
         style={{
           backgroundColor: brandAccent || undefined,
@@ -381,17 +381,17 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
           backgroundPosition: "center",
         }}
       >
-        <Card className="w-full max-w-md relative">
+        <Card className="w-full max-w-md relative rounded-lg sm:rounded-xl">
           {/* Language toggle */}
           <button
             type="button"
             onClick={handleLanguageToggle}
-            className="absolute top-4 right-4 text-sm text-muted-foreground hover:text-foreground transition-colors z-10"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors z-10 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             {displayLocale === "en" ? "العربية" : "English"}
           </button>
 
-          <CardContent className="pt-6 text-center">
+          <CardContent className="pt-6 text-center p-4 sm:p-6 sm:pt-6">
             {brandLogo && (
               <img
                 src={brandLogo}
@@ -399,7 +399,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                 className="mx-auto mb-4 h-16 object-contain"
               />
             )}
-            <h2 className="text-2xl font-bold">
+            <h2 className="text-xl sm:text-2xl font-bold">
               {alreadyRespondedText.title}
             </h2>
             <p className="mt-2 text-muted-foreground">
@@ -449,7 +449,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
 
     return (
       <div
-        className="flex min-h-screen items-center justify-center p-4"
+        className="flex min-h-screen items-center justify-center p-2 sm:p-4"
         dir={isRtl ? "rtl" : "ltr"}
         style={{
           backgroundColor: brandAccent || undefined,
@@ -460,8 +460,8 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
           backgroundPosition: "center",
         }}
       >
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6 text-center">
+        <Card className="w-full max-w-md rounded-lg sm:rounded-xl">
+          <CardContent className="pt-6 text-center p-4 sm:p-6 sm:pt-6">
             {brandLogo && (
               <img
                 src={brandLogo}
@@ -469,7 +469,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                 className="mx-auto mb-4 h-12 object-contain"
               />
             )}
-            <h2 className="text-2xl font-bold">{t("submitted")}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold">{t("submitted")}</h2>
             <p className="mt-2 text-muted-foreground">{confirmationMessage}</p>
           </CardContent>
         </Card>
@@ -541,7 +541,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center p-4"
+      className="flex min-h-screen items-center justify-center p-2 sm:p-4"
       dir={isRtl ? "rtl" : "ltr"}
       style={{
         backgroundColor: brandAccent || "#f5f5f5",
@@ -552,17 +552,17 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
         backgroundPosition: "center",
       }}
     >
-      <Card className="w-full max-w-2xl relative">
+      <Card className="w-full max-w-2xl relative rounded-lg sm:rounded-xl">
         {/* Language toggle */}
         <button
           type="button"
           onClick={handleLanguageToggle}
-          className="absolute top-4 right-4 text-sm text-muted-foreground hover:text-foreground transition-colors z-10"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors z-10 min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
           {displayLocale === "en" ? "العربية" : "English"}
         </button>
 
-        <CardHeader className="text-center">
+        <CardHeader className="text-center p-4 sm:p-6">
           {brandLogo && (
             <img
               src={brandLogo}
@@ -570,13 +570,13 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
               className="mx-auto mb-4 h-16 object-contain"
             />
           )}
-          <CardTitle className="text-2xl">{headline || event.name}</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl">{headline || event.name}</CardTitle>
           <CardDescription className="mt-2">
             {welcomeMessage || `Dear ${guestFullName}, you are invited to ${event.name}`}
           </CardDescription>
 
           {/* Event details */}
-          <div className="mt-4 space-y-1 text-sm text-muted-foreground">
+          <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-1 text-sm text-muted-foreground">
             {event.venue && (
               <p>
                 <strong>{isRtl ? "المكان:" : "Venue:"}</strong> {event.venue}
@@ -606,11 +606,11 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
           </div>
         </CardHeader>
 
-        <CardContent className="min-h-[300px] flex flex-col">
+        <CardContent className="min-h-[250px] sm:min-h-[300px] flex flex-col p-4 pt-0 sm:p-6 sm:pt-0">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col">
               {/* Form content */}
-              <div className="space-y-6 flex-1">
+              <div className="space-y-4 sm:space-y-6 flex-1">
               {/* Step 0: RSVP Question */}
               {currentStep === 0 && (
                 <FormField
@@ -691,7 +691,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                 <>
                   {/* Companion section - only show if event allows plus ones */}
                   {allowPlusOne && (
-                    <div className="space-y-4 rounded-lg border p-4">
+                    <div className="space-y-3 sm:space-y-4 rounded-lg border p-3 sm:p-4">
                       <FormField
                         control={form.control}
                         name="companionInfo.bringing"
@@ -781,7 +781,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
               </div>
 
               {/* Navigation buttons */}
-              <div className={cn("flex gap-2 mt-auto pt-6", currentStep > 0 ? "justify-between" : "")}>
+              <div className={cn("flex gap-2 mt-auto pt-4 sm:pt-6", currentStep > 0 ? "justify-between" : "")}>
                 {/* Back button */}
                 {currentStep > 0 && (
                   <Button
@@ -789,6 +789,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                     variant="outline"
                     onClick={() => setCurrentStep(s => s - 1)}
                     disabled={submitting}
+                    className="h-11 sm:h-9"
                   >
                     {t("back")}
                   </Button>
@@ -799,7 +800,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                   <Button
                     key={`submit-${currentStep}`}
                     type="submit"
-                    className={cn(currentStep === 0 ? "w-full" : "flex-1")}
+                    className={cn("h-11 sm:h-9", currentStep === 0 ? "w-full" : "flex-1")}
                     disabled={submitting}
                     style={brandPrimary ? { backgroundColor: brandPrimary } : undefined}
                   >
@@ -816,7 +817,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                   <Button
                     key={`next-${currentStep}`}
                     type="button"
-                    className="w-full"
+                    className="w-full h-11 sm:h-9"
                     onClick={handleNextClick}
                     style={brandPrimary ? { backgroundColor: brandPrimary } : undefined}
                   >

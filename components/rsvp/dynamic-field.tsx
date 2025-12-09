@@ -73,7 +73,10 @@ export function DynamicField({
                   placeholder={placeholder}
                   disabled={disabled}
                   dir={isRtl ? "rtl" : "ltr"}
-                  className={cn(fieldState.error && "border-destructive")}
+                  className={cn(
+                    "h-11 sm:h-9",
+                    fieldState.error && "border-destructive"
+                  )}
                   {...field}
                   value={field.value || ""}
                 />
@@ -113,7 +116,10 @@ export function DynamicField({
                   disabled={disabled}
                   dir={isRtl ? "rtl" : "ltr"}
                   rows={3}
-                  className={cn(fieldState.error && "border-destructive")}
+                  className={cn(
+                    "min-h-[100px] sm:min-h-[80px]",
+                    fieldState.error && "border-destructive"
+                  )}
                   {...field}
                   value={field.value || ""}
                 />
@@ -152,7 +158,10 @@ export function DynamicField({
                   type="number"
                   placeholder={placeholder}
                   disabled={disabled}
-                  className={cn(fieldState.error && "border-destructive")}
+                  className={cn(
+                    "h-11 sm:h-9",
+                    fieldState.error && "border-destructive"
+                  )}
                   {...field}
                   value={field.value ?? ""}
                   onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
@@ -185,7 +194,10 @@ export function DynamicField({
                   id={fieldKey}
                   type="date"
                   disabled={disabled}
-                  className={cn(fieldState.error && "border-destructive")}
+                  className={cn(
+                    "h-11 sm:h-9",
+                    fieldState.error && "border-destructive"
+                  )}
                   {...field}
                   value={field.value || ""}
                 />
@@ -218,7 +230,10 @@ export function DynamicField({
                   value={field.value || ""}
                   disabled={disabled}
                 >
-                  <SelectTrigger className={cn(fieldState.error && "border-destructive")}>
+                  <SelectTrigger className={cn(
+                    "h-11 sm:h-9",
+                    fieldState.error && "border-destructive"
+                  )}>
                     <SelectValue placeholder={placeholder || "Select..."} />
                   </SelectTrigger>
                   <SelectContent>
@@ -263,12 +278,12 @@ export function DynamicField({
                     <div
                       key={option.value}
                       className={cn(
-                        "flex items-center space-x-3 space-y-0",
+                        "flex items-center space-x-3 space-y-0 min-h-[44px] sm:min-h-0",
                         isRtl && "space-x-reverse"
                       )}
                     >
                       <RadioGroupItem value={option.value} id={`${fieldKey}-${option.value}`} />
-                      <Label htmlFor={`${fieldKey}-${option.value}`} className="font-normal cursor-pointer">
+                      <Label htmlFor={`${fieldKey}-${option.value}`} className="font-normal cursor-pointer flex-1 py-2 sm:py-0">
                         {option.label}
                       </Label>
                     </div>
@@ -314,7 +329,7 @@ export function DynamicField({
                       <div
                         key={option.value}
                         className={cn(
-                          "flex items-center space-x-3 space-y-0",
+                          "flex items-center space-x-3 space-y-0 min-h-[44px] sm:min-h-0",
                           isRtl && "space-x-reverse"
                         )}
                       >
@@ -326,7 +341,7 @@ export function DynamicField({
                           }
                           disabled={disabled}
                         />
-                        <Label htmlFor={`${fieldKey}-${option.value}`} className="font-normal cursor-pointer">
+                        <Label htmlFor={`${fieldKey}-${option.value}`} className="font-normal cursor-pointer flex-1 py-2 sm:py-0">
                           {option.label}
                         </Label>
                       </div>
