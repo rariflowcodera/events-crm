@@ -68,6 +68,7 @@ pnpm run dev
 | `pnpm run lint` | Run ESLint |
 | `pnpm run format:fix` | Fix code formatting |
 | `pnpm run worker:email` | Start email worker (for background email processing) |
+| `pnpm run worker:suppression` | Start suppression sync worker (syncs OCI bounce list) |
 
 ### Database
 

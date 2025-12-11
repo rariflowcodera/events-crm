@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { UserType, WorkspaceType } from "@/server/db/schema-types"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -32,21 +33,30 @@ type InvitationSignInProps = {
   workspace: Pick<WorkspaceType, "name" | "logo">
 }
 
-const emailSchema = userSchema.pick({ email: true })
+const signInSchema = z.object({
+  email: userSchema.shape.email,
+  password: z.string().min(1, "Password is required"),
+})
+
+type SignInFormValues = z.infer<typeof signInSchema>
 
 export function InvitationSignIn({ callbackUrl, email, workspace }: InvitationSignInProps) {
+  const router = useRouter()
   const [showForm, setShowForm] = useState<boolean>(false)
   const [error, setError] = useState<string | undefined>(undefined)
   const [success, setSuccess] = useState<string | undefined>(undefined)
+  const [isPasswordMode, setIsPasswordMode] = useState<boolean>(true)
+  const [isSendingMagicLink, setIsSendingMagicLink] = useState<boolean>(false)
 
   const handleWelcomeAnimationEnd = () => {
     setShowForm(true)
   }
 
-  const form = useForm<z.infer<typeof emailSchema>>({
-    resolver: zodResolver(emailSchema),
+  const form = useForm<SignInFormValues>({
+    resolver: zodResolver(signInSchema),
     defaultValues: {
       email: email,
+      password: "",
     },
   })
 
@@ -65,26 +75,28 @@ export function InvitationSignIn({ callbackUrl, email, workspace }: InvitationSi
 
   const isLoading = form.formState.isSubmitting
 
-  const onSubmit = async (values: z.infer<typeof emailSchema>) => {
+  const onSubmitPassword = async (values: SignInFormValues) => {
     setError("")
     setSuccess("")
     try {
-      const { data } = await signIn.magicLink({
+      const { data, error: signInError } = await signIn.email({
         email: values.email,
+        password: values.password,
         callbackURL: callbackUrl ?? createRoute("callback").href,
       })
 
-      if (!data) {
-        toast.error("Something went wrong")
-        setError("Your sign in request failed. Please try again")
+      if (signInError) {
+        setError(signInError.message ?? "Invalid email or password")
+        toast.error("Sign in failed", {
+          description: signInError.message ?? "Invalid email or password",
+        })
+        return
       }
 
-      form.reset()
-      setSuccess("We sent you a login link. Be sure to check your spam too.")
-      setError("")
-      toast.success("We sent your a login link", {
-        description: "Be sure to check your spam too.",
-      })
+      if (data) {
+        toast.success("Signed in successfully")
+        router.push(callbackUrl)
+      }
     } catch (error: any) {
       setError(error?.message ?? "Your sign in request failed. Please try again")
       toast.error("Something went wrong", {
@@ -93,11 +105,41 @@ export function InvitationSignIn({ callbackUrl, email, workspace }: InvitationSi
     }
   }
 
+  const onSendMagicLink = async () => {
+    setError("")
+    setSuccess("")
+    setIsSendingMagicLink(true)
+    try {
+      const { data } = await signIn.magicLink({
+        email: email,
+        callbackURL: callbackUrl ?? createRoute("callback").href,
+      })
+
+      if (!data) {
+        toast.error("Something went wrong")
+        setError("Your sign in request failed. Please try again")
+        return
+      }
+
+      setSuccess("We sent you a login link. Be sure to check your spam too.")
+      toast.success("We sent you a login link", {
+        description: "Be sure to check your spam too.",
+      })
+    } catch (error: any) {
+      setError(error?.message ?? "Your sign in request failed. Please try again")
+      toast.error("Something went wrong", {
+        description: error?.message,
+      })
+    } finally {
+      setIsSendingMagicLink(false)
+    }
+  }
+
   return (
     <main className="flex h-screen w-full items-center justify-center">
       <Form {...form}>
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={form.handleSubmit(onSubmitPassword)}
           className="animate-fade-in flex w-[450px] flex-col gap-y-4"
         >
           <h2 className="text-center text-sm font-semibold">{configuration.site.name}</h2>
@@ -122,9 +164,28 @@ export function InvitationSignIn({ callbackUrl, email, workspace }: InvitationSi
             name="email"
             render={({ field }) => (
               <FormItem className="mx-auto w-64">
-                <FormLabel className="sr-only font-semibold">Email</FormLabel>
+                <FormLabel className="font-semibold">Email</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="John Doe" disabled />
+                  <Input {...field} placeholder="your@email.com" disabled />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem className="mx-auto w-64">
+                <FormLabel className="font-semibold">Password</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    type="password"
+                    placeholder="Enter your password"
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -133,8 +194,25 @@ export function InvitationSignIn({ callbackUrl, email, workspace }: InvitationSi
 
           <Button className="mx-auto w-64" type="submit" disabled={isLoading}>
             {isLoading ? <Icons.loader className="animate-spin" /> : null}
-            Join
+            Sign in
             <Icons.arrowRight />
+          </Button>
+
+          <div className="mx-auto flex w-64 items-center gap-2">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <Button
+            className="mx-auto w-64"
+            type="button"
+            variant="outline"
+            disabled={isSendingMagicLink}
+            onClick={onSendMagicLink}
+          >
+            {isSendingMagicLink ? <Icons.loader className="animate-spin" /> : <Icons.mail className="mr-2 h-4 w-4" />}
+            Send magic link
           </Button>
 
           <FormError message={error} />

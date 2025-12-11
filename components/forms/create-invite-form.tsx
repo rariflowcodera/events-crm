@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { UserType, WorkspaceType } from "@/server/db/schema-types"
 import { useCreateInvitationTRPC } from "@/trpc/hooks/invitations-hooks"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -16,6 +17,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Form,
   FormControl,
@@ -42,7 +51,15 @@ type MemberInviteFormProps = {
   currentUser: Pick<UserType, "name" | "lastName" | "image">
 }
 
+type CredentialsDialogData = {
+  email: string
+  password: string
+} | null
+
 export function CreateInviteForm({ currentUser, workspaceId }: MemberInviteFormProps) {
+  const [credentialsDialog, setCredentialsDialog] = useState<CredentialsDialogData>(null)
+  const [copiedField, setCopiedField] = useState<"email" | "password" | "both" | null>(null)
+
   const form = useForm<z.infer<typeof invitationSchema>>({
     resolver: zodResolver(invitationSchema),
     defaultValues: {
@@ -55,10 +72,32 @@ export function CreateInviteForm({ currentUser, workspaceId }: MemberInviteFormP
   })
 
   const { mutate, isPending } = useCreateInvitationTRPC({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      const invitedEmail = form.getValues("email")
       form.reset()
+
+      // Show credentials dialog if a password was generated
+      if (data.generatedPassword) {
+        setCredentialsDialog({
+          email: invitedEmail,
+          password: data.generatedPassword,
+        })
+      }
     },
   })
+
+  const copyToClipboard = async (text: string, field: "email" | "password" | "both") => {
+    await navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    toast.success("Copied to clipboard")
+    setTimeout(() => setCopiedField(null), 2000)
+  }
+
+  const copyBothCredentials = async () => {
+    if (!credentialsDialog) return
+    const text = `Email: ${credentialsDialog.email}\nPassword: ${credentialsDialog.password}`
+    await copyToClipboard(text, "both")
+  }
 
   const isDirty = form.formState.isDirty
 
@@ -73,8 +112,77 @@ export function CreateInviteForm({ currentUser, workspaceId }: MemberInviteFormP
   const isLoading = form.formState.isSubmitting || isPending
 
   return (
-    <div className="space-y-4">
-      <SettingsWrapperCard>
+    <>
+      {/* Credentials Dialog - shown after successful invite */}
+      <Dialog open={!!credentialsDialog} onOpenChange={() => setCredentialsDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>User Credentials Created</DialogTitle>
+            <DialogDescription>
+              Share these credentials with the invited user. This password will not be shown again.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email</label>
+              <div className="flex items-center gap-2">
+                <Input value={credentialsDialog?.email ?? ""} readOnly className="font-mono" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => copyToClipboard(credentialsDialog?.email ?? "", "email")}
+                >
+                  {copiedField === "email" ? (
+                    <Icons.check className="h-4 w-4" />
+                  ) : (
+                    <Icons.copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Password</label>
+              <div className="flex items-center gap-2">
+                <Input value={credentialsDialog?.password ?? ""} readOnly className="font-mono" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => copyToClipboard(credentialsDialog?.password ?? "", "password")}
+                >
+                  {copiedField === "password" ? (
+                    <Icons.check className="h-4 w-4" />
+                  ) : (
+                    <Icons.copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button type="button" variant="outline" onClick={copyBothCredentials} className="w-full sm:w-auto">
+              {copiedField === "both" ? (
+                <>
+                  <Icons.check className="mr-2 h-4 w-4" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Icons.copy className="mr-2 h-4 w-4" />
+                  Copy All
+                </>
+              )}
+            </Button>
+            <Button type="button" onClick={() => setCredentialsDialog(null)} className="w-full sm:w-auto">
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="space-y-4">
+        <SettingsWrapperCard>
         <CardHeader className="flex flex-row justify-between">
           <div className="space-y-2">
             <CardTitle>Invite</CardTitle>
@@ -157,7 +265,8 @@ export function CreateInviteForm({ currentUser, workspaceId }: MemberInviteFormP
           </form>
         </Form>
       </SettingsWrapperCard>
-    </div>
+      </div>
+    </>
   )
 }
 

@@ -4,6 +4,7 @@ import { db } from "@/server/db/config/database"
 import {
   bulkEmailJobs,
   emailLogs,
+  emailSuppressions,
   emailTemplates,
   events,
   guests,
@@ -158,6 +159,56 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
   if (!guest.email) {
     await incrementFailedCount(bulkJobId)
     throw new Error(`Guest ${guestId} has no email address`)
+  }
+
+  // Check if recipient is on suppression list (bounced/complained)
+  const suppression = await db.query.emailSuppressions.findFirst({
+    where: eq(emailSuppressions.email, guest.email.toLowerCase()),
+  })
+
+  if (suppression) {
+    console.log(
+      `Skipping email to ${guest.email}: on suppression list (${suppression.reason})`
+    )
+
+    // Create email log entry marked as bounced
+    const [emailLog] = await db
+      .insert(emailLogs)
+      .values({
+        guestId,
+        eventId,
+        templateId,
+        toEmail: guest.email,
+        subject: "(Blocked - Suppressed Address)",
+        status: "bounced",
+        bouncedAt: new Date(),
+        errorMessage: `Recipient on suppression list (${suppression.reason})`,
+        providerResponse: {
+          suppressionId: suppression.id,
+          reason: suppression.reason,
+          errorDetail: suppression.errorDetail,
+          blockedBySuppression: true,
+        },
+      })
+      .returning()
+
+    // Increment failed count on bulk job
+    await incrementFailedCount(bulkJobId)
+
+    // Update job progress
+    await job.updateProgress({
+      guestId,
+      status: "bounced",
+      reason: "suppressed",
+      emailLogId: emailLog.id,
+    })
+
+    return {
+      success: false,
+      guestId,
+      emailLogId: emailLog.id,
+      reason: "suppressed",
+    }
   }
 
   // Create email log entry (status: pending)

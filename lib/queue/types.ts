@@ -35,6 +35,8 @@ export interface EmailJobResult {
   guestId?: string
   emailLogId?: string
   error?: string
+  /** Reason for failure (e.g., "suppressed" if email was blocked due to suppression list) */
+  reason?: "suppressed" | "error"
 }
 
 /**
@@ -42,7 +44,9 @@ export interface EmailJobResult {
  */
 export interface EmailJobProgress {
   guestId: string
-  status: "sent" | "failed"
+  status: "sent" | "failed" | "bounced"
   emailLogId?: string
   error?: string
+  /** Reason for failure (e.g., "suppressed" if email was blocked due to suppression list) */
+  reason?: "suppressed" | "error"
 }

@@ -51,5 +51,21 @@ module.exports = {
       merge_logs: true,
       time: true,
     },
+    {
+      name: "events-crm-suppression-worker",
+      script: "node --import tsx server/workers/suppression-sync-worker.ts",
+      cwd: __dirname,
+      env: {
+        NODE_ENV: "production",
+      },
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "300M",
+      error_file: "./logs/suppression-worker-error.log",
+      out_file: "./logs/suppression-worker-out.log",
+      merge_logs: true,
+      time: true,
+    },
   ],
 }

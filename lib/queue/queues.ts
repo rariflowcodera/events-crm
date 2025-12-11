@@ -1,9 +1,11 @@
 import { Queue } from "bullmq"
 import { getQueueConnection } from "./connection"
 import type { EmailJobData } from "./types"
+import type { SuppressionSyncJobData } from "./suppression-sync-types"
 
 export const QUEUE_NAMES = {
   EMAIL: "email-queue",
+  SUPPRESSION_SYNC: "suppression-sync-queue",
 } as const
 
 // Rate limit from environment or default
@@ -66,4 +68,64 @@ export async function getQueueStats() {
   ])
 
   return { waiting, active, completed, failed, delayed }
+}
+
+/**
+ * Suppression sync queue - syncs OCI suppression list hourly
+ */
+export const suppressionSyncQueue = new Queue<SuppressionSyncJobData>(
+  QUEUE_NAMES.SUPPRESSION_SYNC,
+  {
+    connection: getQueueConnection(),
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 5000, // Start with 5 seconds for API calls
+      },
+      removeOnComplete: {
+        count: 24, // Keep last 24 runs (1 day of hourly syncs)
+      },
+      removeOnFail: {
+        count: 100, // Keep last 100 failed jobs for debugging
+      },
+    },
+  }
+)
+
+/**
+ * Schedule the hourly suppression sync job
+ * Call this once when the worker starts
+ */
+export async function scheduleSuppressionSync() {
+  // Remove any existing repeat jobs first
+  const repeatableJobs = await suppressionSyncQueue.getRepeatableJobs()
+  for (const job of repeatableJobs) {
+    await suppressionSyncQueue.removeRepeatableByKey(job.key)
+  }
+
+  // Add new hourly repeat job
+  await suppressionSyncQueue.add(
+    "sync",
+    { manual: false },
+    {
+      repeat: {
+        pattern: "0 * * * *", // Every hour at minute 0
+      },
+      jobId: "suppression-sync-hourly",
+    }
+  )
+
+  console.log("Suppression sync scheduled (hourly at :00)")
+}
+
+/**
+ * Trigger a manual suppression sync
+ */
+export async function triggerManualSuppressionSync() {
+  return suppressionSyncQueue.add(
+    "manual-sync",
+    { manual: true },
+    { priority: 1 } // Higher priority than scheduled syncs
+  )
 }

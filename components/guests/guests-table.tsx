@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { GuestStatusBadge } from "@/components/guests/guest-status-badge"
 import { GuestCategoryBadge } from "@/components/guests/guest-category-badge"
 import { GuestRowActions } from "@/components/guests/guest-row-actions"
+import { GuestEmailStatusIndicator } from "@/components/guests/guest-email-history"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getCountryName } from "@/lib/data/countries"
 
@@ -139,6 +140,7 @@ export function GuestsTable({
         <div className="w-[130px] p-2 flex-shrink-0">Country</div>
         <div className="w-[100px] p-2 flex-shrink-0">Category</div>
         <div className="w-[100px] p-2 flex-shrink-0">Status</div>
+        <div className="w-[70px] p-2 flex-shrink-0">Emails</div>
         <div className="w-[50px] p-2 flex-shrink-0"></div>
       </div>
         <div
@@ -212,6 +214,9 @@ export function GuestsTable({
                 <div className="w-[100px] p-2 flex-shrink-0">
                   <GuestStatusBadge status={guest.status} />
                 </div>
+                <div className="w-[70px] p-2 flex-shrink-0">
+                  <GuestEmailStatusIndicator guestId={guest.id} />
+                </div>
                 <div className="w-[50px] p-2 flex-shrink-0">
                   <GuestRowActions guest={guest} eventId={eventId} event={event} />
                 </div>
@@ -252,6 +257,7 @@ export function GuestsTableSkeleton() {
               <TableCell><Skeleton className="h-4 w-20" /></TableCell>
               <TableCell><Skeleton className="h-5 w-16" /></TableCell>
               <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+              <TableCell><Skeleton className="h-4 w-12" /></TableCell>
               <TableCell><Skeleton className="h-8 w-8" /></TableCell>
             </TableRow>
           ))}

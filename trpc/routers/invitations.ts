@@ -10,11 +10,22 @@ import { and, count, eq, ne } from "drizzle-orm"
 import { z } from "zod"
 
 import { RoleTypesType } from "@/types/types"
+import { auth } from "@/lib/auth"
 import { configuration } from "@/lib/config"
 import { email, resolveEmailSender } from "@/lib/email"
 import { generateUniqueToken } from "@/lib/invitation"
 import { invitationSchema, workspaceSchema } from "@/lib/schemas"
 import { InvitationMail } from "@/components/mail/invitation-mail"
+
+// Generate a random password (12 characters, alphanumeric)
+function generateRandomPassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
+  let password = ""
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return password
+}
 
 export const invitationsRouter = createTRPCRouter({
   getMany: protectedProcedure
@@ -47,7 +58,7 @@ export const invitationsRouter = createTRPCRouter({
     const { user } = ctx
     const { email: inviteeEmail, role, workspaceId, invitedBy, invitedByProfileImage } = input
 
-    await dbClient.transaction(async (trx) => {
+    const result = await dbClient.transaction(async (trx) => {
       // Get workspace
       const [workspace] = await trx
         .select({
@@ -146,10 +157,40 @@ export const invitationsRouter = createTRPCRouter({
       // Create the invitation token
       const token = await generateUniqueToken()
       const expiresAt = new Date()
-      expiresAt.setHours(expiresAt.getHours() + 24)
+      expiresAt.setDate(expiresAt.getDate() + 7) // 7 days expiration
 
       if (!token) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Error generating token" })
+      }
+
+      // Generate password for the new user
+      const generatedPassword = generateRandomPassword()
+
+      // Create user account with password if they don't exist
+      if (!invitedUser) {
+        try {
+          await auth.api.signUpEmail({
+            body: {
+              email: inviteeEmail,
+              password: generatedPassword,
+              name: inviteeEmail.split("@")[0], // Default name from email
+            },
+          })
+        } catch (signUpError: any) {
+          // If user already exists (race condition), continue
+          if (!signUpError?.message?.includes("already exists")) {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to create user account",
+            })
+          }
+        }
+      } else {
+        // User exists but may not have a password - set one
+        // We'll use the auth API to set password for existing users
+        // Note: For existing users, we need to use a different approach
+        // For now, we'll still generate a password but existing users
+        // can continue using magic link
       }
 
       // Create the invitation
@@ -191,11 +232,19 @@ export const invitationsRouter = createTRPCRouter({
         subject: `Invitation to join the ${workspace.name} workspace | ${configuration.site.name}`,
         html,
       })
+
+      // Return the generated password (only for new users)
+      return {
+        generatedPassword: !invitedUser ? generatedPassword : null,
+        isNewUser: !invitedUser,
+      }
     })
 
     return {
       message: "Invitation sent successfully",
       description: "Please check email for the invitation link",
+      generatedPassword: result.generatedPassword,
+      isNewUser: result.isNewUser,
     }
   }),
 
@@ -317,7 +366,7 @@ export const invitationsRouter = createTRPCRouter({
           // Create the invitation token
           const token = await generateUniqueToken()
           const expiresAt = new Date()
-          expiresAt.setHours(expiresAt.getHours() + 24)
+          expiresAt.setDate(expiresAt.getDate() + 7) // 7 days expiration
 
           if (!token) {
             throw new TRPCError({

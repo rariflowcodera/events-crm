@@ -62,7 +62,9 @@ export async function getInvitePageQuery({ token }: { token: string }): Promise<
     return { status: "wrong_user", invitation, workspace, user }
   }
 
-  if (invitation.expired) {
+  // Check both the expired flag and time-based expiration
+  const isTimeExpired = new Date() > new Date(invitation.expiresAt)
+  if (invitation.expired || isTimeExpired) {
     return { status: "expired", invitation, workspace }
   }
 

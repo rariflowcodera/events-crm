@@ -2,7 +2,7 @@
 
 import { ComponentProps, useState } from "react"
 import Image from "next/image"
-import { RedirectType, useSearchParams } from "next/navigation"
+import { RedirectType, useRouter, useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -30,8 +30,10 @@ type SignInFormProps = ComponentProps<typeof Card> & {
 }
 
 export function SignInForm({ className, isLoggedIn, ...props }: SignInFormProps) {
+  const router = useRouter()
   const [error, setError] = useState<string>("")
   const [success, setSuccess] = useState<string>("")
+  const [isSendingMagicLink, setIsSendingMagicLink] = useState<boolean>(false)
 
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl")
@@ -44,11 +46,12 @@ export function SignInForm({ className, isLoggedIn, ...props }: SignInFormProps)
       .min(3, { message: "Email must be at least 3 characters" })
       .email("Invalid email address")
       .toLowerCase(),
+    password: z.string().min(1, "Password is required"),
   })
 
   const form = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
-    defaultValues: { email: "" },
+    defaultValues: { email: "", password: "" },
   })
 
   if (isLoggedIn && !extraSession) {
@@ -62,12 +65,51 @@ export function SignInForm({ className, isLoggedIn, ...props }: SignInFormProps)
 
   const isLoading = form.formState.isSubmitting
 
-  const onSubmit = async (values: z.infer<typeof signInSchema>) => {
+  const onSubmitPassword = async (values: z.infer<typeof signInSchema>) => {
     setError("")
     setSuccess("")
     try {
-      const { data, error: signInError } = await signIn.magicLink({
+      const { data, error: signInError } = await signIn.email({
         email: values.email,
+        password: values.password,
+        callbackURL: callbackUrl ?? createRoute("callback").href,
+      })
+
+      if (signInError) {
+        setError(signInError.message ?? "Invalid email or password")
+        return toast.error("Sign in failed", { description: signInError.message })
+      }
+
+      if (data) {
+        toast.success("Signed in successfully")
+        router.push(callbackUrl ?? createRoute("callback").href)
+      }
+    } catch (error: any) {
+      setError(error?.message ?? "Your sign in request failed. Please try again")
+      toast.error("Something went wrong", { description: error?.message })
+    }
+  }
+
+  const onSendMagicLink = async () => {
+    const email = form.getValues("email")
+    if (!email) {
+      setError("Please enter your email first")
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address")
+      return
+    }
+
+    setError("")
+    setSuccess("")
+    setIsSendingMagicLink(true)
+    try {
+      const { data, error: signInError } = await signIn.magicLink({
+        email: email,
         callbackURL: callbackUrl ?? createRoute("callback").href,
       })
 
@@ -87,6 +129,8 @@ export function SignInForm({ className, isLoggedIn, ...props }: SignInFormProps)
     } catch (error: any) {
       setError(error?.message ?? "Your sign in request failed. Please try again")
       toast.error("Something went wrong", { description: error?.message })
+    } finally {
+      setIsSendingMagicLink(false)
     }
   }
 
@@ -109,7 +153,7 @@ export function SignInForm({ className, isLoggedIn, ...props }: SignInFormProps)
         </CardHeader>
         <CardContent className="space-y-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={form.handleSubmit(onSubmitPassword)}>
               <div className="grid w-full gap-y-4">
                 <FormField
                   control={form.control}
@@ -139,16 +183,71 @@ export function SignInForm({ className, isLoggedIn, ...props }: SignInFormProps)
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            disabled={isLoading}
+                            placeholder="Enter your password"
+                            type="password"
+                            required
+                            className="peer ps-9"
+                            id="password"
+                            autoComplete="current-password"
+                          />
+
+                          <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
+                            <Icons.lock size={16} strokeWidth={2} aria-hidden="true" />
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
+                    <>
+                      <Icons.loader className="animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign in"
+                  )}
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs text-muted-foreground">or</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={isSendingMagicLink}
+                  onClick={onSendMagicLink}
+                >
+                  {isSendingMagicLink ? (
                     <>
                       <Icons.loader className="animate-spin" />
                       Sending magic link...
                     </>
                   ) : (
-                    "Sign in with magic link"
+                    <>
+                      <Icons.mail className="mr-2 h-4 w-4" />
+                      Send magic link instead
+                    </>
                   )}
                 </Button>
+
                 {errorMessage ? (
                   <div className="flex items-center gap-x-2 rounded-md bg-red-500/10 p-3 text-sm font-medium text-red-600">
                     <Icons.alertTriangle className="size-4" />

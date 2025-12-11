@@ -19,6 +19,7 @@ export * from "@/server/db/schemas/email-template"
 export * from "@/server/db/schemas/email-log"
 export * from "@/server/db/schemas/bulk-email-job"
 export * from "@/server/db/schemas/guest-import"
+export * from "@/server/db/schemas/email-suppression"
 
 // Future Phases (schema only)
 export * from "@/server/db/schemas/inventory"

@@ -39,7 +39,14 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Icons } from "@/components/global/icons"
 import { GuestStatusBadge } from "@/components/guests/guest-status-badge"
+import { GuestEmailHistory } from "@/components/guests/guest-email-history"
 import { countries, getCountryName } from "@/lib/data/countries"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { ChevronDown, Mail } from "lucide-react"
 
 type GuestStatus =
   | "pending"
@@ -147,6 +154,7 @@ export function GuestDetailSheet({
 }: GuestDetailSheetProps) {
   const t = useTranslations("guest")
   const [isEditing, setIsEditing] = useState(false)
+  const [emailHistoryOpen, setEmailHistoryOpen] = useState(false)
 
   const form = useForm<EditGuestFormValues>({
     resolver: zodResolver(editGuestSchema),
@@ -594,6 +602,31 @@ export function GuestDetailSheet({
                     </div>
                   </>
                 )}
+
+                <Separator />
+
+                {/* Email History Section */}
+                <Collapsible open={emailHistoryOpen} onOpenChange={setEmailHistoryOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between px-0 hover:bg-transparent"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        <span className="text-sm font-medium">Email History</span>
+                      </div>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          emailHistoryOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3">
+                    <GuestEmailHistory guestId={guest.id} />
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
             </>
           )}

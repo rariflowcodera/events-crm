@@ -39,6 +39,13 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import type { BilingualEmailContent } from "@/server/db/schemas/email-template"
+import { EmailDeliveryDashboard } from "@/components/events/email-delivery-dashboard"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { ChevronDown } from "lucide-react"
 
 interface GuestCategory {
   id: string
@@ -110,6 +117,7 @@ export function EventEmailsTab({ event, workspaceSlug }: EventEmailsTabProps) {
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [deliveryOpen, setDeliveryOpen] = useState(false)
 
   // Data fetching
   const { data: templates, isLoading } = useEmailTemplates({ eventId: event.id })
@@ -186,6 +194,38 @@ export function EventEmailsTab({ event, workspaceSlug }: EventEmailsTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* Email Delivery Dashboard - Collapsible */}
+      <Collapsible open={deliveryOpen} onOpenChange={setDeliveryOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardContent className="py-4 cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Icons.chart className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <h4 className="font-medium">Email Delivery Stats</h4>
+                    <p className="text-sm text-muted-foreground">
+                      View bounce rates, delivery status, and suppression list
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    "h-5 w-5 text-muted-foreground transition-transform",
+                    deliveryOpen && "rotate-180"
+                  )}
+                />
+              </div>
+            </CardContent>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="border-t px-6 py-6">
+              <EmailDeliveryDashboard eventId={event.id} />
+            </div>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

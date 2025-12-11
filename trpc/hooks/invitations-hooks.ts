@@ -1,8 +1,15 @@
 import { trpc } from "@/trpc/client"
 import { toast } from "sonner"
 
+type CreateInvitationResult = {
+  message: string
+  description: string
+  generatedPassword: string | null
+  isNewUser: boolean
+}
+
 type UseCreateInvitationTRPCType = {
-  onSuccess?: () => void
+  onSuccess?: (data: CreateInvitationResult) => void
 }
 
 export const useCreateInvitationTRPC = ({ onSuccess }: UseCreateInvitationTRPCType) => {
@@ -13,7 +20,7 @@ export const useCreateInvitationTRPC = ({ onSuccess }: UseCreateInvitationTRPCTy
       toast.success(data.message, {
         description: data.description,
       })
-      onSuccess?.()
+      onSuccess?.(data)
     },
     onError: (error) => {
       toast.error(error.message)
@@ -26,7 +33,11 @@ export const useCreateInvitationTRPC = ({ onSuccess }: UseCreateInvitationTRPCTy
   return { mutate, isPending }
 }
 
-export const useCreateBulkInvitationTRPC = ({ onSuccess }: UseCreateInvitationTRPCType) => {
+type UseCreateBulkInvitationTRPCType = {
+  onSuccess?: () => void
+}
+
+export const useCreateBulkInvitationTRPC = ({ onSuccess }: UseCreateBulkInvitationTRPCType) => {
   const utils = trpc.useUtils()
 
   const { mutate, isPending } = trpc.invitations.createBulk.useMutation({
