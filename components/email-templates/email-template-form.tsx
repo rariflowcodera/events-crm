@@ -199,29 +199,26 @@ export function EmailTemplateForm({
     (form.watch("content.ar.subject") || "").length > 0 ||
     (form.watch("content.ar.htmlContent") || "").length > 0
 
-  // Handle preview navigation
+  // Handle preview navigation - use sessionStorage instead of query params to avoid URL length limits
   const handlePreview = useCallback(() => {
-    const subject =
-      activeLanguage === "en"
-        ? form.getValues("content.en.subject")
-        : form.getValues("content.ar.subject") || form.getValues("content.en.subject")
-    const htmlContent =
-      activeLanguage === "en"
-        ? form.getValues("content.en.htmlContent")
-        : form.getValues("content.ar.htmlContent") || form.getValues("content.en.htmlContent")
-    const textContent =
-      activeLanguage === "en"
-        ? form.getValues("content.en.textContent")
-        : form.getValues("content.ar.textContent") || form.getValues("content.en.textContent")
-
-    const params = new URLSearchParams({
-      subject: subject || "",
-      html: htmlContent || "",
-      text: textContent || "",
+    const previewData = {
+      subject:
+        activeLanguage === "en"
+          ? form.getValues("content.en.subject")
+          : form.getValues("content.ar.subject") || form.getValues("content.en.subject"),
+      html:
+        activeLanguage === "en"
+          ? form.getValues("content.en.htmlContent")
+          : form.getValues("content.ar.htmlContent") || form.getValues("content.en.htmlContent"),
+      text:
+        activeLanguage === "en"
+          ? form.getValues("content.en.textContent")
+          : form.getValues("content.ar.textContent") || form.getValues("content.en.textContent"),
       lang: activeLanguage,
-    })
+    }
 
-    router.push(`/${workspaceSlug}/events/${eventSlug}/email-preview?${params.toString()}`)
+    sessionStorage.setItem("emailPreviewData", JSON.stringify(previewData))
+    router.push(`/${workspaceSlug}/events/${eventSlug}/email-preview`)
   }, [activeLanguage, form, router, workspaceSlug, eventSlug])
 
   if (templateId && isLoadingTemplate) {

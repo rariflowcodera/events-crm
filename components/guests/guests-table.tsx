@@ -16,6 +16,7 @@ import { GuestStatusBadge } from "@/components/guests/guest-status-badge"
 import { GuestCategoryBadge } from "@/components/guests/guest-category-badge"
 import { GuestRowActions } from "@/components/guests/guest-row-actions"
 import { Skeleton } from "@/components/ui/skeleton"
+import { getCountryName } from "@/lib/data/countries"
 
 type GuestStatus =
   | "pending"
@@ -43,6 +44,7 @@ interface Guest {
   lastName: string
   email: string | null
   phone: string | null
+  country: string | null
   position: string | null
   entity: string | null
   status: GuestStatus
@@ -70,6 +72,7 @@ interface GuestsTableProps {
 }
 
 const ROW_HEIGHT = 56
+const MAX_VISIBLE_ROWS = 10
 
 export function GuestsTable({
   guests,
@@ -112,6 +115,9 @@ export function GuestsTable({
   const virtualRows = virtualizer.getVirtualItems()
   const totalSize = virtualizer.getTotalSize()
 
+  // Dynamic max-height: only constrain when we have many rows
+  const maxContainerHeight = Math.min(guests.length * ROW_HEIGHT, MAX_VISIBLE_ROWS * ROW_HEIGHT)
+
   return (
     <div className="rounded-md border">
       <div className="flex items-center border-b bg-background sticky top-0 z-10 h-10 text-sm font-medium text-muted-foreground">
@@ -127,17 +133,19 @@ export function GuestsTable({
             aria-label="Select all"
           />
         </div>
-        <div className="min-w-[200px] flex-1 p-2">Name</div>
-        <div className="min-w-[200px] flex-1 p-2">Email</div>
-        <div className="min-w-[150px] flex-1 p-2">Entity</div>
-        <div className="w-[120px] p-2 flex-shrink-0">Category</div>
-        <div className="w-[120px] p-2 flex-shrink-0">Status</div>
-        <div className="w-[70px] p-2 flex-shrink-0"></div>
+        <div className="w-[180px] p-2 flex-shrink-0">Name</div>
+        <div className="w-[220px] p-2 flex-shrink-0">Email</div>
+        <div className="flex-1 min-w-[100px] p-2">Entity</div>
+        <div className="w-[130px] p-2 flex-shrink-0">Country</div>
+        <div className="w-[100px] p-2 flex-shrink-0">Category</div>
+        <div className="w-[100px] p-2 flex-shrink-0">Status</div>
+        <div className="w-[50px] p-2 flex-shrink-0"></div>
       </div>
-      <div
-        ref={parentRef}
-        className="max-h-[600px] overflow-auto"
-      >
+        <div
+          ref={parentRef}
+          className="overflow-y-auto"
+          style={{ maxHeight: maxContainerHeight > 0 ? maxContainerHeight : undefined }}
+        >
         <div style={{ height: totalSize, position: "relative" }}>
           {virtualRows.map((virtualRow) => {
             const guest = guests[virtualRow.index]
@@ -166,35 +174,45 @@ export function GuestsTable({
                   />
                 </div>
                 <div
-                  className="min-w-[200px] flex-1 p-2 font-medium"
+                  className="w-[180px] p-2 flex-shrink-0 font-medium truncate"
                   onClick={() => onGuestClick(guest)}
+                  title={`${guest.firstName} ${guest.lastName}`}
                 >
-                  <div>
+                  <div className="truncate">
                     {guest.firstName} {guest.lastName}
                     {guest.position && (
-                      <p className="text-muted-foreground text-xs">{guest.position}</p>
+                      <p className="text-muted-foreground text-xs truncate">{guest.position}</p>
                     )}
                   </div>
                 </div>
                 <div
-                  className="min-w-[200px] flex-1 p-2"
+                  className="w-[220px] p-2 flex-shrink-0 truncate"
                   onClick={() => onGuestClick(guest)}
+                  title={guest.email || undefined}
                 >
                   {guest.email || "-"}
                 </div>
                 <div
-                  className="min-w-[150px] flex-1 p-2"
+                  className="flex-1 min-w-[100px] p-2 truncate"
                   onClick={() => onGuestClick(guest)}
+                  title={guest.entity || undefined}
                 >
                   {guest.entity || "-"}
                 </div>
-                <div className="w-[120px] p-2 flex-shrink-0">
+                <div
+                  className="w-[130px] p-2 flex-shrink-0 truncate"
+                  onClick={() => onGuestClick(guest)}
+                  title={guest.country ? getCountryName(guest.country) || guest.country : undefined}
+                >
+                  {guest.country ? getCountryName(guest.country) || guest.country : "-"}
+                </div>
+                <div className="w-[100px] p-2 flex-shrink-0">
                   <GuestCategoryBadge category={guest.category} />
                 </div>
-                <div className="w-[120px] p-2 flex-shrink-0">
+                <div className="w-[100px] p-2 flex-shrink-0">
                   <GuestStatusBadge status={guest.status} />
                 </div>
-                <div className="w-[70px] p-2 flex-shrink-0">
+                <div className="w-[50px] p-2 flex-shrink-0">
                   <GuestRowActions guest={guest} eventId={eventId} event={event} />
                 </div>
               </div>
@@ -220,6 +238,7 @@ export function GuestsTableSkeleton() {
             <TableHead><Skeleton className="h-4 w-16" /></TableHead>
             <TableHead><Skeleton className="h-4 w-16" /></TableHead>
             <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+            <TableHead><Skeleton className="h-4 w-16" /></TableHead>
             <TableHead></TableHead>
           </TableRow>
         </TableHeader>
@@ -230,6 +249,7 @@ export function GuestsTableSkeleton() {
               <TableCell><Skeleton className="h-4 w-32" /></TableCell>
               <TableCell><Skeleton className="h-4 w-40" /></TableCell>
               <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+              <TableCell><Skeleton className="h-4 w-20" /></TableCell>
               <TableCell><Skeleton className="h-5 w-16" /></TableCell>
               <TableCell><Skeleton className="h-5 w-20" /></TableCell>
               <TableCell><Skeleton className="h-8 w-8" /></TableCell>

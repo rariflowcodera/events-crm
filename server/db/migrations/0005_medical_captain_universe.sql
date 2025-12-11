@@ -1,0 +1,1 @@
+ALTER TABLE "rsvp_response" ADD COLUMN "country" text;

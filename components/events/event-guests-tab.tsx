@@ -12,8 +12,10 @@ import { AddGuestModal } from "@/components/guests/add-guest-modal"
 import { GuestDetailSheet } from "@/components/guests/guest-detail-sheet"
 import { BulkDeleteDialog } from "@/components/guests/bulk-delete-dialog"
 import { BulkSendEmailDialog } from "@/components/guests/bulk-send-email-dialog"
+import { SendEmailDialog } from "@/components/guests/send-email-dialog"
 import { ImportGuestsModal } from "@/components/guests/import-guests-modal"
 import type { EmailTemplateType } from "@/lib/schemas"
+import { getCountryName } from "@/lib/data/countries"
 
 type GuestStatus =
   | "pending"
@@ -42,6 +44,7 @@ interface Guest {
   lastName: string
   email: string | null
   phone: string | null
+  country: string | null
   position: string | null
   entity: string | null
   status: GuestStatus
@@ -78,18 +81,39 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
 
   // State
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<GuestStatus | "all">("all")
-  const [categoryFilter, setCategoryFilter] = useState<string | "all">("all")
+  const [statusFilter, setStatusFilter] = useState<GuestStatus[]>([])
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([])
+  const [countryFilter, setCountryFilter] = useState<string[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [bulkEmailType, setBulkEmailType] = useState<EmailTemplateType | null>(null)
+  const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false)
 
   // Fetch all guests for the event
   const { data, isLoading, error } = useGuests({ eventId: event.id })
   const guests = data?.guests ?? []
+
+  // Compute available countries from guest data
+  const availableCountries = useMemo(() => {
+    if (!guests.length) return []
+
+    const countrySet = new Set<string>()
+    guests.forEach((guest) => {
+      if (guest.country) {
+        countrySet.add(guest.country)
+      }
+    })
+
+    return Array.from(countrySet)
+      .map((code) => ({
+        code,
+        name: getCountryName(code) || code,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [guests])
 
   // Client-side filtering
   const filteredGuests = useMemo(() => {
@@ -112,34 +136,39 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
         if (!matches) return false
       }
 
-      // Status filter
-      if (statusFilter !== "all" && guest.status !== statusFilter) {
+      // Status filter (empty array = show all)
+      if (statusFilter.length > 0 && !statusFilter.includes(guest.status)) {
         return false
       }
 
-      // Category filter
-      if (categoryFilter !== "all") {
-        if (!guest.category || guest.category.id !== categoryFilter) {
+      // Category filter (empty array = show all)
+      if (categoryFilter.length > 0) {
+        if (!guest.category || !categoryFilter.includes(guest.category.id)) {
           return false
         }
       }
 
+      // Country filter (empty array = show all)
+      if (countryFilter.length > 0 && (!guest.country || !countryFilter.includes(guest.country))) {
+        return false
+      }
+
       return true
     })
-  }, [guests, searchQuery, statusFilter, categoryFilter])
+  }, [guests, searchQuery, statusFilter, categoryFilter, countryFilter])
 
   // Handlers
   const handleGuestClick = useCallback((guest: Guest) => {
     setSelectedGuest(guest)
   }, [])
 
-  const handleBulkAction = useCallback((action: "delete" | "send_invitation" | "send_reminder") => {
+  const handleBulkAction = useCallback((action: "delete" | "send_invitation" | "send_email") => {
     if (action === "delete") {
       setIsDeleteDialogOpen(true)
     } else if (action === "send_invitation") {
       setBulkEmailType("invitation")
-    } else if (action === "send_reminder") {
-      setBulkEmailType("reminder")
+    } else if (action === "send_email") {
+      setIsSendEmailDialogOpen(true)
     }
   }, [])
 
@@ -192,6 +221,9 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
         onStatusFilterChange={setStatusFilter}
         categoryFilter={categoryFilter}
         onCategoryFilterChange={setCategoryFilter}
+        countryFilter={countryFilter}
+        onCountryFilterChange={setCountryFilter}
+        availableCountries={availableCountries}
         categories={event.guestCategories}
         selectedCount={selectedIds.size}
         onAddGuest={() => setIsAddModalOpen(true)}
@@ -268,7 +300,7 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
         categories={event.guestCategories}
       />
 
-      {/* Bulk Send Email Dialog */}
+      {/* Bulk Send Email Dialog (for Send Invitations) */}
       {bulkEmailType && (
         <BulkSendEmailDialog
           isOpen={!!bulkEmailType}
@@ -279,6 +311,15 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
           onSuccess={() => setSelectedIds(new Set())}
         />
       )}
+
+      {/* Send Email Dialog (with template selection) */}
+      <SendEmailDialog
+        isOpen={isSendEmailDialogOpen}
+        onClose={() => setIsSendEmailDialogOpen(false)}
+        eventId={event.id}
+        guestIds={Array.from(selectedIds)}
+        onSuccess={() => setSelectedIds(new Set())}
+      />
     </div>
   )
 }

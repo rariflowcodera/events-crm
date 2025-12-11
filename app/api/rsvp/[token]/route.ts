@@ -211,6 +211,10 @@ export async function POST(
             case "preferredLanguage":
               responseData.preferredLanguage = value as "en" | "ar"
               break
+            case "country":
+              // Both country_origin and country_traveling_from map to country column
+              responseData.country = value as string
+              break
             case "arrivalDate":
               responseData.arrivalDate = value ? new Date(value as string) : null
               break

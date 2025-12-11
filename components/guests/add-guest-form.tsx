@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Icons } from "@/components/global/icons"
+import { countries } from "@/lib/data/countries"
 
 interface GuestCategory {
   id: string
@@ -45,6 +46,7 @@ const addGuestSchema = z.object({
   lastName: z.string().min(1, "Last name is required").max(100),
   email: z.string().min(1, "Email is required").email("Invalid email address"),
   phone: z.string().optional(),
+  country: z.string().optional(),
   position: z.string().optional(),
   entity: z.string().optional(),
   categoryId: z.string().min(1, "Category is required"),
@@ -63,6 +65,7 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
       lastName: "",
       email: "",
       phone: "",
+      country: "",
       position: "",
       entity: "",
       categoryId: categories.length > 0 ? categories[0].id : "",
@@ -84,6 +87,7 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
       lastName: values.lastName,
       email: values.email,
       phone: values.phone || undefined,
+      country: values.country || undefined,
       position: values.position || undefined,
       entity: values.entity || undefined,
       categoryId: values.categoryId,
@@ -146,24 +150,55 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("fields.phone")}</FormLabel>
-              <FormControl>
-                <Input
-                  type="tel"
-                  placeholder="+966 50 123 4567"
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("fields.phone")}</FormLabel>
+                <FormControl>
+                  <Input
+                    type="tel"
+                    placeholder="+966 50 123 4567"
+                    disabled={isPending}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("fields.country")}</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
                   disabled={isPending}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country.code} value={country.code}>
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <FormField

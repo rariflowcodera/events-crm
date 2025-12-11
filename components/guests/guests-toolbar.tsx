@@ -4,13 +4,7 @@ import { useTranslations } from "next-intl"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import MultipleSelector, { Option } from "@/components/ui/multiselect"
 import { Icons } from "@/components/global/icons"
 
 type GuestStatus =
@@ -34,15 +28,23 @@ interface GuestCategory {
   sortOrder: number
 }
 
-type BulkAction = "delete" | "send_invitation" | "send_reminder"
+type BulkAction = "delete" | "send_invitation" | "send_email"
+
+interface CountryOption {
+  code: string
+  name: string
+}
 
 interface GuestsToolbarProps {
   searchQuery: string
   onSearchChange: (query: string) => void
-  statusFilter: GuestStatus | "all"
-  onStatusFilterChange: (status: GuestStatus | "all") => void
-  categoryFilter: string | "all"
-  onCategoryFilterChange: (categoryId: string | "all") => void
+  statusFilter: GuestStatus[]
+  onStatusFilterChange: (statuses: GuestStatus[]) => void
+  categoryFilter: string[]
+  onCategoryFilterChange: (categoryIds: string[]) => void
+  countryFilter: string[]
+  onCountryFilterChange: (countries: string[]) => void
+  availableCountries: CountryOption[]
   categories: GuestCategory[]
   selectedCount: number
   onAddGuest: () => void
@@ -50,8 +52,7 @@ interface GuestsToolbarProps {
   onBulkAction: (action: BulkAction) => void
 }
 
-const statusOptions: { value: GuestStatus | "all"; label: string }[] = [
-  { value: "all", label: "All Statuses" },
+const statusOptions: Option[] = [
   { value: "pending", label: "Pending" },
   { value: "invited", label: "Invited" },
   { value: "reminded", label: "Reminded" },
@@ -65,6 +66,10 @@ const statusOptions: { value: GuestStatus | "all"; label: string }[] = [
   { value: "no_show", label: "No Show" },
 ]
 
+// Helper to convert status array to Option array
+const statusToOptions = (statuses: GuestStatus[]): Option[] =>
+  statuses.map((s) => statusOptions.find((o) => o.value === s)!).filter(Boolean)
+
 export function GuestsToolbar({
   searchQuery,
   onSearchChange,
@@ -72,6 +77,9 @@ export function GuestsToolbar({
   onStatusFilterChange,
   categoryFilter,
   onCategoryFilterChange,
+  countryFilter,
+  onCountryFilterChange,
+  availableCountries,
   categories,
   selectedCount,
   onAddGuest,
@@ -106,52 +114,74 @@ export function GuestsToolbar({
       </div>
 
       {/* Bottom row: Filters and Bulk Actions */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => onStatusFilterChange(value as GuestStatus | "all")}
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-row flex-wrap items-start gap-2">
+          <div className="w-[200px]">
+            <MultipleSelector
+              options={statusOptions}
+              value={statusToOptions(statusFilter)}
+              onChange={(options) =>
+                onStatusFilterChange(options.map((o) => o.value as GuestStatus))
+              }
+              placeholder="Filter by status"
+              hidePlaceholderWhenSelected
+              badgeClassName="bg-muted"
+            />
+          </div>
 
           {categories.length > 0 && (
-            <Select
-              value={categoryFilter}
-              onValueChange={(value) => onCategoryFilterChange(value)}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Filter by category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name} ({category.code})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="w-[200px]">
+              <MultipleSelector
+                options={categories.map((c) => ({
+                  value: c.id,
+                  label: `${c.name} (${c.code})`,
+                }))}
+                value={categoryFilter.map((id) => {
+                  const cat = categories.find((c) => c.id === id)
+                  return cat ? { value: cat.id, label: `${cat.name} (${cat.code})` } : null
+                }).filter(Boolean) as Option[]}
+                onChange={(options) =>
+                  onCategoryFilterChange(options.map((o) => o.value))
+                }
+                placeholder="Filter by category"
+                hidePlaceholderWhenSelected
+                badgeClassName="bg-muted"
+              />
+            </div>
           )}
 
-          {(statusFilter !== "all" || categoryFilter !== "all" || searchQuery) && (
+          {availableCountries.length > 0 && (
+            <div className="w-[200px]">
+              <MultipleSelector
+                options={availableCountries.map((c) => ({
+                  value: c.code,
+                  label: c.name,
+                }))}
+                value={countryFilter.map((code) => {
+                  const country = availableCountries.find((c) => c.code === code)
+                  return country ? { value: country.code, label: country.name } : null
+                }).filter(Boolean) as Option[]}
+                onChange={(options) =>
+                  onCountryFilterChange(options.map((o) => o.value))
+                }
+                placeholder="Filter by country"
+                hidePlaceholderWhenSelected
+                badgeClassName="bg-muted"
+              />
+            </div>
+          )}
+
+          {(statusFilter.length > 0 || categoryFilter.length > 0 || countryFilter.length > 0 || searchQuery) && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
                 onSearchChange("")
-                onStatusFilterChange("all")
-                onCategoryFilterChange("all")
+                onStatusFilterChange([])
+                onCategoryFilterChange([])
+                onCountryFilterChange([])
               }}
+              className="h-[38px]"
             >
               <Icons.x className="mr-2 h-4 w-4" />
               Clear filters
@@ -175,10 +205,10 @@ export function GuestsToolbar({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onBulkAction("send_reminder")}
+              onClick={() => onBulkAction("send_email")}
             >
-              <Icons.bell className="mr-2 h-4 w-4" />
-              {t("bulkActions.sendReminders")}
+              <Icons.mail className="mr-2 h-4 w-4" />
+              {t("bulkActions.sendEmail")}
             </Button>
             <Button
               variant="outline"

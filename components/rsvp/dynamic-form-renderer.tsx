@@ -24,6 +24,11 @@ import type {
   FieldType,
 } from "@/lib/rsvp/types"
 
+type SectionHeaderStyle = {
+  backgroundColor: string
+  textColor: string
+}
+
 interface DynamicFormRendererProps {
   config: RsvpFormConfig
   categoryId: string
@@ -45,6 +50,8 @@ interface DynamicFormRendererProps {
   } | null>
   /** If provided, only render this specific section (0-indexed) */
   sectionIndex?: number
+  /** Section header styling from branding settings */
+  sectionHeaderStyle?: SectionHeaderStyle
 }
 
 interface FormData {
@@ -114,6 +121,7 @@ export function DynamicFormRenderer({
   embedded = false,
   formRef,
   sectionIndex,
+  sectionHeaderStyle,
 }: DynamicFormRendererProps) {
   const t = useTranslations("rsvp")
   const tCommon = useTranslations("common")
@@ -314,6 +322,7 @@ export function DynamicFormRenderer({
                 showProgress={showProgress}
                 sectionIndex={actualIndex}
                 totalSections={sectionsWithFields.length}
+                sectionHeaderStyle={sectionHeaderStyle}
               />
             )
           })}
@@ -335,6 +344,7 @@ export function DynamicFormRenderer({
               showProgress={showProgress}
               sectionIndex={actualIndex}
               totalSections={sectionsWithFields.length}
+              sectionHeaderStyle={sectionHeaderStyle}
             />
           )
         })}

@@ -31,6 +31,7 @@ export const rsvpResponses = pgTable(
 
     // === PERSONAL INFO SECTION ===
     preferredLanguage: text("preferred_language").$type<"en" | "ar">(),
+    country: text("country"), // ISO 3166-1 alpha-2 code (used by country_origin or country_traveling_from)
 
     // === LOGISTICS SECTION ===
     arrivalDate: timestamp("arrival_date", { mode: "date" }),

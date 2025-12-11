@@ -67,6 +67,7 @@ pnpm run dev
 | `pnpm run build` | Build for production |
 | `pnpm run lint` | Run ESLint |
 | `pnpm run format:fix` | Fix code formatting |
+| `pnpm run worker:email` | Start email worker (for background email processing) |
 
 ### Database
 

@@ -110,6 +110,18 @@ export type EventBranding = {
   primaryColorDark?: string // Dark mode primary color
   secondaryColorDark?: string // Dark mode secondary color
   backgroundImage?: string // Background image URL for RSVP pages
+  backgroundImageMode?: "cover" | "contain" | "repeat" | "center" // How the background image displays
+  // Card styling
+  cardAccent?: {
+    enabled: boolean
+    color: string // Hex color (e.g., "#D4A84B" for gold)
+    position: "top" | "bottom" | "left" | "right"
+    thickness: "thin" | "medium" | "thick" // 3px, 6px, 10px
+  }
+  sectionHeader?: {
+    backgroundColor: string // Hex color for section header background
+    textColor: string // Hex color for section header text
+  }
 }
 
 // ============================================================================

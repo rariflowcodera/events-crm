@@ -175,6 +175,7 @@ export const guestsRouter = createTRPCRouter({
         tags: z.array(z.string()).optional(),
         customFields: z.record(z.unknown()).optional(),
         externalId: z.string().optional(),
+        country: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -262,6 +263,7 @@ export const guestsRouter = createTRPCRouter({
           })
           .nullable()
           .optional(),
+        country: z.string().nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -618,6 +620,7 @@ export const guestsRouter = createTRPCRouter({
             department: z.string().optional(),
             internalNotes: z.string().optional(),
             externalId: z.string().optional(),
+            country: z.string().optional(),
           })
         ).min(1).max(500),
         importBatchId: z.string().optional(),

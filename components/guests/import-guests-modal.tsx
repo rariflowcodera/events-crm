@@ -35,6 +35,7 @@ import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { findCountryByName, countryNameToCode } from "@/lib/data/countries"
 
 interface GuestCategory {
   id: string
@@ -61,6 +62,7 @@ interface ColumnMapping {
   lastName: string
   email: string
   phone: string
+  country: string
   position: string
   entity: string
   department: string
@@ -68,7 +70,7 @@ interface ColumnMapping {
 }
 
 const requiredFields = ["firstName", "lastName", "email"] as const
-const optionalFields = ["phone", "position", "entity", "department", "category"] as const
+const optionalFields = ["phone", "country", "position", "entity", "department", "category"] as const
 const allFields = [...requiredFields, ...optionalFields] as const
 
 const fieldLabels: Record<string, string> = {
@@ -76,6 +78,7 @@ const fieldLabels: Record<string, string> = {
   lastName: "Last Name",
   email: "Email",
   phone: "Phone",
+  country: "Country",
   position: "Position/Title",
   entity: "Company/Entity",
   department: "Department",
@@ -100,6 +103,7 @@ export function ImportGuestsModal({
     lastName: "",
     email: "",
     phone: "",
+    country: "",
     position: "",
     entity: "",
     department: "",
@@ -169,6 +173,7 @@ export function ImportGuestsModal({
           lastName: "",
           email: "",
           phone: "",
+          country: "",
           position: "",
           entity: "",
           department: "",
@@ -185,6 +190,8 @@ export function ImportGuestsModal({
             autoMapping.email = header
           } else if (lowerHeader.includes("phone") || lowerHeader.includes("mobile") || lowerHeader.includes("tel")) {
             autoMapping.phone = header
+          } else if (lowerHeader.includes("country") || lowerHeader.includes("nation") || lowerHeader === "origin") {
+            autoMapping.country = header
           } else if (lowerHeader.includes("position") || lowerHeader.includes("title") || lowerHeader.includes("role")) {
             autoMapping.position = header
           } else if (lowerHeader.includes("company") || lowerHeader.includes("entity") || lowerHeader.includes("organization") || lowerHeader.includes("org")) {
@@ -215,6 +222,7 @@ export function ImportGuestsModal({
       lastName: String(row[mapping.lastName] || ""),
       email: String(row[mapping.email] || ""),
       phone: mapping.phone ? String(row[mapping.phone] || "") : "",
+      country: mapping.country ? String(row[mapping.country] || "") : "",
       position: mapping.position ? String(row[mapping.position] || "") : "",
       entity: mapping.entity ? String(row[mapping.entity] || "") : "",
       department: mapping.department ? String(row[mapping.department] || "") : "",
@@ -425,6 +433,22 @@ export function ImportGuestsModal({
           }
         }
 
+        // Parse country: accept code (e.g., "SA") or name (e.g., "Saudi Arabia")
+        let countryCode: string | undefined
+        if (mapping.country) {
+          const rawCountry = String(row[mapping.country] || "").trim()
+          if (rawCountry) {
+            // First try to find by name
+            const foundCountry = findCountryByName(rawCountry)
+            if (foundCountry) {
+              countryCode = foundCountry.code
+            } else if (rawCountry.length === 2) {
+              // If 2 chars, assume it's a country code
+              countryCode = rawCountry.toUpperCase()
+            }
+          }
+        }
+
         return {
           categoryId,
           firstName: String(row[mapping.firstName] || "").trim(),
@@ -433,6 +457,7 @@ export function ImportGuestsModal({
           phone: mapping.phone
             ? String(row[mapping.phone] || "").trim() || undefined
             : undefined,
+          country: countryCode,
           position: mapping.position
             ? String(row[mapping.position] || "").trim() || undefined
             : undefined,
@@ -545,6 +570,7 @@ export function ImportGuestsModal({
       lastName: "",
       email: "",
       phone: "",
+      country: "",
       position: "",
       entity: "",
       department: "",
@@ -567,7 +593,7 @@ export function ImportGuestsModal({
 
   // Download template with sample data
   const handleDownloadTemplate = useCallback(() => {
-    const headers = ["First Name", "Last Name", "Email", "Phone", "Position", "Organization/Entity", "Department", "Category"]
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Country", "Position", "Organization/Entity", "Department", "Category"]
 
     // Create sample rows - one for each category
     const sampleRows = categories.map((cat, i) => [
@@ -575,6 +601,7 @@ export function ImportGuestsModal({
       `Sample Last ${i + 1}`,
       `sample${i + 1}@example.com`,
       "",
+      "SA", // Sample country code
       "",
       "",
       "",
@@ -583,7 +610,7 @@ export function ImportGuestsModal({
 
     // If no categories, add a placeholder row
     if (sampleRows.length === 0) {
-      sampleRows.push(["John", "Doe", "john@example.com", "", "", "", "", ""])
+      sampleRows.push(["John", "Doe", "john@example.com", "", "US", "", "", "", ""])
     }
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows])
@@ -594,6 +621,7 @@ export function ImportGuestsModal({
       { wch: 15 }, // Last Name
       { wch: 25 }, // Email
       { wch: 15 }, // Phone
+      { wch: 15 }, // Country
       { wch: 15 }, // Position
       { wch: 20 }, // Organization/Entity
       { wch: 15 }, // Department
@@ -665,6 +693,7 @@ export function ImportGuestsModal({
                     <h4 className="mt-3 text-sm font-medium">Optional columns:</h4>
                     <ul className="mt-2 text-sm text-muted-foreground list-disc list-inside">
                       <li>Phone</li>
+                      <li>Country (code like &quot;SA&quot; or name like &quot;Saudi Arabia&quot;)</li>
                       <li>Position/Title</li>
                       <li>Company/Entity</li>
                       <li>Department</li>

@@ -5,11 +5,17 @@ import { cn } from "@/lib/utils"
 import { DynamicField } from "./dynamic-field"
 import type { FormSectionProps } from "@/lib/rsvp/types"
 
+type SectionHeader = {
+  backgroundColor: string
+  textColor: string
+}
+
 interface FormSectionComponentProps extends FormSectionProps {
   locale: "en" | "ar"
   showProgress?: boolean
   sectionIndex: number
   totalSections: number
+  sectionHeaderStyle?: SectionHeader
 }
 
 export function FormSection({
@@ -19,22 +25,44 @@ export function FormSection({
   locale,
   showProgress,
   sectionIndex,
+  sectionHeaderStyle,
 }: FormSectionComponentProps) {
   const isRtl = locale === "ar"
 
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Section header */}
-      <div className={cn("flex items-center gap-3", isRtl && "flex-row-reverse")}>
+      <div
+        className={cn(
+          "flex items-center gap-3",
+          isRtl && "flex-row-reverse",
+          sectionHeaderStyle && "px-3 py-2 sm:px-4 sm:py-2.5 rounded-md -mx-1"
+        )}
+        style={sectionHeaderStyle ? {
+          backgroundColor: sectionHeaderStyle.backgroundColor,
+          color: sectionHeaderStyle.textColor,
+        } : undefined}
+      >
         {showProgress && (
-          <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-muted text-xs sm:text-sm font-medium">
+          <div
+            className={cn(
+              "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-medium",
+              sectionHeaderStyle ? "bg-white/20" : "bg-muted"
+            )}
+            style={sectionHeaderStyle ? { color: sectionHeaderStyle.textColor } : undefined}
+          >
             {sectionIndex + 1}
           </div>
         )}
         <div className={cn("text-left", isRtl && "text-right")}>
           <h3 className="font-semibold text-sm sm:text-base">{title}</h3>
           {description && (
-            <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+            <p className={cn(
+              "text-sm mt-0.5",
+              sectionHeaderStyle ? "opacity-80" : "text-muted-foreground"
+            )}>
+              {description}
+            </p>
           )}
         </div>
       </div>

@@ -6,6 +6,13 @@
  */
 
 import type { StandardFieldDefinition, SectionId } from "./types"
+import { countries } from "@/lib/data/countries"
+
+// Generate country options for select fields
+const countryOptions = countries.map((c) => ({
+  value: c.code,
+  label: { en: c.name, ar: c.name }, // Country names are the same in both languages
+}))
 
 // ============================================================================
 // Standard Field Definitions
@@ -28,7 +35,35 @@ export const STANDARD_FIELDS: Record<string, StandardFieldDefinition> = {
     materializedColumn: "preferredLanguage",
   },
 
+  country_origin: {
+    fieldKey: "country_origin",
+    section: "personal_info",
+    type: "select",
+    label: {
+      en: "Country of Origin",
+      ar: "بلد الأصل",
+    },
+    options: countryOptions,
+    materializedColumn: "country",
+  },
+
   // === LOGISTICS SECTION ===
+  country_traveling_from: {
+    fieldKey: "country_traveling_from",
+    section: "logistics",
+    type: "select",
+    label: {
+      en: "Traveling From",
+      ar: "قادم من",
+    },
+    description: {
+      en: "Which country are you traveling from?",
+      ar: "من أي بلد أنت قادم؟",
+    },
+    options: countryOptions,
+    materializedColumn: "country",
+  },
+
   arrival_date: {
     fieldKey: "arrival_date",
     section: "logistics",

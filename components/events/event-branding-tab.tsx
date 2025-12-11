@@ -15,7 +15,7 @@ import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ColorPicker, LogoUploadGroup, BrandingPreview, InheritanceIndicator } from "@/components/branding"
+import { ColorPicker, LogoUploadGroup, BrandingPreview, InheritanceIndicator, BackgroundImageUpload, CardAccentSettings, SectionHeaderSettings } from "@/components/branding"
 import { Icons } from "@/components/global/icons"
 
 // ============================================================================
@@ -52,6 +52,9 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
       primaryColorDark: "",
       secondaryColorDark: "",
       backgroundImage: "",
+      backgroundImageMode: undefined,
+      cardAccent: undefined,
+      sectionHeader: undefined,
     },
   })
 
@@ -71,6 +74,9 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
         primaryColorDark: data.eventBranding?.primaryColorDark || "",
         secondaryColorDark: data.eventBranding?.secondaryColorDark || "",
         backgroundImage: data.eventBranding?.backgroundImage || "",
+        backgroundImageMode: data.eventBranding?.backgroundImageMode,
+        cardAccent: data.eventBranding?.cardAccent,
+        sectionHeader: data.eventBranding?.sectionHeader,
       }
       form.reset(newValues)
     }
@@ -101,6 +107,9 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
         primaryColorDark: values.primaryColorDark || undefined,
         secondaryColorDark: values.secondaryColorDark || undefined,
         backgroundImage: values.backgroundImage || undefined,
+        backgroundImageMode: values.backgroundImageMode || undefined,
+        cardAccent: values.cardAccent || undefined,
+        sectionHeader: values.sectionHeader || undefined,
       },
     })
   }
@@ -118,6 +127,9 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
       primaryColorDark: "",
       secondaryColorDark: "",
       backgroundImage: "",
+      backgroundImageMode: undefined,
+      cardAccent: undefined,
+      sectionHeader: undefined,
     })
   }
 
@@ -309,6 +321,117 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
                   />
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Background Image */}
+              <div className="space-y-4">
+                <BackgroundImageUpload
+                  value={watchedValues.backgroundImage || ""}
+                  onChange={(url) => {
+                    // Update form value for immediate visual feedback
+                    form.setValue("backgroundImage", url, { shouldDirty: true })
+                    // Auto-save after background image change
+                    const currentValues = form.getValues()
+                    updateBranding({
+                      eventId: event.id,
+                      branding: {
+                        logo: currentValues.logo || undefined,
+                        logoDark: currentValues.logoDark || undefined,
+                        primaryColor: currentValues.primaryColor || undefined,
+                        secondaryColor: currentValues.secondaryColor || undefined,
+                        primaryColorDark: currentValues.primaryColorDark || undefined,
+                        secondaryColorDark: currentValues.secondaryColorDark || undefined,
+                        backgroundImage: url || undefined,
+                        backgroundImageMode: currentValues.backgroundImageMode || undefined,
+                      },
+                    })
+                  }}
+                  mode={watchedValues.backgroundImageMode || "cover"}
+                  onModeChange={(mode) => {
+                    // Update form value for immediate visual feedback
+                    form.setValue("backgroundImageMode", mode, { shouldDirty: true })
+                    // Auto-save after mode change
+                    const currentValues = form.getValues()
+                    updateBranding({
+                      eventId: event.id,
+                      branding: {
+                        logo: currentValues.logo || undefined,
+                        logoDark: currentValues.logoDark || undefined,
+                        primaryColor: currentValues.primaryColor || undefined,
+                        secondaryColor: currentValues.secondaryColor || undefined,
+                        primaryColorDark: currentValues.primaryColorDark || undefined,
+                        secondaryColorDark: currentValues.secondaryColorDark || undefined,
+                        backgroundImage: currentValues.backgroundImage || undefined,
+                        backgroundImageMode: mode || undefined,
+                      },
+                    })
+                  }}
+                  disabled={isPending}
+                />
+              </div>
+
+              <Separator />
+
+              {/* Card Styling Section */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium">{t("branding.cardStyling") || "Card Styling"}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {t("branding.cardStylingDescription") || "Customize the appearance of RSVP page cards"}
+                  </p>
+                </div>
+
+                <CardAccentSettings
+                  value={watchedValues.cardAccent}
+                  onChange={(accent) => {
+                    form.setValue("cardAccent", accent, { shouldDirty: true })
+                    // Auto-save
+                    const currentValues = form.getValues()
+                    updateBranding({
+                      eventId: event.id,
+                      branding: {
+                        logo: currentValues.logo || undefined,
+                        logoDark: currentValues.logoDark || undefined,
+                        primaryColor: currentValues.primaryColor || undefined,
+                        secondaryColor: currentValues.secondaryColor || undefined,
+                        primaryColorDark: currentValues.primaryColorDark || undefined,
+                        secondaryColorDark: currentValues.secondaryColorDark || undefined,
+                        backgroundImage: currentValues.backgroundImage || undefined,
+                        backgroundImageMode: currentValues.backgroundImageMode || undefined,
+                        cardAccent: accent || undefined,
+                        sectionHeader: currentValues.sectionHeader || undefined,
+                      },
+                    })
+                  }}
+                  disabled={isPending}
+                />
+
+                <SectionHeaderSettings
+                  value={watchedValues.sectionHeader}
+                  onChange={(header) => {
+                    form.setValue("sectionHeader", header, { shouldDirty: true })
+                    // Auto-save
+                    const currentValues = form.getValues()
+                    updateBranding({
+                      eventId: event.id,
+                      branding: {
+                        logo: currentValues.logo || undefined,
+                        logoDark: currentValues.logoDark || undefined,
+                        primaryColor: currentValues.primaryColor || undefined,
+                        secondaryColor: currentValues.secondaryColor || undefined,
+                        primaryColorDark: currentValues.primaryColorDark || undefined,
+                        secondaryColorDark: currentValues.secondaryColorDark || undefined,
+                        backgroundImage: currentValues.backgroundImage || undefined,
+                        backgroundImageMode: currentValues.backgroundImageMode || undefined,
+                        cardAccent: currentValues.cardAccent || undefined,
+                        sectionHeader: header || undefined,
+                      },
+                    })
+                  }}
+                  disabled={isPending}
+                />
+              </div>
             </CardContent>
 
             <CardFooter className="flex justify-between border-t pt-4">
@@ -347,6 +470,10 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
           logoDark={resolved?.logoDark || watchedValues.logoDark}
           primaryColor={resolved?.primaryColor || watchedValues.primaryColor || "#4F46E5"}
           accentColor={resolved?.accentColor || watchedValues.secondaryColor || "#0EA5E9"}
+          backgroundImage={watchedValues.backgroundImage}
+          backgroundImageMode={watchedValues.backgroundImageMode || "cover"}
+          cardAccent={watchedValues.cardAccent}
+          sectionHeader={watchedValues.sectionHeader}
           className="sticky top-4"
         />
       </div>

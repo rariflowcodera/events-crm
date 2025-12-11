@@ -23,6 +23,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { getBackgroundStyles, type BackgroundImageMode } from "@/components/branding/background-image-upload"
+import { getAccentStyles } from "@/components/branding/card-accent-settings"
 
 import { DynamicFormRenderer } from "./dynamic-form-renderer"
 import type { RsvpFormConfig, BilingualText } from "@/lib/rsvp/types"
@@ -103,6 +105,17 @@ interface GuestData {
       primaryColor?: string
       secondaryColor?: string
       backgroundImage?: string
+      backgroundImageMode?: BackgroundImageMode
+      cardAccent?: {
+        enabled: boolean
+        color: string
+        position: "top" | "bottom" | "left" | "right"
+        thickness: "thin" | "medium" | "thick"
+      }
+      sectionHeader?: {
+        backgroundColor: string
+        textColor: string
+      }
     }
     resolvedBranding?: {
       logo?: string
@@ -368,20 +381,23 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
       maybe: maybeLabel,
     }
 
+    const bgUrl = category.rsvpPageConfig?.backgroundImage || event.branding?.backgroundImage
+    const bgMode = event.branding?.backgroundImageMode || "cover"
+
     return (
       <div
         className="flex min-h-screen items-center justify-center p-2 sm:p-4"
         dir={isRtl ? "rtl" : "ltr"}
         style={{
           backgroundColor: brandAccent || undefined,
-          backgroundImage: category.rsvpPageConfig?.backgroundImage
-            ? `url(${category.rsvpPageConfig.backgroundImage})`
-            : undefined,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundImage: bgUrl ? `url(${bgUrl})` : undefined,
+          ...getBackgroundStyles(bgMode),
         }}
       >
-        <Card className="w-full max-w-md relative rounded-lg sm:rounded-xl">
+        <Card
+          className="w-full max-w-md relative rounded-lg sm:rounded-xl overflow-hidden"
+          style={getAccentStyles(event.branding?.cardAccent)}
+        >
           {/* Language toggle */}
           <button
             type="button"
@@ -446,6 +462,8 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
     // Use resolved branding with fallbacks
     const brandLogo = guestData.event.resolvedBranding?.logo || guestData.event.branding?.logo || guestData.event.organization?.logo
     const brandAccent = guestData.event.resolvedBranding?.accentColor || guestData.event.branding?.secondaryColor
+    const bgUrl = guestData.category.rsvpPageConfig?.backgroundImage || guestData.event.branding?.backgroundImage
+    const bgMode = guestData.event.branding?.backgroundImageMode || "cover"
 
     return (
       <div
@@ -453,14 +471,14 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
         dir={isRtl ? "rtl" : "ltr"}
         style={{
           backgroundColor: brandAccent || undefined,
-          backgroundImage: guestData.category.rsvpPageConfig?.backgroundImage
-            ? `url(${guestData.category.rsvpPageConfig.backgroundImage})`
-            : undefined,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundImage: bgUrl ? `url(${bgUrl})` : undefined,
+          ...getBackgroundStyles(bgMode),
         }}
       >
-        <Card className="w-full max-w-md rounded-lg sm:rounded-xl">
+        <Card
+          className="w-full max-w-md relative rounded-lg sm:rounded-xl overflow-hidden"
+          style={getAccentStyles(guestData.event.branding?.cardAccent)}
+        >
           <CardContent className="pt-6 text-center p-4 sm:p-6 sm:pt-6">
             {brandLogo && (
               <img
@@ -538,6 +556,8 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
   const brandLogo = event.resolvedBranding?.logo || event.branding?.logo || event.organization?.logo
   const brandPrimary = event.resolvedBranding?.primaryColor || event.branding?.primaryColor
   const brandAccent = event.resolvedBranding?.accentColor || event.branding?.secondaryColor
+  const bgUrl = category.rsvpPageConfig?.backgroundImage || event.branding?.backgroundImage
+  const bgMode = event.branding?.backgroundImageMode || "cover"
 
   return (
     <div
@@ -545,14 +565,14 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
       dir={isRtl ? "rtl" : "ltr"}
       style={{
         backgroundColor: brandAccent || "#f5f5f5",
-        backgroundImage: category.rsvpPageConfig?.backgroundImage
-          ? `url(${category.rsvpPageConfig.backgroundImage})`
-          : undefined,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        backgroundImage: bgUrl ? `url(${bgUrl})` : undefined,
+        ...getBackgroundStyles(bgMode),
       }}
     >
-      <Card className="w-full max-w-2xl relative rounded-lg sm:rounded-xl">
+      <Card
+        className="w-full max-w-2xl relative rounded-lg sm:rounded-xl overflow-hidden"
+        style={getAccentStyles(event.branding?.cardAccent)}
+      >
         {/* Language toggle */}
         <button
           type="button"
@@ -682,6 +702,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                     embedded
                     formRef={dynamicFormRef}
                     sectionIndex={Math.max(0, currentStep - 1)}
+                    sectionHeaderStyle={event.branding?.sectionHeader}
                   />
                 </div>
               )}

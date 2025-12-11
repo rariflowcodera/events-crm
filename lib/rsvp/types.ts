@@ -37,7 +37,9 @@ export type { RsvpFormTemplateCategory } from "@/server/db/schemas/rsvp-form-tem
 export type StandardFieldKey =
   // Personal Info
   | "preferred_language"
+  | "country_origin"
   // Logistics
+  | "country_traveling_from"
   | "arrival_date"
   | "departure_date"
   | "arrival_flight"

@@ -15,7 +15,7 @@ export const hexColorSchema = z
   .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Invalid hex color format")
   .optional()
 
-/** Branding image URL validation - allows S3, Google, local storage, or empty string */
+/** Branding image URL validation - allows S3, Google, local storage, any HTTPS URL, or empty string */
 export const brandingImageSchema = z
   .string()
   .max(2048)
@@ -25,17 +25,12 @@ export const brandingImageSchema = z
       if (url === "") return true
       // Allow local storage paths (for development)
       if (url.startsWith("/uploads/") || url.startsWith("/api/file")) return true
-      // Allow HTTPS URLs from allowed domains
-      if (url.startsWith("https://")) {
-        return (
-          url.startsWith(`https://${BUCKET_NAME}.s3.amazonaws.com`) ||
-          url.startsWith("https://lh3.googleusercontent.com")
-        )
-      }
+      // Allow any HTTPS URL (S3, Google, external patterns, etc.)
+      if (url.startsWith("https://")) return true
       return false
     },
     {
-      message: "Image URL must be from S3 bucket, Google user content, or local uploads",
+      message: "Image URL must be a valid HTTPS URL or local upload path",
     }
   )
   .optional()
@@ -57,11 +52,31 @@ export const workspaceBrandingSchema = baseBrandingSchema
 
 export type WorkspaceBrandingInput = z.infer<typeof workspaceBrandingSchema>
 
+/** Background image display mode */
+export const backgroundImageModeSchema = z.enum(["cover", "contain", "repeat", "center"]).optional()
+
+/** Card accent strip schema */
+export const cardAccentSchema = z.object({
+  enabled: z.boolean(),
+  color: hexColorSchema.unwrap(), // Required when accent is defined
+  position: z.enum(["top", "bottom", "left", "right"]),
+  thickness: z.enum(["thin", "medium", "thick"]),
+}).optional()
+
+/** Section header styling schema */
+export const sectionHeaderSchema = z.object({
+  backgroundColor: hexColorSchema.unwrap(), // Required when header styling is defined
+  textColor: hexColorSchema.unwrap(),
+}).optional()
+
 /** Event branding schema (extends base with event-specific fields) */
 export const eventBrandingSchema = baseBrandingSchema.extend({
   secondaryColor: hexColorSchema,
   secondaryColorDark: hexColorSchema,
   backgroundImage: brandingImageSchema,
+  backgroundImageMode: backgroundImageModeSchema,
+  cardAccent: cardAccentSchema,
+  sectionHeader: sectionHeaderSchema,
 })
 
 export type EventBrandingInput = z.infer<typeof eventBrandingSchema>
@@ -598,6 +613,7 @@ export const rsvpSubmissionSchema = z.object({
 
   // Personal Info
   preferredLanguage: z.enum(["en", "ar"]).optional(),
+  country: z.string().length(2).optional(), // ISO 3166-1 alpha-2 code
 
   // Logistics
   arrivalDate: z.coerce.date().optional(),

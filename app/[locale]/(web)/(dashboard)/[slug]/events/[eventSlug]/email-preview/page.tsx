@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useMemo, use } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, useMemo, useEffect, use } from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { format } from "date-fns"
@@ -49,18 +48,40 @@ function replaceVariables(content: string, data: PreviewData): string {
   })
 }
 
+// Type for sessionStorage preview data
+type EmailPreviewData = {
+  subject: string
+  html: string
+  text: string
+  lang: "en" | "ar"
+}
+
 export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
   const t = useTranslations("emailTemplate")
-  const searchParams = useSearchParams()
 
   // Resolve async params using React's use()
   const { slug, eventSlug } = use(params)
 
-  // Get template content from search params
-  const subject = searchParams.get("subject") || ""
-  const htmlContent = searchParams.get("html") || ""
-  const textContent = searchParams.get("text") || ""
-  const language = (searchParams.get("lang") as "en" | "ar") || "en"
+  // State for template content from sessionStorage
+  const [templateData, setTemplateData] = useState<EmailPreviewData | null>(null)
+
+  // Load template content from sessionStorage on mount
+  useEffect(() => {
+    const stored = sessionStorage.getItem("emailPreviewData")
+    if (stored) {
+      try {
+        setTemplateData(JSON.parse(stored))
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
+  }, [])
+
+  // Extract values from template data
+  const subject = templateData?.subject || ""
+  const htmlContent = templateData?.html || ""
+  const textContent = templateData?.text || ""
+  const language = templateData?.lang || "en"
 
   // State
   const [selectedGuestId, setSelectedGuestId] = useState<string>("")
@@ -142,7 +163,7 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
   )
 
   const direction = language === "ar" ? "rtl" : "ltr"
-  const isLoading = isLoadingEvent || isLoadingGuests
+  const isLoading = isLoadingEvent || isLoadingGuests || templateData === null
 
   if (isLoading) {
     return (

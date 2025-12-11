@@ -39,6 +39,7 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Icons } from "@/components/global/icons"
 import { GuestStatusBadge } from "@/components/guests/guest-status-badge"
+import { countries, getCountryName } from "@/lib/data/countries"
 
 type GuestStatus =
   | "pending"
@@ -66,6 +67,7 @@ interface Guest {
   lastName: string
   email: string | null
   phone: string | null
+  country: string | null
   position: string | null
   entity: string | null
   status: GuestStatus
@@ -111,6 +113,7 @@ const editGuestSchema = z.object({
   lastName: z.string().min(1, "Last name is required").max(100),
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   phone: z.string().optional(),
+  country: z.string().optional(),
   position: z.string().optional(),
   entity: z.string().optional(),
   categoryId: z.string().optional(),
@@ -152,6 +155,7 @@ export function GuestDetailSheet({
       lastName: guest?.lastName || "",
       email: guest?.email || "",
       phone: guest?.phone || "",
+      country: guest?.country || "",
       position: guest?.position || "",
       entity: guest?.entity || "",
       categoryId: guest?.category?.id || "",
@@ -169,6 +173,7 @@ export function GuestDetailSheet({
       lastName: guest.lastName,
       email: guest.email || "",
       phone: guest.phone || "",
+      country: guest.country || "",
       position: guest.position || "",
       entity: guest.entity || "",
       categoryId: guest.category?.id || "",
@@ -196,6 +201,7 @@ export function GuestDetailSheet({
       lastName: values.lastName,
       email: values.email || undefined,
       phone: values.phone || undefined,
+      country: values.country || undefined,
       position: values.position || undefined,
       entity: values.entity || undefined,
       categoryId: values.categoryId || undefined,
@@ -319,19 +325,50 @@ export function GuestDetailSheet({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("fields.phone")}</FormLabel>
-                      <FormControl>
-                        <Input type="tel" disabled={isUpdating} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("fields.phone")}</FormLabel>
+                        <FormControl>
+                          <Input type="tel" disabled={isUpdating} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("fields.country")}</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          disabled={isUpdating}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select country" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {countries.map((country) => (
+                              <SelectItem key={country.code} value={country.code}>
+                                {country.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -499,6 +536,10 @@ export function GuestDetailSheet({
                   <div>
                     <p className="text-muted-foreground text-xs">{t("fields.phone")}</p>
                     <p className="text-sm">{guest.phone || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">{t("fields.country")}</p>
+                    <p className="text-sm">{guest.country ? getCountryName(guest.country) || guest.country : "-"}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">{t("fields.position")}</p>

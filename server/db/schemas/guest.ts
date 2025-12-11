@@ -46,6 +46,7 @@ export const guests = pgTable(
     preferredName: text("preferred_name"),
     title: text("title"),
     salutation: text("salutation"),
+    country: text("country"), // ISO 3166-1 alpha-2 code
 
     // Professional
     position: text("position"),
