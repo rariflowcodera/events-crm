@@ -45,6 +45,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
+    autoSignIn: false, // Prevent session takeover when admin creates users via invitations
   },
   socialProviders: {
     google: {
