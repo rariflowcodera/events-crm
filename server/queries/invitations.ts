@@ -16,6 +16,7 @@ import { RoleTypesType } from "@/types/types"
 type InvitePageResult =
   | { status: "not_found" }
   | { status: "expired"; invitation: InvitationType; workspace: WorkspaceType }
+  | { status: "already_accepted"; workspace: WorkspaceType }
   | {
       status: "requires_signin"
       invitation: InvitationType
@@ -53,6 +54,11 @@ export async function getInvitePageQuery({ token }: { token: string }): Promise<
 
   const { invitation, workspace } = invitationData
 
+  // Check if already accepted - redirect to dashboard instead of showing expired
+  if (invitation.status === "accepted") {
+    return { status: "already_accepted", workspace }
+  }
+
   const [{ user }, [dbUser]] = await Promise.all([
     getCurrentUser(),
     db.select().from(users).where(eq(users.email, invitation.email)),
@@ -62,7 +68,7 @@ export async function getInvitePageQuery({ token }: { token: string }): Promise<
     return { status: "wrong_user", invitation, workspace, user }
   }
 
-  // Check both the expired flag and time-based expiration
+  // Check time-based expiration (only for truly expired, not accepted)
   const isTimeExpired = new Date() > new Date(invitation.expiresAt)
   if (invitation.expired || isTimeExpired) {
     return { status: "expired", invitation, workspace }

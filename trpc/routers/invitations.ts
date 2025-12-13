@@ -1,6 +1,8 @@
+import { hashPassword } from "better-auth/crypto"
+
 import { BETTER_AUTH_URL_ENV } from "@/env"
 import { db, dbClient } from "@/server/db/config/database"
-import { invitations, users, workspaceMembers, workspaces } from "@/server/db/schemas"
+import { account, invitations, users, workspaceMembers, workspaces } from "@/server/db/schemas"
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import { render } from "@react-email/render"
@@ -186,11 +188,40 @@ export const invitationsRouter = createTRPCRouter({
           }
         }
       } else {
-        // User exists but may not have a password - set one
-        // We'll use the auth API to set password for existing users
-        // Note: For existing users, we need to use a different approach
-        // For now, we'll still generate a password but existing users
-        // can continue using magic link
+        // User exists - set a new password for them
+        // This handles re-invited users who were previously removed from a workspace
+        const hashedPassword = await hashPassword(generatedPassword)
+
+        // Check if user has a credential account
+        const [credentialAccount] = await trx
+          .select()
+          .from(account)
+          .where(
+            and(eq(account.userId, invitedUser.id), eq(account.providerId, "credential"))
+          )
+          .limit(1)
+
+        if (credentialAccount) {
+          // Update existing credential account password
+          await trx
+            .update(account)
+            .set({
+              password: hashedPassword,
+              updatedAt: new Date(),
+            })
+            .where(eq(account.id, credentialAccount.id))
+        } else {
+          // Create new credential account for user (e.g., user only had OAuth)
+          await trx.insert(account).values({
+            id: crypto.randomUUID(),
+            userId: invitedUser.id,
+            accountId: invitedUser.id,
+            providerId: "credential",
+            password: hashedPassword,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+        }
       }
 
       // Create the invitation
@@ -233,9 +264,9 @@ export const invitationsRouter = createTRPCRouter({
         html,
       })
 
-      // Return the generated password (only for new users)
+      // Return the generated password for both new and existing users
       return {
-        generatedPassword: !invitedUser ? generatedPassword : null,
+        generatedPassword: generatedPassword,
         isNewUser: !invitedUser,
       }
     })

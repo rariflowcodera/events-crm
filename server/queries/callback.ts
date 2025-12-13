@@ -1,6 +1,6 @@
 import { db } from "@/server/db/config/database"
-import { workspaces } from "@/server/db/schemas"
-import { asc, eq } from "drizzle-orm"
+import { invitations, workspaces } from "@/server/db/schemas"
+import { and, asc, eq } from "drizzle-orm"
 
 export async function getCallbackPageQuery(userId: string) {
   // Get both owned and member workspaces in parallel
@@ -48,4 +48,23 @@ export async function getCallbackPageQuery(userId: string) {
     ownedWorkspaces,
     memberWorkspaces: otherWorkspaces,
   }
+}
+
+export async function getPendingInvitationsForUser(email: string) {
+  return db
+    .select({
+      id: invitations.id,
+      email: invitations.email,
+      workspaceId: invitations.workspaceId,
+      role: invitations.role,
+      token: invitations.token,
+    })
+    .from(invitations)
+    .where(
+      and(
+        eq(invitations.email, email),
+        eq(invitations.status, "pending"),
+        eq(invitations.expired, false)
+      )
+    )
 }

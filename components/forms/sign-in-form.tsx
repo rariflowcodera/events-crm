@@ -124,8 +124,8 @@ export function SignInForm({ className, isLoggedIn, ...props }: SignInFormProps)
       }
 
       // Success - show message to check email
-      setSuccess("Check your email for a magic link to sign in")
-      toast.success("Magic link sent!", { description: "Check your email to sign in" })
+      setSuccess("Check your email for instructions on how to login")
+      toast.success("Email sent!", { description: "Check your email for instructions on how to login" })
     } catch (error: any) {
       setError(error?.message ?? "Your sign in request failed. Please try again")
       toast.error("Something went wrong", { description: error?.message })
@@ -222,31 +222,14 @@ export function SignInForm({ className, isLoggedIn, ...props }: SignInFormProps)
                   )}
                 </Button>
 
-                <div className="flex items-center gap-2">
-                  <div className="h-px flex-1 bg-border" />
-                  <span className="text-xs text-muted-foreground">or</span>
-                  <div className="h-px flex-1 bg-border" />
-                </div>
-
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  className="w-full"
+                  className="text-sm text-muted-foreground hover:text-primary hover:underline"
                   disabled={isSendingMagicLink}
                   onClick={onSendMagicLink}
                 >
-                  {isSendingMagicLink ? (
-                    <>
-                      <Icons.loader className="animate-spin" />
-                      Sending magic link...
-                    </>
-                  ) : (
-                    <>
-                      <Icons.mail className="mr-2 h-4 w-4" />
-                      Send magic link instead
-                    </>
-                  )}
-                </Button>
+                  {isSendingMagicLink ? "Sending..." : "Forgot password?"}
+                </button>
 
                 {errorMessage ? (
                   <div className="flex items-center gap-x-2 rounded-md bg-red-500/10 p-3 text-sm font-medium text-red-600">

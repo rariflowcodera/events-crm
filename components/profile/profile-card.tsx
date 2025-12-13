@@ -11,8 +11,17 @@ import { authClient, signOut } from "@/lib/auth-client"
 import { parseUserAgent } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SignOutButton } from "@/components/buttons/sign-out-button"
+import { ChangePasswordForm } from "@/components/forms/change-password-form"
 import { EditProfileImageForm } from "@/components/forms/edit-profile-image-form"
 import { Alert } from "@/components/global/alert"
 import { Icons } from "@/components/global/icons"
@@ -43,6 +52,7 @@ function ProfileCardSuspense() {
   const { user, sessions, sessionId, deviceSessions } = data
 
   const [isTerminating, setIsTerminating] = useState<string>()
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
   const router = useRouter()
   const utils = trpc.useUtils()
 
@@ -118,6 +128,29 @@ function ProfileCardSuspense() {
                   </div>
                 )
               })}
+          </div>
+
+          <div className="flex flex-col gap-2 border-t pt-4">
+            <p className="text-sm">Password</p>
+            <div className="flex flex-wrap gap-2">
+              <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Icons.lock />
+                    Change Password
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Change Password</DialogTitle>
+                    <DialogDescription>
+                      Enter your current password and choose a new one.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <ChangePasswordForm onSuccess={() => setIsPasswordDialogOpen(false)} />
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2 border-y py-4">

@@ -270,6 +270,26 @@ export const userSchema = z.object({
   image: s3ImageSchema,
 })
 
+// ============================================================================
+// Password Schemas
+// ============================================================================
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(100, "Password must be less than 100 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>
+
 const nameRegex = /^[a-zA-Z0-9\s]+$/
 
 export const workspaceSchema = createInsertSchema(workspaces, {

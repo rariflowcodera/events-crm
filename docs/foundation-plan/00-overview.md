@@ -128,10 +128,16 @@ After all stages:
 
 ## Related Documents
 
+### Foundation (Stages 1-4)
 - [Stage 1: Infrastructure Migration](./01-infrastructure.md)
 - [Stage 2: Cleanup & Rename](./02-cleanup-rename.md)
 - [Stage 3: Domain Schema & i18n](./03-domain-schema-i18n.md)
 - [Stage 4: tRPC Routers & RSVP](./04-routers-rsvp.md)
+
+### Features (Stages 5+)
+- [Stage 5: Admin Dashboard UI](./05-admin-dashboard.md)
+- [Stage 6: Email Template Builder](./06-email-template-builder.md)
+- [Stage 15: Google Maps Integration](./15-google-maps-integration.md)
 
 ## Reference Documents
 

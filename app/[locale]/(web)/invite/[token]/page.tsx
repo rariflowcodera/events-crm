@@ -33,6 +33,9 @@ export default async function InviteKeyPage(props: InviteKeyPageProps) {
     case "not_found":
       return <InvitationNotFound />
 
+    case "already_accepted":
+      return redirectToRoute("dashboard", { slug: result.workspace.slug })
+
     case "expired":
       return <InvitationExpired />
 
