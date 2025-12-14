@@ -1,0 +1,147 @@
+---
+title: "FAQ"
+description: "Frequently asked questions about Events CRM"
+order: 99
+status: "published"
+---
+
+# Frequently Asked Questions
+
+Find answers to common questions about using Events CRM.
+
+## General
+
+### How do I create a new organization?
+
+When you first sign in, you'll be prompted to create or join an organization. You can also create additional organizations from the Settings > Workspaces page.
+
+### Can I manage multiple events at once?
+
+Yes! Each organization can have multiple events. Switch between them from the Events list.
+
+### How do I invite team members?
+
+Go to Settings > Members and click "Invite Member". Enter their email address and select their role.
+
+## Guests & RSVPs
+
+### How do guests respond to invitations?
+
+Guests receive an email with a unique RSVP link. Clicking the link takes them to a personalized RSVP page where they can confirm or decline.
+
+### Can I resend invitations?
+
+Yes, you can resend invitation emails to individual guests or in bulk from the Guests tab.
+
+### What happens when a guest confirms?
+
+Their RSVP status updates to "Confirmed" and any email automation you've set up will trigger (like confirmation emails).
+
+### How do I change a guest's category?
+
+You can change a single guest's category from the guest detail panel, or use bulk actions to change multiple guests at once. Select the guests with checkboxes, then use the Category dropdown in the bulk action toolbar.
+
+### Can I import guests from Excel?
+
+Yes! Click the Import button on the Guests tab, upload your Excel file (.xlsx, .xls, or .csv), map the columns to guest fields, and import. See the [Importing Guests](/docs/managing-guests/importing-guests) guide for details.
+
+## Guest Categories
+
+### What are guest categories for?
+
+Categories help organize guests by service level or VIP status. Common examples are AAA (top VIP), A (priority), and B (standard). Categories can also control which form fields guests see.
+
+### How do category codes work?
+
+Each category has a short code (like "AAA" or "VIP") used when importing from Excel. Include a "Category" column in your spreadsheet with these codes to automatically assign categories during import. Codes are case-insensitive.
+
+### Can I delete a category?
+
+You can only delete a category that has no guests assigned. First reassign or delete the guests in that category, then you can delete the category itself.
+
+## Email Templates
+
+### What variables can I use in templates?
+
+Variables follow the format `{{category.field}}`. Common variables include:
+
+**Guest variables:**
+- `{{guest.firstName}}`, `{{guest.lastName}}`, `{{guest.fullName}}`
+- `{{guest.title}}`, `{{guest.email}}`
+- `{{guest.position}}`, `{{guest.entity}}`
+
+**Event variables:**
+- `{{event.name}}`, `{{event.venue}}`
+- `{{event.startDate}}`, `{{event.endDate}}`
+
+**RSVP links:**
+- `{{rsvp.link}}` - Full RSVP page
+- `{{rsvp.confirmLink}}` - Direct confirm link
+- `{{rsvp.declineLink}}` - Direct decline link
+
+### Can I preview emails before sending?
+
+Yes, use the Preview button in the template editor to see how emails will appear with sample data substituted for variables.
+
+### What template types are available?
+
+- **Invitation** - Initial event invitations
+- **Reminder** - Follow-up for non-responders
+- **Confirmation** - Sent after confirming attendance
+- **Declined Acknowledgment** - Response to declines
+- **Update** - Event changes and announcements
+- **Cancellation** - Event cancellation notices
+- **Custom** - Any other communication
+
+### Can templates be bilingual?
+
+Yes! Each template can have both English and Arabic versions. Switch between them using the EN/AR tabs in the editor. Arabic content automatically gets right-to-left formatting.
+
+## RSVP Forms
+
+### Can I customize what guests see on the RSVP form?
+
+Yes! The form builder lets you enable/disable sections and fields. You can also set fields as required and control which categories see which fields.
+
+### What are custom fields?
+
+Custom fields are event-specific questions you create beyond the standard fields. You can add text inputs, dropdowns, checkboxes, date pickers, and more. Each custom field supports bilingual labels.
+
+### Can different guest categories see different questions?
+
+Yes! Both standard and custom fields support category visibility. Configure which categories can see each field in the form builder.
+
+## Branding
+
+### Where does my branding appear?
+
+Workspace branding appears in the dashboard sidebar and serves as the default for all events. Event branding primarily affects RSVP pages that guests see.
+
+### Do I need separate light and dark mode logos?
+
+Only if your logo doesn't look good on dark backgrounds. If you only upload a light mode logo, it will be used everywhere. Upload a dark mode version for optimal appearance in both themes.
+
+### Can each event have different branding?
+
+Yes! By default, events inherit workspace branding, but you can customize any event with its own logo and colors. Toggle off "Use workspace branding" in the event's Branding tab.
+
+### What colors should I set?
+
+- **Primary color** - Used for main buttons and key highlights
+- **Accent color** - Used for links and secondary elements
+
+Choose colors with good contrast against white text for accessibility.
+
+## Technical
+
+### What browsers are supported?
+
+We recommend using the latest versions of Chrome, Firefox, Safari, or Edge.
+
+### Is my data secure?
+
+Yes, all data is encrypted in transit and at rest. We follow industry best practices for security.
+
+### Does the system support Arabic?
+
+Yes! The system is fully bilingual (English/Arabic). Guest-facing RSVP pages, email templates, and form fields all support both languages with automatic RTL formatting for Arabic.

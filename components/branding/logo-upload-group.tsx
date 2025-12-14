@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useState } from "react"
 import Image from "next/image"
 import { getPreSignedUrl, uploadFileToS3 } from "@/server/hooks/use-image-upload"
 import Dropzone from "react-dropzone"
@@ -46,7 +46,6 @@ function SingleLogoUpload({
   isDarkPreview,
 }: SingleLogoUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileDrop = async (file: File) => {
     try {
@@ -120,12 +119,6 @@ function SingleLogoUpload({
             return (
               <div
                 {...rootProps}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (!disabled) {
-                    open()
-                  }
-                }}
                 role="button"
                 tabIndex={0}
                 className={cn(
@@ -190,7 +183,6 @@ function SingleLogoUpload({
                   accept="image/*"
                   type="file"
                   disabled={disabled}
-                  ref={fileInputRef}
                 />
               </div>
             )

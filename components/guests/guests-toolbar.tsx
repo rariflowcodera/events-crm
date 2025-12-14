@@ -1,11 +1,14 @@
 "use client"
 
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import MultipleSelector, { Option } from "@/components/ui/multiselect"
 import { Icons } from "@/components/global/icons"
+import { usePermissions } from "@/hooks/use-permissions"
+import { PERMISSIONS } from "@/lib/permissions"
 
 type GuestStatus =
   | "pending"
@@ -47,9 +50,11 @@ interface GuestsToolbarProps {
   availableCountries: CountryOption[]
   categories: GuestCategory[]
   selectedCount: number
-  onAddGuest: () => void
-  onImport: () => void
+  addGuestHref: string
+  importHref: string
   onBulkAction: (action: BulkAction) => void
+  onExport?: () => void
+  workspaceSlug: string
 }
 
 const statusOptions: Option[] = [
@@ -82,11 +87,20 @@ export function GuestsToolbar({
   availableCountries,
   categories,
   selectedCount,
-  onAddGuest,
-  onImport,
+  addGuestHref,
+  importHref,
   onBulkAction,
+  onExport,
+  workspaceSlug,
 }: GuestsToolbarProps) {
   const t = useTranslations("guest")
+  const { can } = usePermissions(workspaceSlug)
+
+  // Permission checks
+  const canManageGuests = can(PERMISSIONS.MANAGE_GUESTS)
+  const canImportGuests = can(PERMISSIONS.IMPORT_GUESTS)
+  const canDeleteGuests = can(PERMISSIONS.DELETE_GUESTS)
+  const canSendEmails = can(PERMISSIONS.SEND_EMAILS)
 
   return (
     <div className="space-y-4">
@@ -102,14 +116,28 @@ export function GuestsToolbar({
           />
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={onImport}>
-            <Icons.upload className="mr-2 h-4 w-4" />
-            {t("import.title")}
-          </Button>
-          <Button onClick={onAddGuest}>
-            <Icons.plus className="mr-2 h-4 w-4" />
-            {t("add")}
-          </Button>
+          {onExport && (
+            <Button variant="outline" onClick={onExport}>
+              <Icons.download className="mr-2 h-4 w-4" />
+              {t("export")}
+            </Button>
+          )}
+          {canImportGuests && (
+            <Button variant="outline" asChild>
+              <Link href={importHref}>
+                <Icons.upload className="mr-2 h-4 w-4" />
+                {t("import.title")}
+              </Link>
+            </Button>
+          )}
+          {canManageGuests && (
+            <Button asChild>
+              <Link href={addGuestHref}>
+                <Icons.plus className="mr-2 h-4 w-4" />
+                {t("add")}
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -194,31 +222,37 @@ export function GuestsToolbar({
             <span className="text-muted-foreground text-sm">
               {selectedCount} selected
             </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onBulkAction("send_invitation")}
-            >
-              <Icons.mail className="mr-2 h-4 w-4" />
-              {t("bulkActions.sendInvitations")}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onBulkAction("send_email")}
-            >
-              <Icons.mail className="mr-2 h-4 w-4" />
-              {t("bulkActions.sendEmail")}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onBulkAction("delete")}
-              className="text-destructive hover:text-destructive"
-            >
-              <Icons.trash className="mr-2 h-4 w-4" />
-              {t("bulkActions.delete")}
-            </Button>
+            {canSendEmails && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onBulkAction("send_invitation")}
+              >
+                <Icons.mail className="mr-2 h-4 w-4" />
+                {t("bulkActions.sendInvitations")}
+              </Button>
+            )}
+            {canSendEmails && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onBulkAction("send_email")}
+              >
+                <Icons.mail className="mr-2 h-4 w-4" />
+                {t("bulkActions.sendEmail")}
+              </Button>
+            )}
+            {canDeleteGuests && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onBulkAction("delete")}
+                className="text-destructive hover:text-destructive"
+              >
+                <Icons.trash className="mr-2 h-4 w-4" />
+                {t("bulkActions.delete")}
+              </Button>
+            )}
           </div>
         )}
       </div>

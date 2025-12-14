@@ -1,0 +1,208 @@
+---
+title: "Setting Up Your Event"
+description: "A complete guide to getting your event ready for RSVPs"
+order: 1
+status: "published"
+---
+
+# Setting Up Your Event
+
+This guide walks you through the essential steps to get your event ready for guest RSVPs. Follow these steps in order to ensure everything is configured correctly.
+
+## What You'll Set Up
+
+By the end of this guide, you'll have:
+
+- An event with dates and venue information
+- Guest categories for organizing attendees
+- Email templates for invitations
+- A configured RSVP form
+- Your branding applied
+- Guests ready to receive invitations
+
+---
+
+## Step 1: Create Your Event
+
+Start by creating a new event in the system.
+
+1. Navigate to the **Events** section from the sidebar
+2. Click **Create Event**
+3. Fill in the event details:
+   - **Name** - A descriptive name for your event
+   - **Start/End Dates** - When the event takes place
+   - **Venue** - Location name and address
+   - **Description** - Optional event description
+
+Your event is created in **Draft** status. You can change the status later once everything is configured.
+
+{% callout type="info" %}
+The event slug is auto-generated from the name but can be customized. This appears in URLs.
+{% /callout %}
+
+[Learn more about the dashboard](/docs/getting-started/dashboard-overview)
+
+---
+
+## Step 2: Set Up Guest Categories
+
+Categories help you organize guests by service level and enable different invitation templates for each group.
+
+1. Go to your event's **Categories** tab
+2. Click **Add Category**
+3. Fill in the details:
+   - **Name** - e.g., "VIP Guests", "Standard Attendees"
+   - **Code** - Short identifier for Excel imports (e.g., "VIP", "STD")
+   - **Color** - For visual distinction in the guest list
+
+Create at least one category before adding guests.
+
+{% callout type="info" %}
+Category codes are used when importing guests from Excel. Keep them short and memorable.
+{% /callout %}
+
+[Learn more about managing categories](/docs/guest-categories/managing-categories)
+
+---
+
+## Step 3: Create Email Templates
+
+Before you can send invitations, you need to create an invitation email template and assign it to your category.
+
+### Create the Template
+
+1. Go to your event's **Emails** tab
+2. Click **Create Template**
+3. Set the type to **Invitation**
+4. Write your email content using variables like `{{guest.firstName}}` and `{{event.name}}`
+5. Click **Save**
+
+### Assign to Category
+
+1. Go to the **Categories** tab
+2. Click **Edit** on your category
+3. Select your invitation template from the **Invitation Template** dropdown
+4. Click **Save**
+
+{% callout type="warning" %}
+Each category needs an invitation template assigned before you can send bulk invitations to guests in that category.
+{% /callout %}
+
+[Learn more about creating templates](/docs/email-templates/creating-templates)
+
+---
+
+## Step 4: Configure Your RSVP Form
+
+The RSVP form is what guests see when they respond to your invitation. Review and customize it for your event.
+
+1. Go to your event's **RSVP Form** tab
+2. Review the available sections:
+   - **Personal Information** - Name, contact details
+   - **Travel & Logistics** - Arrival dates, transport needs
+   - **Experience** - Session preferences
+   - **Important** - Dietary requirements, accessibility needs
+3. Enable or disable sections as needed
+4. Mark fields as required where appropriate
+5. Optionally add custom questions specific to your event
+
+{% callout type="info" %}
+You can control which categories see which fields, allowing VIP guests to see different questions than standard attendees.
+{% /callout %}
+
+[Learn more about form configuration](/docs/rsvp-forms/form-configuration)
+
+---
+
+## Step 5: Set Up Branding
+
+Customize how your RSVP pages appear to guests with your organization's branding.
+
+1. Go to your event's **Branding** tab
+2. By default, events inherit workspace branding. Toggle off **Use workspace branding** to customize.
+3. Configure:
+   - **Logo** - Appears on RSVP pages
+   - **Colors** - Primary and accent colors for buttons and links
+   - **Background Image** - Optional background for RSVP pages
+   - **Card Accent** - Optional colored accent bar on cards
+
+Use the preview to see how your RSVP page will appear to guests.
+
+[Learn more about event branding](/docs/branding/event-branding)
+
+---
+
+## Step 6: Add Your Guests
+
+Now add the guests you want to invite. You have two options:
+
+### Option A: Add Manually
+
+1. Go to the **Guests** tab
+2. Click **Add Guest**
+3. Fill in guest details and select their category
+4. Click **Save**
+
+### Option B: Import from Excel
+
+1. Go to the **Guests** tab
+2. Click **Import**
+3. Upload your Excel file (.xlsx, .xls, or .csv)
+4. Map columns to guest fields
+5. Ensure the Category column matches your category codes
+6. Click **Import**
+
+{% callout type="info" %}
+When importing, use the category codes you created in Step 2 (e.g., "VIP", "STD") in the Category column.
+{% /callout %}
+
+[Learn more about importing guests](/docs/managing-guests/importing-guests)
+
+---
+
+## You're Ready to Send Invitations!
+
+With everything configured, you can now send invitations to your guests.
+
+1. Go to the **Guests** tab
+2. Select the guests you want to invite using the checkboxes
+3. Click **Send Invitations** in the bulk action toolbar
+4. Confirm the send
+
+Each guest will receive their category's invitation template with a personalized RSVP link.
+
+### Monitor Responses
+
+Track RSVPs from your event's **Overview** tab:
+
+- **RSVP Progress** - Overall response rate
+- **Status Breakdown** - Confirmed, Declined, Pending, Maybe
+- **Category Stats** - Responses by guest category
+
+[Learn more about bulk actions](/docs/managing-guests/bulk-actions)
+
+---
+
+## Quick Reference Checklist
+
+Use this checklist to ensure you haven't missed anything:
+
+- Event created with name, dates, and venue
+- At least one guest category set up
+- Invitation template created
+- Template assigned to category
+- RSVP form reviewed and configured
+- Branding set up (optional)
+- Guests added
+- Invitations sent
+
+---
+
+## Next Steps
+
+Once invitations are sent, you can:
+
+- **Send reminders** - Use bulk actions to send reminder emails to non-responders
+- **Monitor responses** - Track RSVPs from the Overview tab
+- **Export data** - Download guest lists and responses
+- **Send updates** - Communicate changes to confirmed guests

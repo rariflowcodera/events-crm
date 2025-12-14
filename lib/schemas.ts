@@ -329,7 +329,7 @@ export const invitationSchema = z.object({
   workspaceId: z.string().uuid({ message: "Invalid workspace ID" }),
   invitedBy: z.string().min(1, { message: "Invited by is required" }),
   invitedByProfileImage: z.string().nullable().optional(), // Allow null values
-  role: z.enum(["member", "admin"]),
+  role: z.enum(["member", "manager", "admin"]),
 })
 
 export const idSchema = ({ uuidMessage }: { uuidMessage?: string }) =>

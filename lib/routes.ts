@@ -16,7 +16,17 @@ export type RouteName =
   | "dashboard"
   | "events"
   | "event-detail"
+  | "event-create"
+  | "guest-new"
+  | "guest-detail"
+  | "guest-import"
+  | "category-new"
+  | "category-detail"
+  | "template-new"
+  | "template-detail"
   | "analytics"
+  | "docs"
+  | "docs-page"
   | "settings"
   | "settings-profile"
   | "settings-members"
@@ -141,6 +151,34 @@ export const ROUTES: Record<RouteName, RouteConfigType> = {
     },
   },
 
+  docs: {
+    name: "docs",
+    path: "/:slug/docs",
+    metadata: {
+      title: documentTitle("Documentation"),
+      description: "Help and documentation",
+    },
+    metadataExtra: {
+      name: "User Guide",
+      image: placeholderImageUrl({}),
+      icon: "book",
+    },
+  },
+
+  "docs-page": {
+    name: "docs-page",
+    path: "/:slug/docs/:docSlug*",
+    metadata: {
+      title: documentTitle("Documentation"),
+      description: "Help and documentation",
+    },
+    metadataExtra: {
+      name: "Doc Page",
+      image: placeholderImageUrl({}),
+      icon: "book",
+    },
+  },
+
   callback: {
     name: "callback",
     path: "/callback",
@@ -207,6 +245,110 @@ export const ROUTES: Record<RouteName, RouteConfigType> = {
       name: "Event",
       image: placeholderImageUrl({}),
       icon: "calendar",
+    },
+  },
+  "event-create": {
+    name: "event-create",
+    path: "/:slug/events/create",
+    metadata: {
+      title: documentTitle("Create Event"),
+      description: "Create a new event",
+    },
+    metadataExtra: {
+      name: "Create Event",
+      image: placeholderImageUrl({}),
+      icon: "plus",
+    },
+  },
+  "guest-new": {
+    name: "guest-new",
+    path: "/:slug/events/:eventSlug/guests/new",
+    metadata: {
+      title: documentTitle("Add Guest"),
+      description: "Add a new guest",
+    },
+    metadataExtra: {
+      name: "Add Guest",
+      image: placeholderImageUrl({}),
+      icon: "plus",
+    },
+  },
+  "guest-detail": {
+    name: "guest-detail",
+    path: "/:slug/events/:eventSlug/guests/:guestId",
+    metadata: {
+      title: documentTitle("Guest"),
+      description: "Guest details",
+    },
+    metadataExtra: {
+      name: "Guest",
+      image: placeholderImageUrl({}),
+      icon: "user",
+    },
+  },
+  "guest-import": {
+    name: "guest-import",
+    path: "/:slug/events/:eventSlug/guests/import",
+    metadata: {
+      title: documentTitle("Import Guests"),
+      description: "Import guests from Excel",
+    },
+    metadataExtra: {
+      name: "Import Guests",
+      image: placeholderImageUrl({}),
+      icon: "upload",
+    },
+  },
+  "category-new": {
+    name: "category-new",
+    path: "/:slug/events/:eventSlug/categories/new",
+    metadata: {
+      title: documentTitle("Add Category"),
+      description: "Add a new guest category",
+    },
+    metadataExtra: {
+      name: "Add Category",
+      image: placeholderImageUrl({}),
+      icon: "plus",
+    },
+  },
+  "category-detail": {
+    name: "category-detail",
+    path: "/:slug/events/:eventSlug/categories/:categoryId",
+    metadata: {
+      title: documentTitle("Category"),
+      description: "Edit guest category",
+    },
+    metadataExtra: {
+      name: "Category",
+      image: placeholderImageUrl({}),
+      icon: "layers",
+    },
+  },
+  "template-new": {
+    name: "template-new",
+    path: "/:slug/events/:eventSlug/templates/new",
+    metadata: {
+      title: documentTitle("Create Template"),
+      description: "Create email template",
+    },
+    metadataExtra: {
+      name: "Create Template",
+      image: placeholderImageUrl({}),
+      icon: "plus",
+    },
+  },
+  "template-detail": {
+    name: "template-detail",
+    path: "/:slug/events/:eventSlug/templates/:templateId",
+    metadata: {
+      title: documentTitle("Edit Template"),
+      description: "Edit email template",
+    },
+    metadataExtra: {
+      name: "Edit Template",
+      image: placeholderImageUrl({}),
+      icon: "mail",
     },
   },
   settings: {
@@ -371,7 +513,17 @@ type RouteParams = {
   dashboard: { slug: string }
   events: { slug: string }
   "event-detail": { slug: string; eventSlug: string }
+  "event-create": { slug: string }
+  "guest-new": { slug: string; eventSlug: string }
+  "guest-detail": { slug: string; eventSlug: string; guestId: string }
+  "guest-import": { slug: string; eventSlug: string }
+  "category-new": { slug: string; eventSlug: string }
+  "category-detail": { slug: string; eventSlug: string; categoryId: string }
+  "template-new": { slug: string; eventSlug: string }
+  "template-detail": { slug: string; eventSlug: string; templateId: string }
   analytics: { slug: string }
+  docs: { slug: string }
+  "docs-page": { slug: string; docSlug: string[] }
   settings: { slug: string }
   "settings-profile": { slug: string }
   "settings-members": { slug: string }
@@ -403,6 +555,15 @@ export function createRoute<T extends RouteName>(route: T, params?: RouteParams[
     }
     if ("eventSlug" in params) {
       path = path.replace(":eventSlug", params.eventSlug as string)
+    }
+    if ("guestId" in params) {
+      path = path.replace(":guestId", params.guestId as string)
+    }
+    if ("categoryId" in params) {
+      path = path.replace(":categoryId", params.categoryId as string)
+    }
+    if ("templateId" in params) {
+      path = path.replace(":templateId", params.templateId as string)
     }
   }
 

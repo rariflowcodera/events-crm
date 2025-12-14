@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { useVirtualizer } from "@tanstack/react-virtual"
 
 import {
@@ -67,9 +68,10 @@ interface GuestsTableProps {
   guests: Guest[]
   selectedIds: Set<string>
   onSelectionChange: (ids: Set<string>) => void
-  onGuestClick: (guest: Guest) => void
+  getGuestDetailHref: (guestId: string) => string
   eventId: string
   event: EventCustomDomain
+  workspaceSlug: string
 }
 
 const ROW_HEIGHT = 56
@@ -79,10 +81,12 @@ export function GuestsTable({
   guests,
   selectedIds,
   onSelectionChange,
-  onGuestClick,
+  getGuestDetailHref,
   eventId,
   event,
+  workspaceSlug,
 }: GuestsTableProps) {
+  const router = useRouter()
   const parentRef = useRef<HTMLDivElement>(null)
 
   const virtualizer = useVirtualizer({
@@ -177,7 +181,7 @@ export function GuestsTable({
                 </div>
                 <div
                   className="w-[180px] p-2 flex-shrink-0 font-medium truncate"
-                  onClick={() => onGuestClick(guest)}
+                  onClick={() => router.push(getGuestDetailHref(guest.id))}
                   title={`${guest.firstName} ${guest.lastName}`}
                 >
                   <div className="truncate">
@@ -189,21 +193,21 @@ export function GuestsTable({
                 </div>
                 <div
                   className="w-[220px] p-2 flex-shrink-0 truncate"
-                  onClick={() => onGuestClick(guest)}
+                  onClick={() => router.push(getGuestDetailHref(guest.id))}
                   title={guest.email || undefined}
                 >
                   {guest.email || "-"}
                 </div>
                 <div
                   className="flex-1 min-w-[100px] p-2 truncate"
-                  onClick={() => onGuestClick(guest)}
+                  onClick={() => router.push(getGuestDetailHref(guest.id))}
                   title={guest.entity || undefined}
                 >
                   {guest.entity || "-"}
                 </div>
                 <div
                   className="w-[130px] p-2 flex-shrink-0 truncate"
-                  onClick={() => onGuestClick(guest)}
+                  onClick={() => router.push(getGuestDetailHref(guest.id))}
                   title={guest.country ? getCountryName(guest.country) || guest.country : undefined}
                 >
                   {guest.country ? getCountryName(guest.country) || guest.country : "-"}
@@ -218,7 +222,7 @@ export function GuestsTable({
                   <GuestEmailStatusIndicator guestId={guest.id} />
                 </div>
                 <div className="w-[50px] p-2 flex-shrink-0">
-                  <GuestRowActions guest={guest} eventId={eventId} event={event} />
+                  <GuestRowActions guest={guest} eventId={eventId} event={event} workspaceSlug={workspaceSlug} />
                 </div>
               </div>
             )

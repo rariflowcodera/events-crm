@@ -15,6 +15,8 @@ import { emailDeliveryRouter } from "@/trpc/routers/email-delivery"
 import { rsvpFormsRouter } from "@/trpc/routers/rsvp-forms"
 import { rsvpTemplatesRouter } from "@/trpc/routers/rsvp-templates"
 import { rsvpReportsRouter } from "@/trpc/routers/rsvp-reports"
+// Permissions
+import { permissionsRouter } from "@/trpc/routers/permissions"
 
 export const appRouter = createTRPCRouter({
   users: usersRouter,
@@ -33,6 +35,8 @@ export const appRouter = createTRPCRouter({
   rsvpForms: rsvpFormsRouter,
   rsvpTemplates: rsvpTemplatesRouter,
   rsvpReports: rsvpReportsRouter,
+  // Permissions
+  permissions: permissionsRouter,
 })
 
 // export type definition of API

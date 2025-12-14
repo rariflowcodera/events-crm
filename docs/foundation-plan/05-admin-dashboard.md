@@ -15,8 +15,9 @@ Build the admin dashboard UI for managing events and guests, aligned with Phase 
 | Event Detail Layout | Tabbed interface | Fewer clicks, all context in one place |
 | Guest Table | Virtual scrolling | Load all guests, smooth UX for 500+ guests |
 | Excel Import | Include in MVP | Critical for testing with real data |
-| Modal Pattern | Sheet (slide-in) | Matches existing workspace modals |
+| Detail/Form Pattern | PagePanel (full-page routes) | Mobile-friendly with swipe-back, URL-based navigation |
 | State Management | URL state (nuqs) | Shareable/bookmarkable filter URLs |
+| Tab State | URL query param (`?tab=`) | Preserves active tab when navigating to/from panels |
 | Import Duplicates | Detect in preview, skip on import | User sees issues before committing, first occurrence wins |
 | Email Comparison | Case-insensitive | Standard email handling, avoids user confusion |
 
@@ -24,7 +25,7 @@ Build the admin dashboard UI for managing events and guests, aligned with Phase 
 
 ## Implementation Stages
 
-Work is organized into 4 sub-phases for incremental delivery:
+Work is organized into 5 sub-phases for incremental delivery:
 
 | Phase | Scope | Files |
 |-------|-------|-------|
@@ -32,6 +33,7 @@ Work is organized into 4 sub-phases for incremental delivery:
 | 5B | Event Detail with Tabs | ~10 files |
 | 5C | Guests Table + CRUD | ~15 files |
 | 5D | Excel Import + Categories | ~12 files |
+| 5E | Panel-to-Page Refactor | ~20 files |
 
 ---
 
@@ -623,6 +625,127 @@ Add to `messages/en.json` and `messages/ar.json`:
 
 ---
 
+## 5E: Panel-to-Page Refactor
+
+> **Status**: Complete | **Branch**: 17-panel-refactor
+
+### Objective
+
+Convert all sheet/modal panels to full-page routes with responsive behavior:
+- **Desktop**: Full-width overlay covering content area (sidebar remains visible), slide-in animation
+- **Mobile**: Full-screen with vaul Drawer for swipe-back gesture AND visible back button
+
+### Key Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Panel Component | `PagePanel` wrapper | Single component handles both desktop/mobile patterns |
+| Mobile Gesture | vaul Drawer | Swipe-to-dismiss feels native on mobile |
+| Desktop Animation | motion.div | Smooth slide-in from right |
+| Navigation | URL-based (Links) | Shareable, bookmarkable, browser back works |
+| Route Group | `(panel)` | Groups all panel routes without affecting URL |
+
+### Core Infrastructure
+
+**Files Created:**
+
+| File | Purpose |
+|------|---------|
+| `/components/global/page-panel.tsx` | Responsive panel wrapper (desktop overlay / mobile drawer) |
+| `/hooks/use-back-navigation.ts` | Smart back navigation with fallback URL support |
+
+**PagePanel Features:**
+- Desktop: Fixed overlay positioned at `left: var(--sidebar-width)` so sidebar stays visible
+- Mobile: Full-screen with vaul Drawer for swipe gesture support
+- Both: Visible back button in sticky header
+- Handles `router.back()` with fallback URL if no history
+
+### Route Structure
+
+```
+app/[locale]/(web)/(dashboard)/[slug]/(sidebar)/(breadcrumbs)/events/
+├── create/                                    # Create Event
+│   ├── page.tsx
+│   └── client.tsx
+└── [eventSlug]/
+    └── (panel)/                               # Panel layout group
+        ├── layout.tsx                         # Wraps children in PagePanel
+        ├── guests/
+        │   ├── new/
+        │   │   ├── page.tsx
+        │   │   └── client.tsx
+        │   ├── [guestId]/
+        │   │   ├── page.tsx
+        │   │   └── client.tsx
+        │   └── import/
+        │       ├── page.tsx
+        │       └── client.tsx
+        ├── categories/
+        │   ├── new/
+        │   │   ├── page.tsx
+        │   │   └── client.tsx
+        │   └── [categoryId]/
+        │       ├── page.tsx
+        │       └── client.tsx
+        └── templates/
+            ├── new/
+            │   ├── page.tsx
+            │   └── client.tsx
+            └── [templateId]/
+                ├── page.tsx
+                └── client.tsx
+```
+
+### Navigation Pattern Changes
+
+```tsx
+// Before (modal state):
+const [isModalOpen, setIsModalOpen] = useState(false)
+<Button onClick={() => setIsModalOpen(true)}>Add Guest</Button>
+<AddGuestModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+
+// After (URL-based):
+const addGuestHref = createRoute("guest-new", { slug, eventSlug }).href
+<Button asChild>
+  <Link href={addGuestHref}>Add Guest</Link>
+</Button>
+```
+
+### Routes Added to lib/routes.ts
+
+```typescript
+| "event-create"
+| "guest-new"
+| "guest-detail"
+| "guest-import"
+| "category-new"
+| "category-detail"
+| "template-new"
+| "template-detail"
+```
+
+### Modified Components
+
+| Component | Changes |
+|-----------|---------|
+| `event-guests-tab.tsx` | Uses Links for Add Guest, Import, guest rows |
+| `event-categories-tab.tsx` | Uses Links for Add/Edit category |
+| `event-emails-tab.tsx` | Uses Links for Add/Edit template |
+| `create-event-button.tsx` | Uses Link instead of modal hook |
+| `guests-toolbar.tsx` | Props changed to href strings instead of callbacks |
+| `guests-table.tsx` | Uses `getGuestDetailHref` prop with router.push |
+
+### Benefits
+
+1. **Better Mobile UX**: Swipe-to-dismiss feels native, full-screen utilizes space better
+2. **URL-Based Navigation**: Links are shareable and bookmarkable
+3. **Browser History**: Back/forward buttons work correctly
+4. **Simpler State**: No modal state management needed
+5. **Direct Access**: URLs can be loaded directly (e.g., from email links)
+6. **Consistent Pattern**: All detail/form pages use same PagePanel wrapper
+
+---
+
 ## Dependencies to Add
 
 ```bash
@@ -672,6 +795,24 @@ After completing Stage 5:
 - [x] Completion summary shows skipped duplicate counts
 - [ ] Drag-reorder UI (endpoint exists, UI not implemented - future enhancement)
 - [x] Cannot delete category with guests
+
+### 5E: Panel-to-Page Refactor
+- [x] PagePanel component created with desktop/mobile variants
+- [x] useBackNavigation hook with fallback support
+- [x] Route definitions added to lib/routes.ts
+- [x] Create Event page route
+- [x] Guest detail/new/import panel routes
+- [x] Category new/edit panel routes
+- [x] Email template new/edit panel routes
+- [x] Navigation components updated to use Links
+- [x] Desktop: Panel slides in covering full content area
+- [x] Desktop: Sidebar remains visible
+- [x] Mobile: Full-screen with swipe-back gesture
+- [x] Mobile: Back button visible and functional
+- [x] Browser back/forward works correctly
+- [x] Direct URL access loads correctly
+- [x] Tab state preserved in URL (`?tab=guests`, `?tab=categories`, etc.)
+- [x] Closing panels returns to correct tab
 
 ---
 
@@ -761,3 +902,22 @@ After Stage 5, the foundation is complete for Phase 1 requirements:
   - Color picker with presets
   - Description field
   - Dropdown actions menu
+
+### Phase 5E - Panel-to-Page Refactor (Complete)
+- Created `PagePanel` component for responsive panel display
+  - Desktop: Full-width overlay with slide-in animation (sidebar visible)
+  - Mobile: Full-screen with vaul Drawer for swipe-back gesture
+- Created `useBackNavigation` hook with fallback URL support
+- Added 8 new route types to `lib/routes.ts`
+- Created panel route pages:
+  - Event creation page
+  - Guest detail/new/import pages
+  - Category new/edit pages
+  - Email template new/edit pages
+- Updated navigation components to use Links instead of modal state
+- Browser back/forward navigation works correctly
+- Direct URL access supported for all panel routes
+- **Tab state preserved via URL query params** (`?tab=guests`, `?tab=categories`, etc.)
+  - Tab changes update URL with `router.replace()` (no history pollution)
+  - Panel backHref URLs include `?tab=X` to return to correct tab
+  - `event-tabs.tsx` reads initial tab from URL and syncs on navigation

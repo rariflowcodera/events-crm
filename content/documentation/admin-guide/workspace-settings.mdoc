@@ -1,0 +1,119 @@
+---
+title: "Workspace Settings"
+description: "Configure your workspace settings, branding, and preferences"
+order: 3
+status: "published"
+---
+
+# Workspace Settings
+
+Configure your workspace to match your organization's needs and branding.
+
+## Accessing Settings
+
+1. Click **Settings** in the sidebar
+2. Select the settings category you want to configure
+
+## General Settings
+
+Found under **Settings > General**.
+
+### Workspace Name
+
+The display name for your workspace. This appears in:
+- The sidebar header
+- Member invitations
+- Email communications
+
+### Workspace Slug
+
+The URL-friendly identifier for your workspace (e.g., `my-company`). This appears in all workspace URLs:
+
+```
+https://app.example.com/en/my-company/events
+```
+
+**Note:** Changing the slug will update all workspace URLs. Share new links with your team after changing.
+
+## Branding
+
+Found under **Settings > Branding**.
+
+Customize the visual appearance of your workspace.
+
+### Logo
+
+Upload your organization's logo. The logo appears in:
+- The sidebar header
+- Email templates (when configured)
+- Public-facing pages
+
+**Tip:** Upload both light and dark mode versions for the best appearance across themes.
+
+### Colors
+
+Set your brand colors:
+
+- **Primary Color** - Main brand color for buttons and accents
+- **Accent Color** - Secondary color for highlights
+
+Colors can be set separately for light and dark modes.
+
+## Email Settings
+
+Found under **Settings > Email**.
+
+Configure default email sender information for your workspace.
+
+### From Name
+
+The name that appears as the sender in emails. For example:
+- "Events Team"
+- "Your Company Events"
+
+### From Email
+
+The email address used as the sender. This should be a valid email address that your team monitors.
+
+**Note:** These are default values. Individual events can override these settings.
+
+## Members
+
+Found under **Settings > Members**.
+
+Manage who has access to your workspace. See the [Inviting Members](/docs/admin-guide/inviting-members) documentation for details.
+
+## Danger Zone
+
+Found at the bottom of **Settings > General**.
+
+### Delete Workspace
+
+**Warning:** This action is permanent and cannot be undone.
+
+Deleting a workspace will remove:
+- All events
+- All guest records
+- All email templates
+- All RSVP data
+- All member associations
+
+Only the workspace **Owner** can delete the workspace.
+
+### Before Deleting
+
+1. Export any data you need to keep
+2. Inform all workspace members
+3. Consider transferring ownership if someone else should maintain the data
+
+## Settings by Role
+
+Not all settings are available to all roles:
+
+| Setting | Owner | Admin | Manager | Member |
+|---------|-------|-------|---------|--------|
+| General (name, slug) | Yes | No | No | No |
+| Branding | Yes | No | No | No |
+| Email defaults | Yes | No | No | No |
+| Members | Yes | Yes | No | No |
+| Delete workspace | Yes | No | No | No |

@@ -1,0 +1,166 @@
+---
+title: "Using Variables"
+description: "Personalize emails with dynamic content"
+order: 2
+status: "published"
+---
+
+# Using Variables
+
+Variables allow you to personalize email content with information specific to each guest and your event. When an email is sent, variables are automatically replaced with actual data.
+
+## What are Variables?
+
+Variables are placeholders in your template that get replaced with real values. They follow the format `{{category.field}}`:
+
+```
+Dear {{guest.firstName}},
+
+You are invited to {{event.name}} on {{event.startDate}}.
+```
+
+When sent to a guest named "Ahmed" for "Annual Gala 2025", this becomes:
+
+```
+Dear Ahmed,
+
+You are invited to Annual Gala 2025 on December 15, 2025.
+```
+
+## Available Variables
+
+### Guest Variables
+
+Information about the individual recipient:
+
+**guest.firstName**
+Guest's first name
+
+**guest.lastName**
+Guest's last name
+
+**guest.fullName**
+Full name (first + last)
+
+**guest.title**
+Title (Mr., Mrs., Dr., etc.)
+
+**guest.email**
+Email address
+
+**guest.position**
+Job position
+
+**guest.entity**
+Organization/company
+
+**guest.category**
+Assigned category name
+
+### Event Variables
+
+Information about your event:
+
+**event.name**
+Event name
+
+**event.venue**
+Venue name
+
+**event.venueAddress**
+Full venue address
+
+**event.startDate**
+Event start date
+
+**event.endDate**
+Event end date
+
+**event.rsvpDeadline**
+RSVP deadline
+
+### RSVP Link Variables
+
+Personalized links for guest responses:
+
+**rsvp.link**
+Full RSVP page link
+
+**rsvp.confirmLink**
+Direct link to confirm attendance
+
+**rsvp.declineLink**
+Direct link to decline
+
+{% callout type="info" %}
+RSVP links are unique to each guest and should never be shared between recipients.
+{% /callout %}
+
+## Inserting Variables
+
+### Using the Insert Button
+
+The easiest way to insert variables:
+
+1. Place your cursor where you want the variable
+2. Click the **Insert Variable** button above the editor
+3. Search or browse the available variables
+4. Click a variable to insert it at your cursor position
+
+### Manual Entry
+
+You can also type variables directly:
+
+1. Type `{{` to start the variable
+2. Enter the category and field (e.g., `guest.firstName`)
+3. Type `}}` to close the variable
+
+## Preview with Sample Data
+
+To see how your template will look with variables replaced:
+
+1. Click the **Preview** button
+2. The system displays your template with sample data:
+   - Sample guest: "Ahmed Al-Rashid"
+   - Sample event: "Annual Gala 2025"
+   - Sample date: "December 15, 2025"
+
+### Preview Options
+
+The preview dialog shows:
+
+- **Subject line** - With variables replaced
+- **HTML tab** - Rendered HTML content in an iframe
+- **Plain Text tab** - Text version of the email
+
+Toggle between English and Arabic previews to verify both translations.
+
+## Best Practices
+
+### Use Full Names Appropriately
+
+For formal communications, use `{{guest.title}} {{guest.lastName}}`:
+
+```
+Dear {{guest.title}} {{guest.lastName}},
+```
+
+For casual communications, use `{{guest.firstName}}`:
+
+```
+Hi {{guest.firstName}}!
+```
+
+### Provide Fallbacks
+
+If a field might be empty (like position or entity), write your template to handle missing data gracefully:
+
+```
+{{guest.fullName}}
+{{guest.position}}
+{{guest.entity}}
+```
+
+### Test Before Sending
+
+Always preview templates with different scenarios to ensure they look correct for various guest profiles.

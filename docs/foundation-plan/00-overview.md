@@ -136,6 +136,11 @@ After all stages:
 
 ### Features (Stages 5+)
 - [Stage 5: Admin Dashboard UI](./05-admin-dashboard.md)
+  - 5A: Events List & Create Event
+  - 5B: Event Detail with Tabs
+  - 5C: Guests Table with CRUD
+  - 5D: Excel Import & Categories
+  - 5E: Panel-to-Page Refactor (mobile-friendly URL-based navigation)
 - [Stage 6: Email Template Builder](./06-email-template-builder.md)
 - [Stage 15: Google Maps Integration](./15-google-maps-integration.md)
 

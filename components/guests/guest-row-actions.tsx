@@ -6,6 +6,8 @@ import { useTranslations } from "next-intl"
 import { useDeleteGuest } from "@/trpc/hooks/guests-hooks"
 import { getRsvpUrl } from "@/lib/rsvp-url"
 import { Button } from "@/components/ui/button"
+import { usePermissions } from "@/hooks/use-permissions"
+import { PERMISSIONS } from "@/lib/permissions"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,12 +59,18 @@ interface GuestRowActionsProps {
   guest: Guest
   eventId: string
   event: EventCustomDomain
+  workspaceSlug: string
 }
 
-export function GuestRowActions({ guest, eventId, event }: GuestRowActionsProps) {
+export function GuestRowActions({ guest, eventId, event, workspaceSlug }: GuestRowActionsProps) {
   const t = useTranslations("guest")
   const router = useRouter()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const { can } = usePermissions(workspaceSlug)
+
+  // Permission checks
+  const canDeleteGuests = can(PERMISSIONS.DELETE_GUESTS)
+  const canSendEmails = can(PERMISSIONS.SEND_EMAILS)
 
   const { mutate: deleteGuest, isPending: isDeleting } = useDeleteGuest({
     onSuccess: () => {
@@ -94,20 +102,24 @@ export function GuestRowActions({ guest, eventId, event }: GuestRowActionsProps)
             <Icons.link className="mr-2 h-4 w-4" />
             Copy RSVP Link
           </DropdownMenuItem>
-          {guest.email && (
+          {guest.email && canSendEmails && (
             <DropdownMenuItem disabled>
               <Icons.mail className="mr-2 h-4 w-4" />
               Send Invitation
             </DropdownMenuItem>
           )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={() => setShowDeleteDialog(true)}
-          >
-            <Icons.trash className="mr-2 h-4 w-4" />
-            Delete Guest
-          </DropdownMenuItem>
+          {canDeleteGuests && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Icons.trash className="mr-2 h-4 w-4" />
+                Delete Guest
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

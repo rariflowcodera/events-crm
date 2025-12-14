@@ -1,0 +1,117 @@
+---
+title: "Managing Categories"
+description: "Create, edit, and organize guest categories"
+order: 1
+status: "published"
+---
+
+# Managing Categories
+
+This guide covers how to create, edit, and manage guest categories for your events.
+
+## Accessing Categories
+
+To manage categories:
+
+1. Navigate to your event
+2. Click the **Categories** tab
+
+You'll see a list of all categories configured for this event, along with the number of guests assigned to each.
+
+## Creating a Category
+
+To create a new category:
+
+1. Click the **Add Category** button
+2. Fill in the category details:
+   - **Name** - Descriptive name (e.g., "VIP Guests", "Standard Attendees")
+   - **Code** - Short identifier used in Excel imports (e.g., "VIP", "STD")
+   - **Description** - Optional notes about this category
+   - **Color** - Select from preset colors or enter a custom hex code
+3. Click **Save**
+
+{% callout type="info" %}
+Category codes should be unique within an event. Use short, memorable codes that are easy to type in Excel files.
+{% /callout %}
+
+## Editing Categories
+
+To edit an existing category:
+
+1. Find the category in the list
+2. Click the **Edit** button or the category row
+3. Update the desired fields
+4. Click **Save**
+
+Changes to category names and colors will be reflected throughout the system immediately.
+
+## Invitation Template Assignment
+
+Each category can have a default invitation template assigned. This template is used when sending bulk invitations to guests in that category.
+
+### Setting the Invitation Template
+
+1. Edit the category
+2. Find the **Invitation Template** dropdown
+3. Select the template to use for this category
+4. Click **Save**
+
+{% callout type="warning" %}
+You must create invitation templates in the **Emails** tab before they appear in this dropdown. Only templates with type "Invitation" are shown.
+{% /callout %}
+
+### How It Works
+
+When you select guests and click **Send Invitations** in the bulk action toolbar:
+
+- Each guest receives their category's assigned invitation template
+- If a category has no template assigned, those guests cannot receive bulk invitations
+- Different categories can use different invitation templates
+
+### Example Use Case
+
+You might create different invitation templates for different service levels:
+
+- **VIP Category** → Uses "VIP Invitation" with exclusive lounge details
+- **Standard Category** → Uses "General Invitation" with standard event info
+
+This allows personalized messaging based on guest tier without manual effort.
+
+## Color Selection
+
+The color picker provides:
+
+- **Preset Colors** - Quick selection of common colors
+- **Custom Hex** - Enter any color using a hex code (e.g., #FF5733)
+
+Choose colors that provide good contrast and are easy to distinguish from each other in the guest table.
+
+## Deleting Categories
+
+To delete a category:
+
+1. Click the actions menu (three dots) on the category
+2. Select **Delete**
+3. Confirm the deletion
+
+{% callout type="warning" %}
+You cannot delete a category that has guests assigned to it. Reassign those guests to a different category first using bulk actions.
+{% /callout %}
+
+## Best Practices
+
+### Use Consistent Naming
+
+Establish a naming convention across all your events for easier management:
+
+- Use clear, descriptive names
+- Keep codes short (2-4 characters)
+- Use the same codes across events when possible
+
+### Plan Categories Before Import
+
+Set up your categories before importing guests from Excel. This ensures the category codes in your spreadsheet match your system categories.
+
+### Review Guest Counts
+
+The guest count shown next to each category helps you understand your event composition at a glance. Use this to verify imports were successful.

@@ -23,9 +23,10 @@ export function WorkspaceSwitcherItem({
   if (!item) return null
 
   // Get the current path segments and replace the slug
+  // Index 0: empty string, Index 1: locale (e.g., "en"), Index 2: workspace slug
   const workspacePath = pathname
     .split("/")
-    .map((segment, i) => (i === 1 ? item.slug : segment))
+    .map((segment, i) => (i === 2 ? item.slug : segment))
     .join("/")
 
   const isActive = isRouteActive(workspacePath, pathname, 1)

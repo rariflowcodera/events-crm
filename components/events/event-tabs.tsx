@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTranslations } from "next-intl"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Icons } from "@/components/global/icons"
@@ -66,9 +67,33 @@ interface EventTabsProps {
 
 type TabValue = "overview" | "guests" | "categories" | "rsvp-form" | "branding" | "emails" | "reports" | "settings"
 
+const validTabs: TabValue[] = ["overview", "guests", "categories", "rsvp-form", "branding", "emails", "reports", "settings"]
+
 export function EventTabs({ event, workspaceSlug }: EventTabsProps) {
   const t = useTranslations()
-  const [activeTab, setActiveTab] = useState<TabValue>("overview")
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  // Read initial tab from URL params, default to "overview"
+  const tabFromUrl = searchParams.get("tab") as TabValue | null
+  const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : "overview"
+  const [activeTab, setActiveTab] = useState<TabValue>(initialTab)
+
+  // Sync tab with URL when navigating back
+  useEffect(() => {
+    const tabParam = searchParams.get("tab") as TabValue | null
+    if (tabParam && validTabs.includes(tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams, activeTab])
+
+  // Update both state and URL when tab changes
+  const handleTabChange = useCallback((newTab: TabValue) => {
+    setActiveTab(newTab)
+    // Update URL without adding to history stack (replace, not push)
+    router.replace(`${pathname}?tab=${newTab}`, { scroll: false })
+  }, [router, pathname])
 
   const tabs = [
     {
@@ -114,7 +139,7 @@ export function EventTabs({ event, workspaceSlug }: EventTabsProps) {
   ]
 
   return (
-    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+    <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as TabValue)}>
       <TabsList className="w-full justify-start border-b bg-transparent p-0">
         {tabs.map((tab) => {
           const Icon = tab.icon

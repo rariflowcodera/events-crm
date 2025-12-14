@@ -8,14 +8,13 @@ import { Card, CardContent } from "@/components/ui/card"
 import { EmptyPlaceholder } from "@/components/global/empty-placeholder"
 import { GuestsTable, GuestsTableSkeleton } from "@/components/guests/guests-table"
 import { GuestsToolbar } from "@/components/guests/guests-toolbar"
-import { AddGuestModal } from "@/components/guests/add-guest-modal"
-import { GuestDetailSheet } from "@/components/guests/guest-detail-sheet"
 import { BulkDeleteDialog } from "@/components/guests/bulk-delete-dialog"
 import { BulkSendEmailDialog } from "@/components/guests/bulk-send-email-dialog"
 import { SendEmailDialog } from "@/components/guests/send-email-dialog"
-import { ImportGuestsModal } from "@/components/guests/import-guests-modal"
 import type { EmailTemplateType } from "@/lib/schemas"
 import { getCountryName } from "@/lib/data/countries"
+import { createRoute } from "@/lib/routes"
+import { exportGuestsToExcel } from "@/lib/export-guests"
 
 type GuestStatus =
   | "pending"
@@ -85,12 +84,17 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
   const [categoryFilter, setCategoryFilter] = useState<string[]>([])
   const [countryFilter, setCountryFilter] = useState<string[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
-  const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [bulkEmailType, setBulkEmailType] = useState<EmailTemplateType | null>(null)
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false)
+
+  // Navigation hrefs
+  const addGuestHref = createRoute("guest-new", { slug: workspaceSlug, eventSlug: event.slug }).href
+  const importHref = createRoute("guest-import", { slug: workspaceSlug, eventSlug: event.slug }).href
+  const getGuestDetailHref = useCallback(
+    (guestId: string) => createRoute("guest-detail", { slug: workspaceSlug, eventSlug: event.slug, guestId }).href,
+    [workspaceSlug, event.slug]
+  )
 
   // Fetch all guests for the event
   const { data, isLoading, error } = useGuests({ eventId: event.id })
@@ -158,10 +162,6 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
   }, [guests, searchQuery, statusFilter, categoryFilter, countryFilter])
 
   // Handlers
-  const handleGuestClick = useCallback((guest: Guest) => {
-    setSelectedGuest(guest)
-  }, [])
-
   const handleBulkAction = useCallback((action: "delete" | "send_invitation" | "send_email") => {
     if (action === "delete") {
       setIsDeleteDialogOpen(true)
@@ -175,6 +175,10 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
   const handleBulkDeleteSuccess = useCallback(() => {
     setSelectedIds(new Set())
   }, [])
+
+  const handleExport = useCallback(() => {
+    exportGuestsToExcel(filteredGuests, event.slug)
+  }, [filteredGuests, event.slug])
 
   // Loading state
   if (isLoading) {
@@ -226,9 +230,11 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
         availableCountries={availableCountries}
         categories={event.guestCategories}
         selectedCount={selectedIds.size}
-        onAddGuest={() => setIsAddModalOpen(true)}
-        onImport={() => setIsImportModalOpen(true)}
+        addGuestHref={addGuestHref}
+        importHref={importHref}
         onBulkAction={handleBulkAction}
+        onExport={handleExport}
+        workspaceSlug={workspaceSlug}
       />
 
       {hasGuests ? (
@@ -240,12 +246,13 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
             guests={filteredGuests}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
-            onGuestClick={handleGuestClick}
+            getGuestDetailHref={getGuestDetailHref}
             eventId={event.id}
             event={{
               customDomain: event.customDomain,
               customDomainVerified: event.customDomainVerified,
             }}
+            workspaceSlug={workspaceSlug}
           />
         </>
       ) : (
@@ -262,27 +269,6 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
         </Card>
       )}
 
-      {/* Add Guest Modal */}
-      <AddGuestModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        eventId={event.id}
-        categories={event.guestCategories}
-      />
-
-      {/* Guest Detail Sheet */}
-      <GuestDetailSheet
-        guest={selectedGuest}
-        isOpen={!!selectedGuest}
-        onClose={() => setSelectedGuest(null)}
-        categories={event.guestCategories}
-        eventId={event.id}
-        event={{
-          customDomain: event.customDomain,
-          customDomainVerified: event.customDomainVerified,
-        }}
-      />
-
       {/* Bulk Delete Dialog */}
       <BulkDeleteDialog
         isOpen={isDeleteDialogOpen}
@@ -290,14 +276,6 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
         guestIds={Array.from(selectedIds)}
         eventId={event.id}
         onSuccess={handleBulkDeleteSuccess}
-      />
-
-      {/* Import Modal */}
-      <ImportGuestsModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        eventId={event.id}
-        categories={event.guestCategories}
       />
 
       {/* Bulk Send Email Dialog (for Send Invitations) */}

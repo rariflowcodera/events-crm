@@ -196,7 +196,11 @@ export function CreateInviteForm({ currentUser, workspaceId }: MemberInviteFormP
                 <div className="space-y-2">
                   <div>
                     <p className="font-semibold">Member</p>
-                    <p className="">Can view and interact with workspace content</p>
+                    <p className="">Can view workspace content (read-only)</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Manager</p>
+                    <p className="">Can manage events, guests, and RSVPs</p>
                   </div>
                   <div>
                     <p className="font-semibold">Admin</p>
@@ -241,6 +245,7 @@ export function CreateInviteForm({ currentUser, workspaceId }: MemberInviteFormP
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="member">Member</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
                       </SelectContent>
                     </Select>
@@ -287,7 +292,11 @@ export function CreateInviteFormSkeleton() {
                 <div className="space-y-2">
                   <div>
                     <p className="font-semibold">Member</p>
-                    <p className="">Can view and interact with workspace content</p>
+                    <p className="">Can view workspace content (read-only)</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Manager</p>
+                    <p className="">Can manage events, guests, and RSVPs</p>
                   </div>
                   <div>
                     <p className="font-semibold">Admin</p>

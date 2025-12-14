@@ -2,10 +2,10 @@ import { Metadata } from "next"
 import Image from "next/image"
 
 import { configuration } from "@/lib/config"
-import { createRoute, ROUTES } from "@/lib/routes"
+import { ROUTES } from "@/lib/routes"
 import { trpc } from "@/trpc/server"
-import { CtaCard } from "@/components/global/cta-card"
 import { SectionWrapper } from "@/components/layout/section-wrapper"
+import { DashboardCards } from "@/components/dashboard/dashboard-cards"
 
 export const metadata: Metadata = ROUTES.dashboard.metadata
 
@@ -35,36 +35,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         <h1 className="text-center text-xl font-bold">Welcome to {configuration.site.name}</h1>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <CtaCard
-          color="orange"
-          href={createRoute("events", { slug }).href}
-          heading="Manage Events"
-          description="Create and manage events, guests, and RSVPs"
-          icon="calendar"
-        />
-        <CtaCard
-          color="blue"
-          href={createRoute("settings-workspace", { slug }).href}
-          heading="Workspace Settings"
-          description="Configure your workspace settings and preferences"
-          icon="settings"
-        />
-        <CtaCard
-          color="green"
-          href={createRoute("analytics", { slug }).href}
-          heading="View Analytics"
-          description="View analytics for your workspace and track performance"
-          icon="chart"
-        />
-        <CtaCard
-          color="purple"
-          href={createRoute("settings-members", { slug }).href}
-          heading="Invite members"
-          description="Invite team members to collaborate in your workspace"
-          icon="userPlus"
-        />
-      </div>
+      <DashboardCards slug={slug} />
     </SectionWrapper>
   )
 }

@@ -582,7 +582,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
           {displayLocale === "en" ? "العربية" : "English"}
         </button>
 
-        <CardHeader className="text-center p-4 sm:p-6">
+        <CardHeader className="text-center px-5 py-4 sm:p-6">
           {brandLogo && (
             <img
               src={brandLogo}
@@ -626,7 +626,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
           </div>
         </CardHeader>
 
-        <CardContent className="min-h-[250px] sm:min-h-[300px] flex flex-col p-4 pt-0 sm:p-6 sm:pt-0">
+        <CardContent className="min-h-[250px] sm:min-h-[300px] flex flex-col px-5 pb-4 pt-0 sm:p-6 sm:pt-0">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col">
               {/* Form content */}
@@ -802,7 +802,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
               </div>
 
               {/* Navigation buttons */}
-              <div className={cn("flex gap-2 mt-auto pt-4 sm:pt-6", currentStep > 0 ? "justify-between" : "")}>
+              <div className={cn("flex gap-2 mt-auto pt-4 pb-6 sm:pt-6 sm:pb-0", currentStep > 0 ? "justify-between" : "")}>
                 {/* Back button */}
                 {currentStep > 0 && (
                   <Button

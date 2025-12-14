@@ -1,0 +1,117 @@
+---
+title: "Form Configuration"
+description: "Configure which fields appear on your RSVP form"
+order: 1
+status: "published"
+---
+
+# Form Configuration
+
+This guide explains how to configure your RSVP form to collect the information you need from guests.
+
+## Accessing the Form Builder
+
+To configure your RSVP form:
+
+1. Navigate to your event
+2. Open the **Settings** tab or **RSVP Form** section
+3. You'll see the form builder interface
+
+## Section Management
+
+### Enabling/Disabling Sections
+
+Each of the four sections can be turned on or off:
+
+1. Find the section in the builder
+2. Toggle the switch to enable or disable it
+3. Disabled sections won't appear on the guest form
+
+{% callout type="info" %}
+The Personal Information section is always visible with at least the RSVP response options.
+{% /callout %}
+
+### Section Descriptions
+
+Add custom descriptions to each section to provide context for guests. Descriptions support both English and Arabic.
+
+## Field Configuration
+
+### Enabling Standard Fields
+
+Within each section, toggle individual fields on or off:
+
+1. Find the field in the section
+2. Click the toggle to enable or disable it
+3. Only enabled fields appear on the form
+
+### Required vs Optional
+
+Mark fields as required to ensure guests provide the information:
+
+1. Enable the field
+2. Check the **Required** checkbox
+3. Guests must complete required fields before submitting
+
+### Category-Specific Visibility
+
+Show certain fields only to specific guest categories:
+
+1. Enable the field
+2. Click **Category Visibility**
+3. Select which categories can see this field
+4. Unselected categories won't see the field
+
+{% callout type="info" %}
+Use category visibility to ask VIP guests different questions than standard guests.
+{% /callout %}
+
+## Standard Fields Reference
+
+### Logistics Section
+
+| Field | Type | Description |
+|-------|------|-------------|
+| Arrival Date | Date picker | When the guest arrives |
+| Departure Date | Date picker | When the guest leaves |
+| Arrival Flight | Text | Incoming flight number |
+| Departure Flight | Text | Outgoing flight number |
+| Hotel Required | Yes/No | Whether accommodation is needed |
+| Hotel Check-in | Date picker | Check-in date (if hotel required) |
+| Hotel Check-out | Date picker | Check-out date (if hotel required) |
+| Transport Required | Yes/No | Whether airport pickup is needed |
+
+### Important to Know Section
+
+| Field | Type | Description |
+|-------|------|-------------|
+| Dietary Type | Dropdown | Vegetarian, Vegan, Halal, etc. |
+| Dietary Details | Text area | Allergies and specifics |
+| Accessibility Type | Dropdown | Wheelchair, hearing, visual, etc. |
+| Accessibility Details | Text area | Specific needs |
+| Emergency Contact Name | Text | Emergency contact person |
+| Emergency Contact Phone | Text | Emergency contact number |
+
+### Personal Section
+
+| Field | Type | Description |
+|-------|------|-------------|
+| Preferred Language | Dropdown | English or Arabic |
+
+## Conditional Fields
+
+Some fields appear based on other responses:
+
+- **Hotel Check-in/Check-out** - Only shown if "Hotel Required" is "Yes"
+- **Dietary Details** - Only shown if "Dietary Type" is not "None"
+- **Accessibility Details** - Only shown if "Accessibility Type" is not "None"
+
+This keeps the form clean by hiding irrelevant questions.
+
+## Saving Changes
+
+Form configuration changes are saved automatically. Guests who access their RSVP link will see the updated form immediately.
+
+{% callout type="warning" %}
+Be careful when removing fields after guests have started responding. Existing responses are preserved, but you won't be able to collect that data from new respondents.
+{% /callout %}

@@ -21,6 +21,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { Icons } from "@/components/global/icons"
 import { cn } from "@/lib/utils"
+import { usePermissions } from "@/hooks/use-permissions"
+import { PERMISSIONS } from "@/lib/permissions"
 
 import { BilingualInput } from "./bilingual-input"
 import { SectionList } from "./section-list"
@@ -70,9 +72,11 @@ export function RsvpFormBuilder({
   categories,
 }: RsvpFormBuilderProps) {
   const t = useTranslations("rsvpFormBuilder")
+  const { can } = usePermissions(workspaceSlug)
+  const canEdit = can(PERMISSIONS.MANAGE_EVENT)
 
   // State
-  const [activeTab, setActiveTab] = useState<"builder" | "settings" | "preview">("builder")
+  const [activeTab, setActiveTab] = useState<"builder" | "settings" | "preview">(canEdit ? "builder" : "preview")
   const [language, setLanguage] = useState<"en" | "ar">("en")
   const [previewCategory, setPreviewCategory] = useState<string | undefined>(undefined)
   const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false)
@@ -313,26 +317,30 @@ export function RsvpFormBuilder({
             </Select>
           </div>
 
-          {/* Template Actions */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsTemplatePickerOpen(true)}
-          >
-            <FileDown className="h-4 w-4 mr-1" />
-            {t("loadTemplate")}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsSaveTemplateOpen(true)}
-          >
-            <FileUp className="h-4 w-4 mr-1" />
-            {t("saveTemplate")}
-          </Button>
+          {/* Template Actions - only show if user can edit */}
+          {canEdit && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsTemplatePickerOpen(true)}
+              >
+                <FileDown className="h-4 w-4 mr-1" />
+                {t("loadTemplate")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsSaveTemplateOpen(true)}
+              >
+                <FileUp className="h-4 w-4 mr-1" />
+                {t("saveTemplate")}
+              </Button>
+            </>
+          )}
 
-          {/* Save/Reset */}
-          {isDirty && (
+          {/* Save/Reset - only show if user can edit and has changes */}
+          {canEdit && isDirty && (
             <>
               <Button variant="ghost" size="sm" onClick={handleReset}>
                 <RotateCcw className="h-4 w-4 mr-1" />
@@ -359,8 +367,12 @@ export function RsvpFormBuilder({
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
         <TabsList>
-          <TabsTrigger value="builder">{t("tabs.builder")}</TabsTrigger>
-          <TabsTrigger value="settings">{t("tabs.settings")}</TabsTrigger>
+          {canEdit && (
+            <>
+              <TabsTrigger value="builder">{t("tabs.builder")}</TabsTrigger>
+              <TabsTrigger value="settings">{t("tabs.settings")}</TabsTrigger>
+            </>
+          )}
           <TabsTrigger value="preview">{t("tabs.preview")}</TabsTrigger>
         </TabsList>
 

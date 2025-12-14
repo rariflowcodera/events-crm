@@ -17,9 +17,10 @@ import { UserButton } from "@/components/buttons/user-button"
 import { ActionTooltip } from "@/components/global/action-tooltip"
 import { Search } from "@/components/global/search"
 import { NavMain } from "@/components/navigation/nav-main"
+import { NavMainFiltered } from "@/components/navigation/nav-main-filtered"
 import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher"
 
-const dashboardRoutes: RouteConfigType[] = [ROUTES.dashboard, ROUTES.events, ROUTES.analytics]
+const dashboardRoutes: RouteConfigType[] = [ROUTES.dashboard, ROUTES.events, ROUTES.analytics, ROUTES.docs]
 
 const miscRoutes: RouteConfigType[] = [
   {
@@ -49,7 +50,9 @@ export function AppSidebar({ slug, ...props }: AppSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent className="gap-0 bg-transparent">
-        <NavMain routes={dashboardRoutes} slug={slug} label="Main routes" />
+        <HydrateClient>
+          <NavMainFiltered routes={dashboardRoutes} slug={slug} label="Main routes" />
+        </HydrateClient>
 
         <NavMain routes={miscRoutes} slug={slug} className="mt-auto" label="Misc routes" />
       </SidebarContent>

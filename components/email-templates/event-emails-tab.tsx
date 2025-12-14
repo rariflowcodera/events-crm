@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { EmptyPlaceholder } from "@/components/global/empty-placeholder"
 import { Icons } from "@/components/global/icons"
-import { EmailTemplateModal } from "@/components/email-templates/email-template-modal"
+import { createRoute } from "@/lib/routes"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +41,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import type { BilingualEmailContent } from "@/server/db/schemas/email-template"
 import { EmailDeliveryDashboard } from "@/components/events/email-delivery-dashboard"
+import { usePermissions } from "@/hooks/use-permissions"
+import { PERMISSIONS } from "@/lib/permissions"
 import {
   Collapsible,
   CollapsibleContent,
@@ -109,15 +112,22 @@ export function EventEmailsTab({ event, workspaceSlug }: EventEmailsTabProps) {
   const t = useTranslations("emailTemplate")
   const tCommon = useTranslations("common")
   const router = useRouter()
+  const { can } = usePermissions(workspaceSlug)
+  const canManageTemplates = can(PERMISSIONS.MANAGE_TEMPLATES)
 
   // State
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
   const [deletingTemplate, setDeletingTemplate] = useState<EmailTemplate | null>(null)
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [deliveryOpen, setDeliveryOpen] = useState(false)
+
+  // Navigation hrefs
+  const addTemplateHref = createRoute("template-new", { slug: workspaceSlug, eventSlug: event.slug }).href
+  const getTemplateDetailHref = useCallback(
+    (templateId: string) => createRoute("template-detail", { slug: workspaceSlug, eventSlug: event.slug, templateId }).href,
+    [workspaceSlug, event.slug]
+  )
 
   // Data fetching
   const { data: templates, isLoading } = useEmailTemplates({ eventId: event.id })
@@ -132,28 +142,12 @@ export function EventEmailsTab({ event, workspaceSlug }: EventEmailsTabProps) {
 
   const { mutate: duplicateTemplate, isPending: isDuplicating } = useDuplicateEmailTemplate({
     onSuccess: (data) => {
-      setEditingTemplateId(data.id)
-      setIsModalOpen(true)
+      // Navigate to the new template's edit page
+      router.push(getTemplateDetailHref(data.id))
     },
   })
 
   // Handlers
-  const handleAddTemplate = useCallback(() => {
-    setEditingTemplateId(null)
-    setIsModalOpen(true)
-  }, [])
-
-  const handleEditTemplate = useCallback((templateId: string) => {
-    setEditingTemplateId(templateId)
-    setIsModalOpen(true)
-  }, [])
-
-  const handleCloseModal = useCallback(() => {
-    setIsModalOpen(false)
-    setEditingTemplateId(null)
-    router.refresh()
-  }, [router])
-
   const handleDeleteTemplate = useCallback(() => {
     if (!deletingTemplate) return
     deleteTemplate({ templateId: deletingTemplate.id })
@@ -232,10 +226,14 @@ export function EventEmailsTab({ event, workspaceSlug }: EventEmailsTabProps) {
           <h3 className="text-lg font-medium">{t("title")}</h3>
           <p className="text-muted-foreground text-sm">{t("description")}</p>
         </div>
-        <Button onClick={handleAddTemplate}>
-          <Icons.plus className="mr-2 h-4 w-4" />
-          {t("create")}
-        </Button>
+        {canManageTemplates && (
+          <Button asChild>
+            <Link href={addTemplateHref}>
+              <Icons.plus className="mr-2 h-4 w-4" />
+              {t("create")}
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -347,35 +345,39 @@ export function EventEmailsTab({ event, workspaceSlug }: EventEmailsTabProps) {
                       </div>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Icons.actions className="h-4 w-4" />
-                        <span className="sr-only">Actions</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditTemplate(template.id)}>
-                        <Icons.edit className="mr-2 h-4 w-4" />
-                        {t("edit")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDuplicateTemplate(template.id)}
-                        disabled={isDuplicating}
-                      >
-                        <Icons.copy className="mr-2 h-4 w-4" />
-                        {t("duplicate")}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => setDeletingTemplate(template)}
-                      >
-                        <Icons.trash className="mr-2 h-4 w-4" />
-                        {t("delete")}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {canManageTemplates && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Icons.actions className="h-4 w-4" />
+                          <span className="sr-only">Actions</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={getTemplateDetailHref(template.id)}>
+                            <Icons.edit className="mr-2 h-4 w-4" />
+                            {t("edit")}
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDuplicateTemplate(template.id)}
+                          disabled={isDuplicating}
+                        >
+                          <Icons.copy className="mr-2 h-4 w-4" />
+                          {t("duplicate")}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeletingTemplate(template)}
+                        >
+                          <Icons.trash className="mr-2 h-4 w-4" />
+                          {t("delete")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -388,27 +390,18 @@ export function EventEmailsTab({ event, workspaceSlug }: EventEmailsTabProps) {
               <EmptyPlaceholder.Icon name="mail" />
               <EmptyPlaceholder.Title>{t("noTemplates")}</EmptyPlaceholder.Title>
               <EmptyPlaceholder.Description>{t("noTemplatesDescription")}</EmptyPlaceholder.Description>
-              <Button onClick={handleAddTemplate} className="mt-4">
-                <Icons.plus className="mr-2 h-4 w-4" />
-                {t("createFirst")}
-              </Button>
+              {canManageTemplates && (
+                <Button asChild className="mt-4">
+                  <Link href={addTemplateHref}>
+                    <Icons.plus className="mr-2 h-4 w-4" />
+                    {t("createFirst")}
+                  </Link>
+                </Button>
+              )}
             </EmptyPlaceholder>
           </CardContent>
         </Card>
       )}
-
-      {/* Template Modal */}
-      <EmailTemplateModal
-        open={isModalOpen}
-        onOpenChange={(open) => {
-          if (!open) handleCloseModal()
-        }}
-        eventId={event.id}
-        templateId={editingTemplateId}
-        categories={event.guestCategories}
-        workspaceSlug={workspaceSlug}
-        eventSlug={event.slug}
-      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog

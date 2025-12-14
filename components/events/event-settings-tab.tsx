@@ -36,6 +36,8 @@ import { Icons } from "@/components/global/icons"
 import { EmailConfigurationCard } from "@/components/events/email-configuration-card"
 import { EventCustomDomainCard } from "@/components/events/event-custom-domain-card"
 import { EventEmailSenderCard } from "@/components/events/event-email-sender-card"
+import { usePermissions } from "@/hooks/use-permissions"
+import { PERMISSIONS } from "@/lib/permissions"
 
 type EventStatus = "draft" | "planning" | "invitations_sent" | "rsvp_open" | "rsvp_closed" | "in_progress" | "completed" | "cancelled"
 
@@ -117,6 +119,8 @@ const statusOptions: { value: EventStatus; label: string }[] = [
 export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps) {
   const t = useTranslations("event")
   const router = useRouter()
+  const { can } = usePermissions(workspaceSlug)
+  const canEdit = can(PERMISSIONS.MANAGE_EVENT)
 
   const form = useForm<EventSettingsFormValues>({
     resolver: zodResolver(eventSettingsSchema),
@@ -155,6 +159,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
 
   const isLoading = form.formState.isSubmitting || isPending
   const isDirty = form.formState.isDirty
+  const isDisabled = isLoading || !canEdit
 
   return (
     <Form {...form}>
@@ -173,7 +178,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                 <FormItem>
                   <FormLabel>{t("fields.name")}</FormLabel>
                   <FormControl>
-                    <Input disabled={isLoading} {...field} />
+                    <Input disabled={isDisabled} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -190,7 +195,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                     <FormControl>
                       <Input
                         placeholder="Conference, Gala, Summit..."
-                        disabled={isLoading}
+                        disabled={isDisabled}
                         {...field}
                       />
                     </FormControl>
@@ -208,7 +213,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      disabled={isLoading}
+                      disabled={isDisabled}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -238,7 +243,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                   <FormControl>
                     <Textarea
                       placeholder="Describe your event..."
-                      disabled={isLoading}
+                      disabled={isDisabled}
                       rows={3}
                       {...field}
                     />
@@ -266,7 +271,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                   <FormControl>
                     <Input
                       placeholder="Riyadh Convention Center"
-                      disabled={isLoading}
+                      disabled={isDisabled}
                       {...field}
                     />
                   </FormControl>
@@ -284,7 +289,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                   <FormControl>
                     <Input
                       placeholder="Full address..."
-                      disabled={isLoading}
+                      disabled={isDisabled}
                       {...field}
                     />
                   </FormControl>
@@ -318,7 +323,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                               "w-full pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground"
                             )}
-                            disabled={isLoading}
+                            disabled={isDisabled}
                           >
                             {field.value ? (
                               format(field.value, "PPP")
@@ -358,7 +363,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                               "w-full pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground"
                             )}
-                            disabled={isLoading}
+                            disabled={isDisabled}
                           >
                             {field.value ? (
                               format(field.value, "PPP")
@@ -399,7 +404,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                             "w-full pl-3 text-left font-normal sm:w-1/2",
                             !field.value && "text-muted-foreground"
                           )}
-                          disabled={isLoading}
+                          disabled={isDisabled}
                         >
                           {field.value ? (
                             format(field.value, "PPP")
@@ -437,7 +442,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                     <Input
                       type="number"
                       placeholder="No limit"
-                      disabled={isLoading}
+                      disabled={isDisabled}
                       className="sm:w-1/2"
                       {...field}
                       value={field.value ?? ""}
@@ -479,7 +484,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
-                      disabled={isLoading}
+                      disabled={isDisabled}
                     />
                   </FormControl>
                 </FormItem>
@@ -501,7 +506,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
-                      disabled={isLoading}
+                      disabled={isDisabled}
                     />
                   </FormControl>
                 </FormItem>
@@ -523,7 +528,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
-                      disabled={isLoading}
+                      disabled={isDisabled}
                     />
                   </FormControl>
                 </FormItem>
@@ -533,12 +538,14 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
         </Card>
 
         {/* Submit Button */}
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isLoading || !isDirty}>
-            {isLoading && <Icons.loader className="mr-2 h-4 w-4 animate-spin" />}
-            Save Changes
-          </Button>
-        </div>
+        {canEdit && (
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isLoading || !isDirty}>
+              {isLoading && <Icons.loader className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </div>
+        )}
       </form>
 
       {/* Email Sender Settings - separate from form since it has its own mutations */}

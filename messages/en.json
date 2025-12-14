@@ -88,6 +88,7 @@
     },
     "fields": {
       "name": "Event Name",
+      "description": "Description",
       "slug": "Event URL",
       "eventType": "Event Type",
       "venue": "Venue",
@@ -97,6 +98,18 @@
       "rsvpDeadline": "RSVP Deadline",
       "maxGuests": "Maximum Guests"
     }
+  },
+  "categories": {
+    "title": "Categories",
+    "add": "Add Category",
+    "edit": "Edit Category",
+    "delete": "Delete Category",
+    "name": "Name",
+    "code": "Code",
+    "description": "Description",
+    "color": "Color",
+    "noCategories": "No categories yet",
+    "createFirst": "Create your first category to organize guests"
   },
   "guest": {
     "title": "Guest",

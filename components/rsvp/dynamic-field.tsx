@@ -272,18 +272,18 @@ export function DynamicField({
                   onValueChange={field.onChange}
                   value={field.value || ""}
                   disabled={disabled}
-                  className="flex flex-col space-y-2"
+                  className="flex flex-col gap-1"
                 >
                   {options?.map((option) => (
                     <div
                       key={option.value}
                       className={cn(
-                        "flex items-center space-x-3 space-y-0 min-h-[44px] sm:min-h-0",
-                        isRtl && "space-x-reverse"
+                        "flex items-center gap-3 min-h-[44px]",
+                        isRtl && "flex-row-reverse"
                       )}
                     >
                       <RadioGroupItem value={option.value} id={`${fieldKey}-${option.value}`} />
-                      <Label htmlFor={`${fieldKey}-${option.value}`} className="font-normal cursor-pointer flex-1 py-2 sm:py-0">
+                      <Label htmlFor={`${fieldKey}-${option.value}`} className="font-normal cursor-pointer flex-1">
                         {option.label}
                       </Label>
                     </div>
@@ -324,13 +324,13 @@ export function DynamicField({
                   {description && (
                     <p className="text-sm text-muted-foreground">{description}</p>
                   )}
-                  <div className="flex flex-col space-y-2">
+                  <div className="flex flex-col gap-1">
                     {options?.map((option) => (
                       <div
                         key={option.value}
                         className={cn(
-                          "flex items-center space-x-3 space-y-0 min-h-[44px] sm:min-h-0",
-                          isRtl && "space-x-reverse"
+                          "flex items-center gap-3 min-h-[44px]",
+                          isRtl && "flex-row-reverse"
                         )}
                       >
                         <Checkbox
@@ -341,7 +341,7 @@ export function DynamicField({
                           }
                           disabled={disabled}
                         />
-                        <Label htmlFor={`${fieldKey}-${option.value}`} className="font-normal cursor-pointer flex-1 py-2 sm:py-0">
+                        <Label htmlFor={`${fieldKey}-${option.value}`} className="font-normal cursor-pointer flex-1">
                           {option.label}
                         </Label>
                       </div>

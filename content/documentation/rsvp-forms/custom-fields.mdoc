@@ -1,0 +1,179 @@
+---
+title: "Custom Fields"
+description: "Add event-specific questions to your RSVP form"
+order: 2
+status: "published"
+---
+
+# Custom Fields
+
+Custom fields allow you to add event-specific questions that aren't covered by the standard fields. Create unique questions tailored to your event's needs.
+
+## Adding Custom Fields
+
+To add a custom field:
+
+1. Open the form builder for your event
+2. Navigate to the section where you want the field
+3. Click **Add Custom Field**
+4. Configure the field settings
+5. Click **Save**
+
+## Field Types
+
+Choose the appropriate type for your question:
+
+### Text
+
+A single-line text input for short answers.
+
+**Best for:** Names, short phrases, reference numbers
+
+### Textarea
+
+A multi-line text input for longer responses.
+
+**Best for:** Comments, detailed explanations, special requests
+
+### Number
+
+A numeric input that only accepts numbers.
+
+**Best for:** Quantities, ages, years of experience
+
+### Select (Dropdown)
+
+A dropdown menu where guests choose one option.
+
+**Best for:** Single choice from many options, structured data collection
+
+### Radio
+
+Radio buttons where guests choose one option from a visible list.
+
+**Best for:** Single choice from 2-5 options, when you want all options visible
+
+### Checkbox
+
+Multiple checkboxes where guests can select several options.
+
+**Best for:** "Select all that apply" questions, multiple interests
+
+### Date
+
+A date picker for selecting a specific date.
+
+**Best for:** Preferred dates, birthdays, availability
+
+## Field Settings
+
+### Labels (Required)
+
+Provide clear labels in both languages:
+
+- **English Label** - The question text in English
+- **Arabic Label** - The question text in Arabic (optional)
+
+{% callout type="info" %}
+If you only provide an English label, it will be used for all guests regardless of their language preference.
+{% /callout %}
+
+### Description
+
+Add help text to explain what you're asking:
+
+- Appears below the field label
+- Helps guests understand what information to provide
+- Can be different in English and Arabic
+
+### Placeholder
+
+Example text shown inside empty input fields:
+
+- Disappears when the guest starts typing
+- Helps illustrate the expected format
+- Available for text, textarea, and number fields
+
+### Required
+
+Mark the field as required if guests must answer:
+
+- Required fields show a red asterisk (*)
+- The form cannot be submitted until required fields are complete
+
+### Options (for Select, Radio, Checkbox)
+
+Define the available choices:
+
+1. Click **Add Option**
+2. Enter the option value (stored in database)
+3. Enter the English label (shown to guests)
+4. Optionally enter an Arabic label
+5. Add more options as needed
+6. Drag to reorder options
+
+## Category Visibility
+
+Show custom fields only to specific categories:
+
+1. Click **Category Visibility** on the field
+2. Check the categories that should see this field
+3. Unchecked categories won't see the field
+
+### Use Cases
+
+- Ask VIP guests about preferred seating arrangements
+- Ask speakers about presentation equipment needs
+- Ask international guests about visa requirements
+
+## Example Custom Fields
+
+### Conference Event
+
+```
+Field: "Which sessions are you most interested in?"
+Type: Checkbox
+Options:
+- Keynote Address
+- Technical Workshop
+- Networking Lunch
+- Panel Discussion
+```
+
+### Gala Dinner
+
+```
+Field: "Preferred table seating"
+Type: Select
+Options:
+- Near the stage
+- Quiet area
+- No preference
+Category: VIP only
+```
+
+### Corporate Event
+
+```
+Field: "Company registration number"
+Type: Text
+Required: Yes
+```
+
+## Managing Custom Fields
+
+### Editing
+
+Click on an existing custom field to modify its settings. Changes apply immediately to the form.
+
+### Deleting
+
+Remove a custom field by clicking the delete icon. Existing responses to that field are preserved in the database but won't be visible in new form submissions.
+
+### Reordering
+
+Drag custom fields to change their order within a section. The order determines how fields appear on the guest form.
+
+{% callout type="warning" %}
+Be cautious when editing or deleting custom fields after guests have started responding. Changes may affect data consistency.
+{% /callout %}

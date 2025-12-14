@@ -16,6 +16,11 @@ export function getRsvpBaseUrl(event: EventWithCustomDomain): string {
   if (event.customDomain && event.customDomainVerified) {
     return `https://${event.customDomain}`
   }
+  // Client-side: use current origin (works regardless of build-time env vars)
+  // Server-side: use env var with localhost fallback for development
+  if (typeof window !== "undefined") {
+    return window.location.origin
+  }
   return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 }
 

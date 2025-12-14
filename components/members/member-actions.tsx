@@ -6,6 +6,8 @@ import { useDeleteInvitationTRPC, useRevokeInvitationTRPC } from "@/trpc/hooks/i
 import { useDeleteMemberTRPC, useUpdateMemberTRPC } from "@/trpc/hooks/members-hooks"
 
 import { Button } from "@/components/ui/button"
+import { usePermissions } from "@/hooks/use-permissions"
+import { PERMISSIONS } from "@/lib/permissions"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +40,11 @@ export function MemberActions({
   invitationId,
 }: MemberActionsProps) {
   const { slug } = useParams<{ slug: string }>()
+  const { can } = usePermissions(slug)
+
+  // Permission checks
+  const canManageMembers = can(PERMISSIONS.MANAGE_MEMBERS)
+  const canManageRoles = can(PERMISSIONS.MANAGE_ROLES)
 
   const { isPending: isDeletingMember, mutate: deleteMember } = useDeleteMemberTRPC({ slug })
   const { isPending: isUpdatingMember, mutate: updateMember } = useUpdateMemberTRPC({ slug })
@@ -65,6 +72,11 @@ export function MemberActions({
   const isAdmin = role === "admin"
   const isMember = role === "member"
 
+  // Don't show actions if user cannot manage members at all
+  if (!canManageMembers && !canManageRoles) {
+    return null
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -76,7 +88,7 @@ export function MemberActions({
       <DropdownMenuContent side="bottom" align="center" className="w-fit min-w-40">
         <DropdownMenuLabel className="sr-only">Member actions</DropdownMenuLabel>
         <DropdownMenuGroup>
-          {userId ? (
+          {userId && canManageRoles ? (
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <Icons.edit className="mr-2 size-4" />
@@ -103,28 +115,32 @@ export function MemberActions({
             </DropdownMenuSub>
           ) : null}
 
-          {!!userId ? (
-            <DropdownMenuItem
-              className="flex cursor-pointer items-center text-red-600 focus:bg-red-500/20 focus:text-red-700"
-              disabled={isDeletingMember}
-              onClick={handleDeleteMember}
-            >
-              <Icons.userMinus className="text-destructive size-4" />
-              Remove
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem
-              className="flex cursor-pointer items-center text-red-600 focus:bg-red-500/20 focus:text-red-700"
-              onClick={handleInvitation}
-              disabled={isRevoking || isDeleting}
-            >
-              {isRejected ? (
-                <Icons.trash className="text-destructive size-4" />
+          {canManageMembers && (
+            <>
+              {!!userId ? (
+                <DropdownMenuItem
+                  className="flex cursor-pointer items-center text-red-600 focus:bg-red-500/20 focus:text-red-700"
+                  disabled={isDeletingMember}
+                  onClick={handleDeleteMember}
+                >
+                  <Icons.userMinus className="text-destructive size-4" />
+                  Remove
+                </DropdownMenuItem>
               ) : (
-                <Icons.xCircle className="text-destructive size-4" />
+                <DropdownMenuItem
+                  className="flex cursor-pointer items-center text-red-600 focus:bg-red-500/20 focus:text-red-700"
+                  onClick={handleInvitation}
+                  disabled={isRevoking || isDeleting}
+                >
+                  {isRejected ? (
+                    <Icons.trash className="text-destructive size-4" />
+                  ) : (
+                    <Icons.xCircle className="text-destructive size-4" />
+                  )}
+                  {isRejected ? "Remove" : "Revoke"}
+                </DropdownMenuItem>
               )}
-              {isRejected ? "Remove" : "Revoke"}
-            </DropdownMenuItem>
+            </>
           )}
         </DropdownMenuGroup>
       </DropdownMenuContent>

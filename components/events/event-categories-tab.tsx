@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 
@@ -9,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { EmptyPlaceholder } from "@/components/global/empty-placeholder"
 import { Icons } from "@/components/global/icons"
-import { CategoryModal } from "@/components/guests/category-modal"
+import { createRoute } from "@/lib/routes"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePermissions } from "@/hooks/use-permissions"
+import { PERMISSIONS } from "@/lib/permissions"
 
 interface GuestCategory {
   id: string
@@ -52,11 +55,18 @@ interface EventCategoriesTabProps {
 export function EventCategoriesTab({ event, workspaceSlug }: EventCategoriesTabProps) {
   const t = useTranslations("guest")
   const router = useRouter()
+  const { can } = usePermissions(workspaceSlug)
+  const canManage = can(PERMISSIONS.MANAGE_EVENT)
 
   // State
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<GuestCategory | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<GuestCategory | null>(null)
+
+  // Navigation hrefs
+  const addCategoryHref = createRoute("category-new", { slug: workspaceSlug, eventSlug: event.slug }).href
+  const getCategoryDetailHref = useCallback(
+    (categoryId: string) => createRoute("category-detail", { slug: workspaceSlug, eventSlug: event.slug, categoryId }).href,
+    [workspaceSlug, event.slug]
+  )
 
   const { mutate: deleteCategory, isPending: isDeleting } = useDeleteGuestCategory({
     onSuccess: () => {
@@ -64,22 +74,6 @@ export function EventCategoriesTab({ event, workspaceSlug }: EventCategoriesTabP
       router.refresh()
     },
   })
-
-  const handleAddCategory = useCallback(() => {
-    setEditingCategory(null)
-    setIsModalOpen(true)
-  }, [])
-
-  const handleEditCategory = useCallback((category: GuestCategory) => {
-    setEditingCategory(category)
-    setIsModalOpen(true)
-  }, [])
-
-  const handleCloseModal = useCallback(() => {
-    setIsModalOpen(false)
-    setEditingCategory(null)
-    router.refresh()
-  }, [router])
 
   const handleDeleteCategory = useCallback(() => {
     if (!deletingCategory) return
@@ -98,10 +92,14 @@ export function EventCategoriesTab({ event, workspaceSlug }: EventCategoriesTabP
             Define guest categories with different service levels
           </p>
         </div>
-        <Button onClick={handleAddCategory}>
-          <Icons.plus className="mr-2 h-4 w-4" />
-          Add Category
-        </Button>
+        {canManage && (
+          <Button asChild>
+            <Link href={addCategoryHref}>
+              <Icons.plus className="mr-2 h-4 w-4" />
+              Add Category
+            </Link>
+          </Button>
+        )}
       </div>
 
       {sortedCategories.length > 0 ? (
@@ -128,27 +126,31 @@ export function EventCategoriesTab({ event, workspaceSlug }: EventCategoriesTabP
                     )}
                   </div>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Icons.actions className="h-4 w-4" />
-                      <span className="sr-only">Actions</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleEditCategory(category)}>
-                      <Icons.edit className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={() => setDeletingCategory(category)}
-                    >
-                      <Icons.trash className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {canManage && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Icons.actions className="h-4 w-4" />
+                        <span className="sr-only">Actions</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link href={getCategoryDetailHref(category.id)}>
+                          <Icons.edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => setDeletingCategory(category)}
+                      >
+                        <Icons.trash className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -162,22 +164,18 @@ export function EventCategoriesTab({ event, workspaceSlug }: EventCategoriesTabP
               <EmptyPlaceholder.Description>
                 Create categories like AAA, A, B with different service allocations. Categories are required before you can add guests.
               </EmptyPlaceholder.Description>
-              <Button onClick={handleAddCategory} className="mt-4">
-                <Icons.plus className="mr-2 h-4 w-4" />
-                Add First Category
-              </Button>
+              {canManage && (
+                <Button asChild className="mt-4">
+                  <Link href={addCategoryHref}>
+                    <Icons.plus className="mr-2 h-4 w-4" />
+                    Add First Category
+                  </Link>
+                </Button>
+              )}
             </EmptyPlaceholder>
           </CardContent>
         </Card>
       )}
-
-      {/* Category Modal */}
-      <CategoryModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        eventId={event.id}
-        category={editingCategory}
-      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deletingCategory} onOpenChange={(open) => !open && setDeletingCategory(null)}>

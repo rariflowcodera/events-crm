@@ -185,10 +185,6 @@ export function BackgroundImageUpload({
               </Select>
             </div>
           )}
-
-          <p className="text-xs text-muted-foreground truncate">
-            {value}
-          </p>
         </div>
       ) : (
         /* No value - show upload/URL tabs */

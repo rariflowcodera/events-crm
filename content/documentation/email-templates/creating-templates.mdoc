@@ -1,0 +1,115 @@
+---
+title: "Creating Templates"
+description: "Build email templates with the bilingual editor"
+order: 1
+status: "published"
+---
+
+# Creating Templates
+
+This guide walks you through creating and editing email templates using the built-in editor.
+
+## Accessing the Template Editor
+
+To create a new template:
+
+1. Navigate to your event
+2. Click the **Emails** tab
+3. Click **Create Template**
+
+To edit an existing template, click on it in the template list.
+
+## Template Details
+
+### Name
+
+Give your template a descriptive name that helps you identify it later (e.g., "VIP Invitation - English", "Final Reminder").
+
+### Type
+
+Select the template type that matches its purpose:
+
+- Invitation, Reminder, Confirmation
+- Declined Acknowledgment, Update, Cancellation
+- Custom
+
+### Category (Optional)
+
+Optionally associate the template with a guest category. This helps organize templates and can be used for category-specific communications.
+
+### Default Template
+
+Check this option to make this template the default for its type. Only one template can be the default for each type within an event.
+
+## Writing Content
+
+The template editor has three content fields:
+
+### Subject Line
+
+The email subject that recipients see in their inbox. Keep it clear and compelling. You can include variables like `{{event.name}}` for personalization.
+
+### HTML Content
+
+The main email body using HTML formatting. The editor provides:
+
+- **Syntax Highlighting** - HTML tags are color-coded for readability
+- **Line Numbers** - Easy reference for longer templates
+- **Code Folding** - Collapse sections to focus on specific areas
+
+{% callout type="info" %}
+Basic HTML knowledge is helpful but not required. You can write plain text and add simple formatting tags like `<b>bold</b>` and `<i>italic</i>`.
+{% /callout %}
+
+### Plain Text (Optional)
+
+A text-only version of the email for recipients who can't view HTML emails. If left empty, a plain text version will be auto-generated from the HTML content.
+
+## Language Tabs
+
+Switch between English and Arabic content using the tabs above the editor:
+
+### English (EN)
+
+The primary content tab. English content is required.
+
+### Arabic (AR)
+
+Optional Arabic translation. When editing Arabic content:
+
+- The editor automatically switches to right-to-left mode
+- Text alignment and direction are adjusted
+- The preview will display with RTL formatting
+
+{% callout type="info" %}
+You can create English-only templates initially and add Arabic translations later.
+{% /callout %}
+
+## Saving Templates
+
+Click **Save Template** to save your changes. The system validates:
+
+- Template name is provided
+- English subject line is provided
+- English HTML content is provided
+
+## Editing Existing Templates
+
+To modify a template:
+
+1. Click the template in the list
+2. Make your changes in the editor
+3. Click **Save Template**
+
+Changes take effect immediately for future use of the template.
+
+## Duplicating Templates
+
+To create a copy of an existing template:
+
+1. Click the actions menu (three dots) on a template
+2. Select **Duplicate**
+3. A new template is created with "(Copy)" appended to the name
+4. Edit the duplicate as needed
+
+This is useful when creating variations for different categories or slightly different messaging.
