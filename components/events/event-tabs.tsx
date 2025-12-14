@@ -81,12 +81,13 @@ export function EventTabs({ event, workspaceSlug }: EventTabsProps) {
   const [activeTab, setActiveTab] = useState<TabValue>(initialTab)
 
   // Sync tab with URL when navigating back
+  // Note: We use tabFromUrl (a string) as the dependency, not searchParams (an object)
+  // because useSearchParams() returns a new object reference on each render
   useEffect(() => {
-    const tabParam = searchParams.get("tab") as TabValue | null
-    if (tabParam && validTabs.includes(tabParam) && tabParam !== activeTab) {
-      setActiveTab(tabParam)
+    if (tabFromUrl && validTabs.includes(tabFromUrl) && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl)
     }
-  }, [searchParams, activeTab])
+  }, [tabFromUrl, activeTab])
 
   // Update both state and URL when tab changes
   const handleTabChange = useCallback((newTab: TabValue) => {
