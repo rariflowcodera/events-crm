@@ -4,6 +4,10 @@ import { notFound } from "next/navigation"
 import { getDocBySlug, getAllDocs, extractToc } from "@/lib/docs"
 import { DocsContentRenderer, DocsToc } from "@/components/docs"
 
+// Force dynamic rendering - these pages are under authenticated routes
+// which use headers() for auth, incompatible with static generation
+export const dynamic = "force-dynamic"
+
 interface DocPageProps {
   params: Promise<{ slug: string; docSlug: string[] }>
 }

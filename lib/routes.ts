@@ -24,6 +24,8 @@ export type RouteName =
   | "category-detail"
   | "template-new"
   | "template-detail"
+  | "form-detail"
+  | "form-responses"
   | "analytics"
   | "docs"
   | "docs-page"
@@ -351,6 +353,32 @@ export const ROUTES: Record<RouteName, RouteConfigType> = {
       icon: "mail",
     },
   },
+  "form-detail": {
+    name: "form-detail",
+    path: "/:slug/events/:eventSlug/forms/:formSlug",
+    metadata: {
+      title: documentTitle("Edit Form"),
+      description: "Edit form",
+    },
+    metadataExtra: {
+      name: "Edit Form",
+      image: placeholderImageUrl({}),
+      icon: "formInput",
+    },
+  },
+  "form-responses": {
+    name: "form-responses",
+    path: "/:slug/events/:eventSlug/forms/:formSlug/responses",
+    metadata: {
+      title: documentTitle("Form Responses"),
+      description: "View form responses",
+    },
+    metadataExtra: {
+      name: "Form Responses",
+      image: placeholderImageUrl({}),
+      icon: "list",
+    },
+  },
   settings: {
     name: "settings",
     path: "/:slug/settings",
@@ -521,6 +549,8 @@ type RouteParams = {
   "category-detail": { slug: string; eventSlug: string; categoryId: string }
   "template-new": { slug: string; eventSlug: string }
   "template-detail": { slug: string; eventSlug: string; templateId: string }
+  "form-detail": { slug: string; eventSlug: string; formSlug: string }
+  "form-responses": { slug: string; eventSlug: string; formSlug: string }
   analytics: { slug: string }
   docs: { slug: string }
   "docs-page": { slug: string; docSlug: string[] }
@@ -564,6 +594,9 @@ export function createRoute<T extends RouteName>(route: T, params?: RouteParams[
     }
     if ("templateId" in params) {
       path = path.replace(":templateId", params.templateId as string)
+    }
+    if ("formSlug" in params) {
+      path = path.replace(":formSlug", params.formSlug as string)
     }
   }
 

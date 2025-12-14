@@ -141,6 +141,7 @@ export const config = {
   // Match all pathnames except for:
   // - API routes (/api/...)
   // - Next.js internals (/_next/...)
+  // - Short form URLs (/f/...) - these bypass i18n to remain locale-agnostic
   // - Static files (files with extensions like .png, .jpg, etc.)
-  matcher: ["/((?!api|_next|.*\\..*).*)"],
+  matcher: ["/((?!api|_next|f/|.*\\..*).*)"],
 }

@@ -1,0 +1,258 @@
+"use client"
+
+import { useState } from "react"
+import { useTranslations } from "next-intl"
+import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Icons } from "@/components/global/icons"
+import { useCreateEventForm } from "@/trpc/hooks/event-forms-hooks"
+import { formPurposeValues } from "@/lib/schemas"
+import type { FormConfig } from "@/server/db/schemas/event-form"
+
+const createFormSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens only"),
+  description: z.string().max(500).optional(),
+  purpose: z.enum(formPurposeValues).optional(),
+})
+
+type CreateFormValues = z.infer<typeof createFormSchema>
+
+interface CreateFormDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  eventId: string
+  workspaceSlug: string
+  eventSlug: string
+}
+
+const purposeOptions = [
+  { value: "travel", label: "Travel Requirements", icon: Icons.plane },
+  { value: "survey", label: "Survey", icon: Icons.clipboardList },
+  { value: "feedback", label: "Feedback", icon: Icons.messageSquare },
+  { value: "registration", label: "Registration", icon: Icons.userPlus },
+  { value: "custom", label: "Custom", icon: Icons.fileText },
+] as const
+
+// Create a default empty form config
+function createDefaultFormConfig(): FormConfig {
+  return {
+    sections: [
+      {
+        id: crypto.randomUUID(),
+        title: { en: "Section 1" },
+        enabled: true,
+        sortOrder: 0,
+        fields: [],
+      },
+    ],
+    settings: {
+      showProgressIndicator: true,
+      confirmationMessage: { en: "Thank you for your submission!" },
+      submitButtonText: { en: "Submit" },
+    },
+  }
+}
+
+export function CreateFormDialog({
+  open,
+  onOpenChange,
+  eventId,
+  workspaceSlug,
+  eventSlug,
+}: CreateFormDialogProps) {
+  const t = useTranslations()
+  const router = useRouter()
+
+  const form = useForm<CreateFormValues>({
+    resolver: zodResolver(createFormSchema),
+    defaultValues: {
+      name: "",
+      slug: "",
+      description: "",
+      purpose: "custom",
+    },
+  })
+
+  const { mutate: createForm, isPending } = useCreateEventForm({
+    onSuccess: (formId) => {
+      // Get slug before reset
+      const formSlug = form.getValues("slug")
+      onOpenChange(false)
+      form.reset()
+      // Navigate to the form builder
+      router.push(`/${workspaceSlug}/events/${eventSlug}/forms/${formSlug}`)
+    },
+  })
+
+  const handleSubmit = (values: CreateFormValues) => {
+    createForm({
+      eventId,
+      name: values.name,
+      slug: values.slug,
+      description: values.description || undefined,
+      purpose: values.purpose,
+      formConfig: createDefaultFormConfig(),
+      accessType: "email",
+      allowMultipleSubmissions: false,
+      allowAmendments: true,
+    })
+  }
+
+  // Auto-generate slug from name
+  const handleNameChange = (name: string) => {
+    form.setValue("name", name)
+    // Only auto-generate if user hasn't manually edited slug
+    if (!form.formState.dirtyFields.slug) {
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .slice(0, 100)
+      form.setValue("slug", slug)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{t("forms.createForm")}</DialogTitle>
+          <DialogDescription>{t("forms.createFormDescription")}</DialogDescription>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("forms.formName")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={t("forms.formNamePlaceholder")}
+                      {...field}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="slug"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("forms.formSlug")}</FormLabel>
+                  <FormControl>
+                    <Input placeholder="travel-preferences" {...field} />
+                  </FormControl>
+                  <FormDescription>{t("forms.formSlugDescription")}</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="purpose"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("forms.formPurpose")}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t("forms.selectPurpose")} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {purposeOptions.map((option) => {
+                        const Icon = option.icon
+                        return (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4" />
+                              <span>{t(`forms.purpose.${option.value}`)}</span>
+                            </div>
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("forms.formDescription")}</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder={t("forms.formDescriptionPlaceholder")}
+                      className="resize-none"
+                      rows={3}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                {t("common.cancel")}
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                {t("forms.createForm")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  )
+}

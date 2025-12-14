@@ -678,3 +678,130 @@ export const rsvpSubmissionSchema = z.object({
 })
 
 export type RsvpSubmissionInput = z.infer<typeof rsvpSubmissionSchema>
+
+// ============================================================================
+// Generic Event Forms Schemas
+// ============================================================================
+
+/** Form purpose values */
+export const formPurposeValues = ["travel", "survey", "feedback", "registration", "custom"] as const
+export type FormPurpose = (typeof formPurposeValues)[number]
+
+/** Form access type values */
+export const formAccessTypeValues = ["token", "email"] as const
+export type FormAccessType = (typeof formAccessTypeValues)[number]
+
+/** Generic form field configuration */
+export const formFieldConfigSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(customFieldTypeValues),
+  label: bilingualTextSchema,
+  description: bilingualTextSchema.optional(),
+  placeholder: bilingualTextSchema.optional(),
+  required: z.boolean().default(false),
+  visibleToCategories: z.array(z.string().uuid()).optional(),
+  options: z.array(fieldOptionSchema).optional(),
+  validation: fieldValidationSchema.optional(),
+  conditionalOn: fieldConditionalSchema.optional(),
+  sortOrder: z.number().int().min(0),
+})
+
+export type FormFieldConfigInput = z.infer<typeof formFieldConfigSchema>
+
+/** Generic form section configuration */
+export const formSectionConfigSchema = z.object({
+  id: z.string().min(1),
+  title: bilingualTextSchema,
+  description: bilingualTextSchema.optional(),
+  enabled: z.boolean().default(true),
+  sortOrder: z.number().int().min(0),
+  fields: z.array(formFieldConfigSchema),
+})
+
+export type FormSectionConfigInput = z.infer<typeof formSectionConfigSchema>
+
+/** Generic form settings */
+export const formSettingsSchema = z.object({
+  showProgressIndicator: z.boolean().default(true),
+  confirmationMessage: bilingualTextSchema.optional(),
+  submitButtonText: bilingualTextSchema.optional(),
+})
+
+export type FormSettingsInput = z.infer<typeof formSettingsSchema>
+
+/** Complete generic form configuration */
+export const formConfigSchema = z.object({
+  sections: z.array(formSectionConfigSchema),
+  settings: formSettingsSchema,
+})
+
+export type FormConfigInput = z.infer<typeof formConfigSchema>
+
+/** Create event form schema */
+export const createEventFormSchema = z.object({
+  eventId: z.string().uuid("Invalid event ID"),
+  name: z.string().min(1, "Form name is required").max(100, "Form name must be 100 characters or less"),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens only"),
+  description: z.string().max(500).optional(),
+  purpose: z.enum(formPurposeValues).optional(),
+  formConfig: formConfigSchema,
+  accessType: z.enum(formAccessTypeValues).default("email"),
+  visibleToCategories: z.array(z.string().uuid()).optional(),
+  allowMultipleSubmissions: z.boolean().default(false),
+  allowAmendments: z.boolean().default(true),
+  expiresAt: z.coerce.date().optional(),
+})
+
+export type CreateEventFormInput = z.infer<typeof createEventFormSchema>
+
+/** Update event form schema */
+export const updateEventFormSchema = z.object({
+  formId: z.string().uuid("Invalid form ID"),
+  name: z.string().min(1).max(100).optional(),
+  slug: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
+  description: z.string().max(500).nullable().optional(),
+  purpose: z.enum(formPurposeValues).optional(),
+  formConfig: formConfigSchema.optional(),
+  accessType: z.enum(formAccessTypeValues).optional(),
+  visibleToCategories: z.array(z.string().uuid()).nullable().optional(),
+  allowMultipleSubmissions: z.boolean().optional(),
+  allowAmendments: z.boolean().optional(),
+  expiresAt: z.coerce.date().nullable().optional(),
+})
+
+export type UpdateEventFormInput = z.infer<typeof updateEventFormSchema>
+
+/** Publish/unpublish form schema */
+export const publishEventFormSchema = z.object({
+  formId: z.string().uuid("Invalid form ID"),
+  isPublished: z.boolean(),
+})
+
+export type PublishEventFormInput = z.infer<typeof publishEventFormSchema>
+
+/** Guest lookup schema (for email identification) */
+export const guestLookupSchema = z.object({
+  formId: z.string().uuid("Invalid form ID"),
+  email: z.string().email("Invalid email address"),
+})
+
+export type GuestLookupInput = z.infer<typeof guestLookupSchema>
+
+/** Form submission schema */
+export const formSubmissionSchema = z.object({
+  formId: z.string().uuid("Invalid form ID"),
+  guestId: z.string().uuid("Invalid guest ID"),
+  guestEmail: z.string().email("Invalid email address"),
+  responses: z.record(z.unknown()),
+})
+
+export type FormSubmissionInput = z.infer<typeof formSubmissionSchema>

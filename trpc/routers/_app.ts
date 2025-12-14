@@ -15,6 +15,9 @@ import { emailDeliveryRouter } from "@/trpc/routers/email-delivery"
 import { rsvpFormsRouter } from "@/trpc/routers/rsvp-forms"
 import { rsvpTemplatesRouter } from "@/trpc/routers/rsvp-templates"
 import { rsvpReportsRouter } from "@/trpc/routers/rsvp-reports"
+// Custom event forms
+import { eventFormsRouter } from "@/trpc/routers/event-forms"
+import { publicFormsRouter } from "@/trpc/routers/public-forms"
 // Permissions
 import { permissionsRouter } from "@/trpc/routers/permissions"
 
@@ -35,6 +38,9 @@ export const appRouter = createTRPCRouter({
   rsvpForms: rsvpFormsRouter,
   rsvpTemplates: rsvpTemplatesRouter,
   rsvpReports: rsvpReportsRouter,
+  // Custom event forms
+  eventForms: eventFormsRouter,
+  publicForms: publicFormsRouter,
   // Permissions
   permissions: permissionsRouter,
 })

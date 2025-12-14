@@ -4,6 +4,10 @@ import { redirect } from "next/navigation"
 import { getDocsTree } from "@/lib/docs"
 import { ROUTES } from "@/lib/routes"
 
+// Force dynamic rendering - these pages are under authenticated routes
+// which use headers() for auth, incompatible with static generation
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = ROUTES.docs.metadata
 
 interface DocsIndexPageProps {

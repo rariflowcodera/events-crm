@@ -12,7 +12,7 @@ import { EventCategoriesTab } from "@/components/events/event-categories-tab"
 import { EventEmailsTab } from "@/components/email-templates/event-emails-tab"
 import { EventReportsTab } from "@/components/events/event-reports-tab"
 import { EventSettingsTab } from "@/components/events/event-settings-tab"
-import { EventRsvpFormTab } from "@/components/events/event-rsvp-form-tab"
+import { EventFormsTab } from "@/components/events/event-forms-tab"
 import { EventBrandingTab } from "@/components/events/event-branding-tab"
 
 type EventStatus = "draft" | "planning" | "invitations_sent" | "rsvp_open" | "rsvp_closed" | "in_progress" | "completed" | "cancelled"
@@ -65,9 +65,9 @@ interface EventTabsProps {
   workspaceSlug: string
 }
 
-type TabValue = "overview" | "guests" | "categories" | "rsvp-form" | "branding" | "emails" | "reports" | "settings"
+type TabValue = "overview" | "guests" | "categories" | "forms" | "branding" | "emails" | "reports" | "settings"
 
-const validTabs: TabValue[] = ["overview", "guests", "categories", "rsvp-form", "branding", "emails", "reports", "settings"]
+const validTabs: TabValue[] = ["overview", "guests", "categories", "forms", "branding", "emails", "reports", "settings"]
 
 export function EventTabs({ event, workspaceSlug }: EventTabsProps) {
   const t = useTranslations()
@@ -113,8 +113,8 @@ export function EventTabs({ event, workspaceSlug }: EventTabsProps) {
       icon: Icons.layers,
     },
     {
-      value: "rsvp-form" as const,
-      label: t("rsvpFormBuilder.title"),
+      value: "forms" as const,
+      label: t("forms.title"),
       icon: Icons.formInput,
     },
     {
@@ -169,8 +169,8 @@ export function EventTabs({ event, workspaceSlug }: EventTabsProps) {
         <EventCategoriesTab event={event} workspaceSlug={workspaceSlug} />
       </TabsContent>
 
-      <TabsContent value="rsvp-form" className="mt-6">
-        <EventRsvpFormTab event={event} workspaceSlug={workspaceSlug} />
+      <TabsContent value="forms" className="mt-6">
+        <EventFormsTab event={event} workspaceSlug={workspaceSlug} />
       </TabsContent>
 
       <TabsContent value="branding" className="mt-6">
