@@ -49,7 +49,7 @@ jobs:
           # Copy essential files + LOCKFILE + TSCONFIG + SOURCE (for seeding/workers)
           # We include 'lib', 'hooks', 'messages', 'i18n', 'types' because server-side code (workers/seeds) imports them via alias @/
           # Added env.ts and drizzle.config.ts as they are often needed by backend code
-          cp -r .next public package.json pnpm-lock.yaml tsconfig.json next.config.ts ecosystem.config.js server lib hooks messages i18n types env.ts drizzle.config.ts deploy_package/
+          cp -r .next public package.json pnpm-lock.yaml tsconfig.json next.config.ts ecosystem.config.js server lib hooks messages i18n types env.ts drizzle.config.ts content deploy_package/
           
           # We DO NOT copy node_modules to save upload time. 
           # We will install them on the server.
