@@ -38,6 +38,7 @@ jobs:
           AWS_REGION: "me-south-1"
           AWS_ACCESS_KEY_ID: "build-placeholder"
           AWS_SECRET_ACCESS_KEY: "build-placeholder"
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
 
 
       - name: Prepare deployment artifacts
