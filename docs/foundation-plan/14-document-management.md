@@ -1,6 +1,6 @@
 # Stage 14: Document Management for Email Templates
 
-> **Parent**: [00-overview.md](./00-overview.md) | **Status**: Planned
+> **Parent**: [00-overview.md](./00-overview.md) | **Status**: Complete
 
 ## Objective
 
@@ -33,6 +33,7 @@ Build a document library feature that allows event managers to upload and organi
 | 14E | Document Library UI | ~5 files |
 | 14F | Branded Document URLs (Custom Domains) | ~3 files |
 | 14G | i18n Translations | ~2 files |
+| 14H | Document Inserter & Preview Rendering | ~4 files |
 
 ---
 
@@ -1221,59 +1222,271 @@ export async function renderEmailTemplate(
 
 ---
 
+## 14H: Document Inserter & Preview Rendering
+
+This phase separates document insertion from the general variable inserter and adds proper preview rendering for document variables.
+
+### Problem Solved
+
+1. **Preview didn't render documents**: Document variables `{{document.UUID}}` showed as raw text in preview instead of clickable links
+2. **Documents mixed with variables**: Documents appeared in the generic variable inserter dropdown, making it harder to find and insert them
+3. **Bug fixes**: Fixed duplicate i18n keys and URL validation issues
+
+### Document Inserter Component
+
+**Create `components/email-templates/document-inserter.tsx`:**
+
+A dedicated button for inserting document links, separate from the variable inserter:
+
+```typescript
+"use client"
+
+import { useTranslations } from "next-intl"
+import { useEventDocuments } from "@/trpc/hooks/document-hooks"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import { Button } from "@/components/ui/button"
+import { Icons } from "@/components/global/icons"
+import { Badge } from "@/components/ui/badge"
+
+interface DocumentInserterProps {
+  eventId: string
+  onInsert: (variable: string) => void
+  onFocus?: () => void
+}
+
+export function DocumentInserter({ eventId, onInsert, onFocus }: DocumentInserterProps) {
+  const t = useTranslations("documents")
+  const tEmail = useTranslations("emailTemplate")
+
+  const { data: documents, isLoading } = useEventDocuments(eventId)
+
+  const handleSelect = (documentId: string) => {
+    onInsert(`{{document.${documentId}}}`)
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={onFocus}>
+          <Icons.fileText className="mr-1.5 h-3 w-3" />
+          {tEmail("insertDocument")}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-0" align="end">
+        <Command>
+          <CommandInput placeholder={t("searchDocuments")} />
+          <CommandList>
+            {/* Document list with name, type badge, filename */}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+```
+
+### Update Variable Inserter
+
+**Modify `components/email-templates/variable-inserter.tsx`:**
+
+Filter out documents from the variable list - they now have their own dedicated inserter:
+
+```typescript
+const groups = useMemo(() => {
+  if (!variables) return []
+
+  // Filter out documents - they have their own inserter
+  return Object.entries(variables)
+    .filter(([groupKey]) => groupKey !== "documents")
+    .map(([groupKey, vars]) => ({
+      label: groupKey.charAt(0).toUpperCase() + groupKey.slice(1),
+      variables: (vars as Array<{ key: string; description: string }>).map((v) => ({
+        key: v.key,
+        description: v.description,
+      })),
+    }))
+}, [variables])
+```
+
+### Preview Document Rendering
+
+**Modify `app/[locale]/(web)/(dashboard)/[slug]/events/[eventSlug]/email-preview/page.tsx`:**
+
+Add document variable replacement to the preview:
+
+```typescript
+// Type for document data
+type DocumentData = {
+  id: string
+  name: string
+  url: string
+}
+
+// Type for sessionStorage preview data
+type EmailPreviewData = {
+  subject: string
+  html: string
+  text: string
+  lang: "en" | "ar"
+  documents?: DocumentData[]  // NEW: Include documents
+}
+
+// Document variable replacement function
+function replaceDocumentVariables(
+  content: string,
+  documents: DocumentData[],
+  isHtml: boolean
+): string {
+  return content.replace(/\{\{document\.([a-f0-9-]+)\}\}/gi, (match, docId) => {
+    const doc = documents.find((d) => d.id === docId)
+    if (!doc) return match
+
+    if (isHtml) {
+      return `<a href="${doc.url}" target="_blank" rel="noopener noreferrer">${doc.name}</a>`
+    } else {
+      return `${doc.name}: ${doc.url}`
+    }
+  })
+}
+
+// In rendering:
+const renderedHtml = useMemo(() => {
+  const withDocs = replaceDocumentVariables(htmlContent, documents, true)
+  return replaceVariables(withDocs, previewData)
+}, [htmlContent, previewData, documents])
+```
+
+### Update Template Form
+
+**Modify `components/email-templates/email-template-form.tsx`:**
+
+1. Import `useEventDocuments` and `DocumentInserter`
+2. Pass documents to sessionStorage for preview
+3. Add DocumentInserter button next to each VariableInserter
+
+```typescript
+// Fetch documents for preview
+const { data: documents } = useEventDocuments(eventId)
+
+// In handlePreview:
+const previewData = {
+  // ... existing fields
+  documents: documents?.map((doc) => ({
+    id: doc.id,
+    name: doc.name,
+    url: doc.url,
+  })) || [],
+}
+
+// In form fields - add DocumentInserter next to VariableInserter:
+<div className="flex items-center gap-2">
+  <DocumentInserter
+    eventId={eventId}
+    onInsert={handleInsertVariable}
+    onFocus={() => setActiveField("html")}
+  />
+  <VariableInserter
+    eventId={eventId}
+    onInsert={handleInsertVariable}
+    onFocus={() => setActiveField("html")}
+  />
+</div>
+```
+
+### Bug Fixes Applied
+
+1. **Duplicate i18n keys**: Renamed `documents.upload` (string) to `documents.uploadButton` to avoid conflict with `documents.upload` (object)
+2. **URL validation**: Local document upload now returns absolute URL (`http://localhost:3000/api/document-file?...`) to pass `z.string().url()` validation
+
+### Files for Phase 14H
+
+| Action | File |
+|--------|------|
+| Create | `components/email-templates/document-inserter.tsx` |
+| Modify | `components/email-templates/variable-inserter.tsx` (filter out documents) |
+| Modify | `components/email-templates/email-template-form.tsx` (add DocumentInserter, pass docs to preview) |
+| Modify | `app/[locale]/(web)/(dashboard)/[slug]/events/[eventSlug]/email-preview/page.tsx` (render document variables) |
+| Modify | `messages/en.json` (add `insertDocument`, `searchDocuments`, fix duplicate key) |
+| Modify | `messages/ar.json` (add `insertDocument`, `searchDocuments`, fix duplicate key) |
+| Modify | `app/api/local-document-upload/route.ts` (return absolute URL) |
+
+---
+
 ## Verification Checklist
 
 ### 14A: Database Schema
-- [ ] Schema created with all fields
-- [ ] Indexes on eventId and type
-- [ ] Relations to events and users
-- [ ] Migration runs successfully
+- [x] Schema created with all fields
+- [x] Indexes on eventId and type
+- [x] Relations to events and users
+- [x] Migration runs successfully
 
 ### 14B: Upload Infrastructure
-- [ ] Document upload endpoint created
-- [ ] 10MB limit enforced
-- [ ] PDF + images validated
-- [ ] S3 path uses eventId
-- [ ] Local upload works in dev mode
-- [ ] Rate limiting applied
+- [x] Document upload endpoint created
+- [x] 10MB limit enforced
+- [x] PDF + images validated
+- [x] S3 path uses eventId
+- [x] Local upload works in dev mode
+- [x] Rate limiting applied
 
 ### 14C: tRPC Router
-- [ ] getMany returns documents with filters
-- [ ] create stores metadata correctly
-- [ ] update modifies name/type/categories
-- [ ] delete removes record
-- [ ] Workspace membership verified
-- [ ] Hooks invalidate relevant queries
+- [x] getMany returns documents with filters
+- [x] create stores metadata correctly
+- [x] update modifies name/type/categories
+- [x] delete removes record
+- [x] Workspace membership verified
+- [x] Hooks invalidate relevant queries
 
 ### 14D: Email Template Integration
-- [ ] Documents appear in getVariables
-- [ ] Category filtering works
-- [ ] Variables render as HTML links
-- [ ] Plain text shows URL
-- [ ] Missing documents handled gracefully
+- [x] Documents appear in getVariables
+- [x] Category filtering works
+- [x] Variables render as HTML links
+- [x] Plain text shows URL
+- [x] Missing documents handled gracefully
 
 ### 14E: Document Library UI
-- [ ] Document list displays correctly
-- [ ] Filter by type works
-- [ ] Upload dialog with progress
-- [ ] Category selection works
-- [ ] Actions menu: rename, edit, delete
-- [ ] Copy link to clipboard
-- [ ] Delete confirmation with warning
-- [ ] Empty state displays
+- [x] Document list displays correctly
+- [x] Filter by type works
+- [x] Upload dialog with progress
+- [x] Category selection works
+- [x] Actions menu: rename, edit, delete
+- [x] Copy link to clipboard
+- [x] Delete confirmation with warning
+- [x] Empty state displays
 
 ### 14F: Branded Document URLs
-- [ ] `/d/{id}` route returns 302 redirect to S3
-- [ ] Custom domain validation works (document must belong to event)
-- [ ] Main app domain access works for all documents
-- [ ] Middleware handles `/d/` routes on custom domains
-- [ ] Email rendering uses custom domain URL when available
-- [ ] Email rendering falls back to main app URL when no custom domain
+- [x] `/d/{id}` route returns 302 redirect to S3
+- [x] Custom domain validation works (document must belong to event)
+- [x] Main app domain access works for all documents
+- [x] Middleware handles `/d/` routes on custom domains
+- [x] Email rendering uses custom domain URL when available
+- [x] Email rendering falls back to main app URL when no custom domain
 
 ### 14G: i18n
-- [ ] English translations complete
-- [ ] Arabic translations complete
-- [ ] All UI strings use translations
+- [x] English translations complete
+- [x] Arabic translations complete
+- [x] All UI strings use translations
+
+### 14H: Document Inserter & Preview Rendering
+- [x] Document inserter component created
+- [x] Documents removed from variable inserter
+- [x] Preview renders document variables as clickable links
+- [x] Preview shows plain text format for text content
+- [x] Documents passed via sessionStorage to preview
+- [x] DocumentInserter added to all 6 form fields (EN/AR × subject/html/text)
+- [x] Bug fix: i18n duplicate keys resolved
+- [x] Bug fix: Local upload returns absolute URL
 
 ---
 
@@ -1286,7 +1499,9 @@ export async function renderEmailTemplate(
 | Email templates router | `trpc/routers/email-templates.ts` |
 | Email rendering | `lib/queue/email-job.ts` |
 | Variable inserter | `components/email-templates/variable-inserter.tsx` |
+| Document inserter | `components/email-templates/document-inserter.tsx` |
 | Emails tab | `components/email-templates/event-emails-tab.tsx` |
+| Email preview | `app/[locale]/(web)/(dashboard)/[slug]/events/[eventSlug]/email-preview/page.tsx` |
 | Schema pattern | `server/db/schemas/email-template.ts` |
 
 ---
@@ -1314,6 +1529,9 @@ components/documents/
 ├── document-row.tsx
 └── index.ts
 
+components/email-templates/
+└── document-inserter.tsx           # Phase 14H: Dedicated document insertion
+
 hooks/
 └── use-document-upload.ts
 ```
@@ -1328,6 +1546,10 @@ lib/queue/email-job.ts           # Document variable rendering + branded URLs
 lib/schemas.ts                   # Validation schemas
 middleware.ts                    # Handle /d/ routes on custom domains (Phase 14F)
 components/email-templates/event-emails-tab.tsx  # Add DocumentLibrary
+components/email-templates/email-template-form.tsx  # Add DocumentInserter (Phase 14H)
+components/email-templates/variable-inserter.tsx    # Filter out documents (Phase 14H)
+app/[locale]/(web)/(dashboard)/[slug]/events/[eventSlug]/email-preview/page.tsx  # Document preview rendering (Phase 14H)
+app/api/local-document-upload/route.ts  # Return absolute URL (Phase 14H bug fix)
 messages/en.json                 # English translations
 messages/ar.json                 # Arabic translations
 ```

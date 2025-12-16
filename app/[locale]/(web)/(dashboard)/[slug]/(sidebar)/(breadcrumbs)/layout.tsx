@@ -1,4 +1,3 @@
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { Breadcrumbs } from "@/components/global/breadcrumbs"
 
@@ -11,11 +10,9 @@ export default async function MainLayout({ children, params }: MainLayoutProps) 
   const { slug } = await params
 
   return (
-    <SidebarInset aria-label="Main content" className="bg-os-background-100">
+    <SidebarInset aria-label="Main content" className="bg-os-background-100 flex flex-col h-full overflow-hidden">
       <Breadcrumbs slug={slug} />
-      <ScrollArea className="h-full flex-1">
-        <div className="pb-20">{children}</div>
-      </ScrollArea>
+      <div className="flex-1 overflow-auto min-h-0">{children}</div>
     </SidebarInset>
   )
 }

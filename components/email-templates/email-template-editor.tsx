@@ -15,6 +15,7 @@ interface EmailTemplateEditorProps {
   onFocus?: () => void
   placeholder?: string
   minHeight?: string
+  maxHeight?: string
   direction?: "ltr" | "rtl"
   language?: "html" | "text"
 }
@@ -27,6 +28,7 @@ export const EmailTemplateEditor = forwardRef<EditorHandle, EmailTemplateEditorP
       onFocus,
       placeholder = "",
       minHeight = "200px",
+      maxHeight = "400px",
       direction = "ltr",
       language = "html",
     },
@@ -72,6 +74,7 @@ export const EmailTemplateEditor = forwardRef<EditorHandle, EmailTemplateEditorP
             bracketMatching: language === "html",
             autocompletion: false,
           }}
+          height={maxHeight}
           style={{ minHeight }}
           className="text-sm [&_.cm-editor]:outline-none [&_.cm-focused]:outline-none"
           onFocus={onFocus}

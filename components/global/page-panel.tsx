@@ -24,6 +24,8 @@ interface PagePanelProps {
   className?: string
   /** Whether the panel is open (always true for route-based usage) */
   open?: boolean
+  /** Skip ScrollArea wrapper (when content handles own scrolling) */
+  noScroll?: boolean
 }
 
 /**
@@ -41,6 +43,7 @@ export function PagePanel({
   backHref,
   className,
   open = true,
+  noScroll = false,
 }: PagePanelProps) {
   const isMobile = useIsMobile()
   const { goBack } = useBackNavigation(backHref)
@@ -90,11 +93,15 @@ export function PagePanel({
               </div>
             </header>
 
-            {/* Mobile Content - overflow-hidden wrapper ensures proper scroll containment */}
+            {/* Mobile Content - overflow-hidden prevents drawer from showing scrollbars */}
             <div className="flex-1 overflow-hidden">
-              <div className={cn("h-full overflow-auto p-4", className)}>
-                {children}
-              </div>
+              {noScroll ? (
+                <div className={cn("h-full p-4", className)}>{children}</div>
+              ) : (
+                <div className={cn("h-full p-4 overflow-auto", className)}>
+                  {children}
+                </div>
+              )}
             </div>
           </DrawerPrimitive.Content>
         </DrawerPrimitive.Portal>
@@ -162,11 +169,15 @@ export function PagePanel({
               </Button>
             </header>
 
-            {/* Desktop Content - overflow-hidden on wrapper enables ScrollArea flex-1 */}
+            {/* Desktop Content - overflow-hidden prevents PagePanel from showing scrollbars */}
             <div className="flex-1 overflow-hidden">
-              <ScrollArea className="h-full">
-                <div className={cn("p-6", className)}>{children}</div>
-              </ScrollArea>
+              {noScroll ? (
+                <div className={cn("h-full p-6", className)}>{children}</div>
+              ) : (
+                <ScrollArea className="h-full">
+                  <div className={cn("p-6", className)}>{children}</div>
+                </ScrollArea>
+              )}
             </div>
           </motion.div>
         </>

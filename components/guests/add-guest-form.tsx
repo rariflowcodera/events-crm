@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Icons } from "@/components/global/icons"
+import { GuestProfileImage } from "@/components/guests/guest-profile-image"
 import { countries } from "@/lib/data/countries"
 
 interface GuestCategory {
@@ -51,6 +52,7 @@ const addGuestSchema = z.object({
   entity: z.string().optional(),
   categoryId: z.string().min(1, "Category is required"),
   internalNotes: z.string().optional(),
+  profileImage: z.string().optional(),
 })
 
 type AddGuestFormValues = z.infer<typeof addGuestSchema>
@@ -70,6 +72,7 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
       entity: "",
       categoryId: categories.length > 0 ? categories[0].id : "",
       internalNotes: "",
+      profileImage: "",
     },
   })
 
@@ -92,12 +95,36 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
       entity: values.entity || undefined,
       categoryId: values.categoryId,
       internalNotes: values.internalNotes || undefined,
+      profileImage: values.profileImage || undefined,
     })
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* Profile Image */}
+        <div className="flex justify-center pb-2">
+          <FormField
+            control={form.control}
+            name="profileImage"
+            render={({ field }) => (
+              <FormItem className="flex flex-col items-center">
+                <FormControl>
+                  <GuestProfileImage
+                    value={field.value}
+                    onChange={field.onChange}
+                    eventId={eventId}
+                    disabled={isPending}
+                    guestName={`${form.watch("firstName")} ${form.watch("lastName")}`}
+                    size="lg"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}

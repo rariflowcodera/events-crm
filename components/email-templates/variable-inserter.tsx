@@ -34,13 +34,16 @@ export function VariableInserter({ eventId, onInsert, onFocus }: VariableInserte
   const groups = useMemo(() => {
     if (!variables) return []
 
-    return Object.entries(variables).map(([groupKey, vars]) => ({
-      label: groupKey.charAt(0).toUpperCase() + groupKey.slice(1),
-      variables: (vars as Array<{ key: string; description: string }>).map((v) => ({
-        key: v.key,
-        description: v.description,
-      })),
-    }))
+    // Filter out documents - they have their own inserter
+    return Object.entries(variables)
+      .filter(([groupKey]) => groupKey !== "documents")
+      .map(([groupKey, vars]) => ({
+        label: groupKey.charAt(0).toUpperCase() + groupKey.slice(1),
+        variables: (vars as Array<{ key: string; description: string }>).map((v) => ({
+          key: v.key,
+          description: v.description,
+        })),
+      }))
   }, [variables])
 
   return (

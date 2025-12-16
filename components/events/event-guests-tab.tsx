@@ -1,12 +1,19 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { useTranslations } from "next-intl"
 
 import { useGuests } from "@/trpc/hooks/guests-hooks"
+import {
+  useGuestListViews,
+  useUpdateGuestListView,
+  useDefaultGuestListView,
+  useGetOrCreateAllGuestsView,
+  useSetDefaultGuestListView,
+} from "@/trpc/hooks/guest-list-views-hooks"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyPlaceholder } from "@/components/global/empty-placeholder"
-import { GuestsTable, GuestsTableSkeleton } from "@/components/guests/guests-table"
+import { GuestsDataTable } from "@/components/guests/guests-data-table"
 import { GuestsToolbar } from "@/components/guests/guests-toolbar"
 import { BulkDeleteDialog } from "@/components/guests/bulk-delete-dialog"
 import { BulkSendEmailDialog } from "@/components/guests/bulk-send-email-dialog"
@@ -15,19 +22,13 @@ import type { EmailTemplateType } from "@/lib/schemas"
 import { getCountryName } from "@/lib/data/countries"
 import { createRoute } from "@/lib/routes"
 import { exportGuestsToExcel } from "@/lib/export-guests"
-
-type GuestStatus =
-  | "pending"
-  | "invited"
-  | "reminded"
-  | "viewed"
-  | "confirmed"
-  | "declined"
-  | "maybe"
-  | "waitlisted"
-  | "cancelled"
-  | "attended"
-  | "no_show"
+import {
+  DEFAULT_VIEW_CONFIG,
+  type GuestListViewConfig,
+  type GuestListViewColumnConfig,
+  type GuestListViewFilterConfig,
+} from "@/lib/guest-columns"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface GuestCategory {
   id: string
@@ -35,30 +36,6 @@ interface GuestCategory {
   code: string
   color: string | null
   sortOrder: number
-}
-
-interface Guest {
-  id: string
-  firstName: string
-  lastName: string
-  email: string | null
-  phone: string | null
-  country: string | null
-  position: string | null
-  entity: string | null
-  status: GuestStatus
-  rsvpToken: string
-  internalNotes: string | null
-  hasCompanion: boolean | null
-  dietaryRequirements: string | null
-  category: {
-    id: string
-    name: string
-    code: string
-    color: string | null
-  }
-  createdAt: Date
-  rsvpRespondedAt: Date | null
 }
 
 interface Event {
@@ -73,20 +50,119 @@ interface Event {
 interface EventGuestsTabProps {
   event: Event
   workspaceSlug: string
+  fullHeight?: boolean
 }
 
-export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
+export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: EventGuestsTabProps) {
   const t = useTranslations("guest")
 
   // State
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<GuestStatus[]>([])
-  const [categoryFilter, setCategoryFilter] = useState<string[]>([])
-  const [countryFilter, setCountryFilter] = useState<string[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [bulkEmailType, setBulkEmailType] = useState<EmailTemplateType | null>(null)
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false)
+  const [viewConfig, setViewConfig] = useState<GuestListViewConfig>(DEFAULT_VIEW_CONFIG)
+
+  // View management state
+  const [currentViewId, setCurrentViewId] = useState<string | null>(null)
+  const [savedViewConfig, setSavedViewConfig] = useState<GuestListViewConfig | null>(null)
+
+  // Fetch available views
+  const { data: views } = useGuestListViews(event.id)
+
+  // Fetch default view
+  const { data: defaultView, isLoading: isLoadingDefaultView } = useDefaultGuestListView(event.id)
+
+  // Get or create "All Guests" system view
+  const { mutateAsync: getOrCreateAllGuests } = useGetOrCreateAllGuestsView()
+
+  // Update view mutation
+  const { mutate: updateView, isPending: isUpdatingView } = useUpdateGuestListView()
+
+  // Set default view mutation
+  const { mutate: setDefaultView } = useSetDefaultGuestListView()
+
+  // Compute hasUnsavedChanges
+  const hasUnsavedChanges = useMemo(() => {
+    if (!savedViewConfig) return false
+    return JSON.stringify(viewConfig) !== JSON.stringify(savedViewConfig)
+  }, [viewConfig, savedViewConfig])
+
+  // Load default view on mount
+  useEffect(() => {
+    // Wait until we know if there's a default view
+    if (isLoadingDefaultView) return
+
+    // If a view is already selected, don't override
+    if (currentViewId) return
+
+    const loadDefaultView = async () => {
+      if (defaultView) {
+        // Use existing default view
+        setCurrentViewId(defaultView.id)
+        setViewConfig(defaultView.config as GuestListViewConfig)
+        setSavedViewConfig(defaultView.config as GuestListViewConfig)
+      } else {
+        // No default view exists, create "All Guests" system view
+        try {
+          const allGuestsView = await getOrCreateAllGuests({ eventId: event.id })
+          setCurrentViewId(allGuestsView.id)
+          setViewConfig(allGuestsView.config as GuestListViewConfig)
+          setSavedViewConfig(allGuestsView.config as GuestListViewConfig)
+        } catch {
+          // Fallback to hardcoded default if creation fails
+          setViewConfig(DEFAULT_VIEW_CONFIG)
+        }
+      }
+    }
+
+    loadDefaultView()
+  }, [defaultView, isLoadingDefaultView, currentViewId, event.id, getOrCreateAllGuests])
+
+  // View selection handler
+  const handleViewSelect = useCallback(async (viewId: string | null) => {
+    if (viewId === null) {
+      // Get or create "All Guests" system view
+      try {
+        const allGuestsView = await getOrCreateAllGuests({ eventId: event.id })
+        setCurrentViewId(allGuestsView.id)
+        setViewConfig(allGuestsView.config as GuestListViewConfig)
+        setSavedViewConfig(allGuestsView.config as GuestListViewConfig)
+      } catch {
+        // Fallback to hardcoded default
+        setCurrentViewId(null)
+        setViewConfig(DEFAULT_VIEW_CONFIG)
+        setSavedViewConfig(null)
+      }
+    } else {
+      // Find the selected view and apply its config
+      const selectedView = views?.find((v) => v.id === viewId)
+      if (selectedView) {
+        setCurrentViewId(viewId)
+        setViewConfig(selectedView.config as GuestListViewConfig)
+        setSavedViewConfig(selectedView.config as GuestListViewConfig)
+      }
+    }
+  }, [views, getOrCreateAllGuests, event.id])
+
+  // Set default view handler
+  const handleSetDefault = useCallback(() => {
+    if (!currentViewId) return
+    setDefaultView({ viewId: currentViewId })
+  }, [currentViewId, setDefaultView])
+
+  // Save current view handler
+  const handleSaveView = useCallback(() => {
+    if (!currentViewId) return
+    updateView(
+      { viewId: currentViewId, config: viewConfig },
+      {
+        onSuccess: () => {
+          setSavedViewConfig(viewConfig)
+        },
+      }
+    )
+  }, [currentViewId, viewConfig, updateView])
 
   // Navigation hrefs
   const addGuestHref = createRoute("guest-new", { slug: workspaceSlug, eventSlug: event.slug }).href
@@ -96,11 +172,17 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
     [workspaceSlug, event.slug]
   )
 
-  // Fetch all guests for the event
-  const { data, isLoading, error } = useGuests({ eventId: event.id })
+  // Fetch guests with server-side filtering
+  const { data, isLoading, error } = useGuests({
+    eventId: event.id,
+    filters: viewConfig.filters,
+    sorting: viewConfig.sorting,
+    limit: 100, // Get more guests since we're server-side filtering
+  })
   const guests = data?.guests ?? []
+  const totalGuests = data?.total ?? 0
 
-  // Compute available countries from guest data
+  // Compute available countries from guest data (for country filter options)
   const availableCountries = useMemo(() => {
     if (!guests.length) return []
 
@@ -119,49 +201,20 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [guests])
 
-  // Client-side filtering
-  const filteredGuests = useMemo(() => {
-    if (!guests.length) return []
+  // Update handlers
+  const handleFiltersChange = useCallback((filters: GuestListViewFilterConfig) => {
+    setViewConfig((prev) => ({ ...prev, filters }))
+  }, [])
 
-    return guests.filter((guest) => {
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        const searchableFields = [
-          guest.firstName,
-          guest.lastName,
-          guest.email,
-          guest.entity,
-          guest.position,
-        ]
-        const matches = searchableFields.some(
-          (field) => field && field.toLowerCase().includes(query)
-        )
-        if (!matches) return false
-      }
+  const handleViewConfigChange = useCallback((config: GuestListViewConfig) => {
+    setViewConfig(config)
+  }, [])
 
-      // Status filter (empty array = show all)
-      if (statusFilter.length > 0 && !statusFilter.includes(guest.status)) {
-        return false
-      }
+  const handleColumnsChange = useCallback((columns: GuestListViewColumnConfig[]) => {
+    setViewConfig((prev) => ({ ...prev, columns }))
+  }, [])
 
-      // Category filter (empty array = show all)
-      if (categoryFilter.length > 0) {
-        if (!guest.category || !categoryFilter.includes(guest.category.id)) {
-          return false
-        }
-      }
-
-      // Country filter (empty array = show all)
-      if (countryFilter.length > 0 && (!guest.country || !countryFilter.includes(guest.country))) {
-        return false
-      }
-
-      return true
-    })
-  }, [guests, searchQuery, statusFilter, categoryFilter, countryFilter])
-
-  // Handlers
+  // Bulk action handlers
   const handleBulkAction = useCallback((action: "delete" | "send_invitation" | "send_email") => {
     if (action === "delete") {
       setIsDeleteDialogOpen(true)
@@ -177,8 +230,42 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
   }, [])
 
   const handleExport = useCallback(() => {
-    exportGuestsToExcel(filteredGuests, event.slug)
-  }, [filteredGuests, event.slug])
+    // Cast guests to the expected type for export
+    const guestsForExport = guests.map((guest) => ({
+      ...guest,
+      category: guest.category || { id: "", name: "", code: "", color: null },
+    }))
+    exportGuestsToExcel(guestsForExport as any, event.slug)
+  }, [guests, event.slug])
+
+  // Filter change handlers for toolbar (must be before early returns)
+  const handleSearchChange = useCallback((query: string) => {
+    handleFiltersChange({ ...viewConfig.filters, search: query || undefined })
+  }, [viewConfig.filters, handleFiltersChange])
+
+  const handleStatusFilterChange = useCallback((statuses: string[]) => {
+    handleFiltersChange({ ...viewConfig.filters, status: statuses.length ? statuses : undefined })
+  }, [viewConfig.filters, handleFiltersChange])
+
+  const handleCategoryFilterChange = useCallback((categoryIds: string[]) => {
+    handleFiltersChange({ ...viewConfig.filters, categoryIds: categoryIds.length ? categoryIds : undefined })
+  }, [viewConfig.filters, handleFiltersChange])
+
+  const handleCountryFilterChange = useCallback((countries: string[]) => {
+    handleFiltersChange({ ...viewConfig.filters, countries: countries.length ? countries : undefined })
+  }, [viewConfig.filters, handleFiltersChange])
+
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    const { filters } = viewConfig
+    return !!(
+      filters.search ||
+      (filters.status && filters.status.length > 0) ||
+      (filters.categoryIds && filters.categoryIds.length > 0) ||
+      (filters.countries && filters.countries.length > 0) ||
+      (filters.tags && filters.tags.length > 0)
+    )
+  }, [viewConfig.filters])
 
   // Loading state
   if (isLoading) {
@@ -214,19 +301,19 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
     )
   }
 
-  const hasGuests = guests.length > 0
+  const hasGuests = totalGuests > 0 || guests.length > 0
 
   return (
-    <div className="space-y-6">
+    <div className={fullHeight ? "flex flex-col h-full" : "space-y-4"}>
       <GuestsToolbar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        categoryFilter={categoryFilter}
-        onCategoryFilterChange={setCategoryFilter}
-        countryFilter={countryFilter}
-        onCountryFilterChange={setCountryFilter}
+        searchQuery={viewConfig.filters.search || ""}
+        onSearchChange={handleSearchChange}
+        statusFilter={(viewConfig.filters.status || []) as any}
+        onStatusFilterChange={handleStatusFilterChange as any}
+        categoryFilter={viewConfig.filters.categoryIds || []}
+        onCategoryFilterChange={handleCategoryFilterChange}
+        countryFilter={viewConfig.filters.countries || []}
+        onCountryFilterChange={handleCountryFilterChange}
         availableCountries={availableCountries}
         categories={event.guestCategories}
         selectedCount={selectedIds.size}
@@ -235,15 +322,23 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
         onBulkAction={handleBulkAction}
         onExport={handleExport}
         workspaceSlug={workspaceSlug}
+        eventId={event.id}
+        viewConfig={viewConfig}
+        onColumnsChange={handleColumnsChange}
+        currentViewId={currentViewId}
+        hasUnsavedChanges={hasUnsavedChanges}
+        onViewSelect={handleViewSelect}
+        onSaveView={handleSaveView}
+        onSetDefault={handleSetDefault}
+        defaultViewId={defaultView?.id}
+        totalGuests={totalGuests}
+        filteredCount={hasActiveFilters ? guests.length : undefined}
       />
 
-      {hasGuests ? (
-        <>
-          <div className="text-muted-foreground text-sm">
-            Showing {filteredGuests.length} of {guests.length} guest{guests.length !== 1 ? "s" : ""}
-          </div>
-          <GuestsTable
-            guests={filteredGuests}
+      {hasGuests || hasActiveFilters ? (
+        <div className={fullHeight ? "flex-1 min-h-0 mt-4" : ""}>
+          <GuestsDataTable
+            guests={guests as any}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
             getGuestDetailHref={getGuestDetailHref}
@@ -253,8 +348,12 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
               customDomainVerified: event.customDomainVerified,
             }}
             workspaceSlug={workspaceSlug}
+            viewConfig={viewConfig}
+            onViewConfigChange={handleViewConfigChange}
+            totalGuests={totalGuests}
+            fillHeight={fullHeight}
           />
-        </>
+        </div>
       ) : (
         <Card>
           <CardContent className="py-10">
@@ -298,6 +397,30 @@ export function EventGuestsTab({ event, workspaceSlug }: EventGuestsTabProps) {
         guestIds={Array.from(selectedIds)}
         onSuccess={() => setSelectedIds(new Set())}
       />
+    </div>
+  )
+}
+
+// Skeleton for loading state
+function GuestsTableSkeleton() {
+  return (
+    <div className="rounded-md border">
+      <div className="flex items-center border-b bg-background h-10">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="p-2 flex-1">
+            <Skeleton className="h-4 w-full" />
+          </div>
+        ))}
+      </div>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex items-center border-b h-14">
+          {Array.from({ length: 6 }).map((_, j) => (
+            <div key={j} className="p-2 flex-1">
+              <Skeleton className="h-4 w-full" />
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   )
 }

@@ -1,4 +1,12 @@
 {
+  "nav": {
+    "overview": "Overview",
+    "switchEvent": "Switch Event",
+    "selectEvent": "Select Event",
+    "eventManagement": "Event Management",
+    "viewAllEvents": "View All Events",
+    "backToWorkspace": "Back to Workspace"
+  },
   "common": {
     "loading": "Loading...",
     "save": "Save",
@@ -99,6 +107,36 @@
       "endDate": "End Date",
       "rsvpDeadline": "RSVP Deadline",
       "maxGuests": "Maximum Guests"
+    },
+    "settings": {
+      "autoAcknowledgementEmails": "Auto-send RSVP Acknowledgement Emails",
+      "autoAcknowledgementEmailsDescription": "Automatically send confirmation emails when guests respond to your RSVP form"
+    },
+    "dashboard": {
+      "totalInvited": "Total Invited",
+      "responseRate": "Response Rate",
+      "attended": "Attended",
+      "countdown": "Event Countdown",
+      "today": "Today",
+      "completed": "Completed",
+      "daysUntil": "{days} days",
+      "guestsByCategory": "Guests by Category",
+      "guestsByCategoryDescription": "RSVP status breakdown per guest category",
+      "noCategories": "No categories with guests yet",
+      "rsvpBreakdown": "RSVP Response Rate",
+      "rsvpBreakdownDescription": "Track guest responses and attendance",
+      "statusConfirmed": "Confirmed",
+      "statusPending": "Pending",
+      "statusMaybe": "Maybe",
+      "statusDeclined": "Declined",
+      "eventDetails": "Event Details",
+      "noDetailsYet": "No additional details added yet. Update in Settings tab.",
+      "location": "Location",
+      "mapComingSoon": "Map view coming soon",
+      "mapComingSoonTooltip": "Google Maps integration is planned for a future update",
+      "viewOnMap": "View on Map",
+      "guestsResponded": "guests have responded",
+      "guests": "guests"
     }
   },
   "categories": {
@@ -169,6 +207,17 @@
       "sendInvitations": "Send Invitations",
       "sendEmail": "Send Email",
       "delete": "Delete"
+    },
+    "checkIn": {
+      "title": "Check-in",
+      "checkedIn": "Checked In",
+      "notCheckedIn": "Not Checked In",
+      "checkInGuest": "Check in guest",
+      "undoCheckIn": "Undo check-in",
+      "checkedInAt": "Checked in at",
+      "checkedInBy": "Checked in by",
+      "bulkCheckIn": "Check in selected",
+      "bulkUndoCheckIn": "Undo check-in for selected"
     }
   },
   "rsvp": {
@@ -240,9 +289,13 @@
     "noTemplates": "No email templates yet",
     "noTemplatesDescription": "Create templates for invitations, reminders, and more",
     "createFirst": "Create First Template",
+    "importDefaults": "Import Defaults",
+    "importDefaultsSuccess": "Created {created} templates ({skipped} already existed)",
+    "importDefaultsNone": "All default templates already exist",
     "setAsDefault": "Set as Default",
     "isDefault": "Default",
     "insertVariable": "Insert Variable",
+    "insertDocument": "Insert Document",
     "availableVariables": "Available Variables",
     "lastUpdated": "Last updated",
     "templateDetails": "Template Details",
@@ -269,6 +322,7 @@
       "reminder": "Reminder",
       "confirmation": "Confirmation",
       "declined_acknowledgment": "Declined Acknowledgment",
+      "maybe_acknowledgment": "Maybe Acknowledgment",
       "update": "Update",
       "cancellation": "Cancellation",
       "custom": "Custom"
@@ -321,6 +375,7 @@
       "reminder": "Reminder",
       "confirmation": "Confirmation",
       "declined": "Declined Acknowledgment",
+      "maybe_acknowledgment": "Maybe Acknowledgment",
       "update": "Update",
       "cancellation": "Cancellation",
       "custom": "Custom"
@@ -682,5 +737,114 @@
     "sectionTextColor": "Text Color",
     "preview": "Preview",
     "sampleSectionTitle": "Travel & Logistics"
+  },
+  "documents": {
+    "title": "Document Library",
+    "description": "Upload and manage event documents for email templates",
+    "searchDocuments": "Search documents...",
+    "uploadButton": "Upload Document",
+    "noDocuments": "No documents uploaded yet",
+    "noDocumentsDescription": "Upload PDFs and images to include in email templates",
+    "uploadFirst": "Upload First Document",
+    "name": "Document Name",
+    "type": "Type",
+    "categories": "Visible to Categories",
+    "allCategories": "All Categories",
+    "fileSize": "File Size",
+    "uploadedAt": "Uploaded",
+    "uploadedBy": "Uploaded by",
+    "copyLink": "Copy Link",
+    "linkCopied": "Link copied to clipboard",
+    "delete": "Delete Document",
+    "confirmDelete": "Are you sure you want to delete this document?",
+    "deleteWarning": "Email templates using this document will show broken links.",
+    "types": {
+      "schedule": "Schedule",
+      "map": "Map",
+      "policy": "Policy",
+      "brochure": "Brochure",
+      "invitation": "Invitation",
+      "other": "Other"
+    },
+    "upload": {
+      "title": "Upload Document",
+      "dragDrop": "Drag and drop or click to upload",
+      "maxSize": "Max file size: 10MB",
+      "allowedTypes": "PDF, PNG, JPEG, GIF",
+      "uploading": "Uploading...",
+      "success": "Document uploaded successfully"
+    },
+    "edit": {
+      "title": "Edit Document",
+      "save": "Save Changes"
+    },
+    "errors": {
+      "fileTooLarge": "File size exceeds 10MB limit",
+      "invalidType": "Only PDF and image files are allowed",
+      "uploadFailed": "Failed to upload document"
+    },
+    "insert": {
+      "configure": "Configure Document Link",
+      "displayText": "Display text",
+      "displayTextPlaceholder": "Leave empty to use document name",
+      "insertAs": "Insert as",
+      "linkWithText": "Link with text",
+      "urlOnly": "URL only",
+      "insert": "Insert",
+      "back": "Back"
+    }
+  },
+  "docs": {
+    "exportPdf": "Export PDF",
+    "exportPdfTooltip": "Export all documentation as PDF",
+    "exporting": "Exporting...",
+    "loadingDocs": "Loading documentation...",
+    "preparingContent": "Preparing content...",
+    "processingPage": "Processing: {title}",
+    "downloadComplete": "Download complete!",
+    "exportFailed": "PDF export failed",
+    "noDocsFound": "No documentation found to export"
+  },
+  "views": {
+    "allGuests": "All Guests",
+    "savedViews": "Operational Views",
+    "saveView": "Save View",
+    "saveViewDescription": "Save the current column and filter configuration as a named view.",
+    "manageViews": "Manage Views",
+    "columns": "Columns",
+    "createView": "Create View",
+    "viewName": "View Name",
+    "viewNamePlaceholder": "e.g., Confirmed VIPs",
+    "color": "Color",
+    "colorDescription": "Choose a color to categorize this view",
+    "visibleTo": "Visible to",
+    "visibleToDescription": "Select which roles can see this view in the sidebar",
+    "pinToSidebar": "Pin to sidebar",
+    "pinToSidebarDescription": "Show this view in the sidebar menu for quick access",
+    "saving": "Saving...",
+    "selectView": "Select a view",
+    "noViews": "No saved views",
+    "colors": {
+      "gray": "Default",
+      "blue": "Operational",
+      "green": "Management",
+      "orange": "On-site",
+      "purple": "VIP",
+      "red": "Priority"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "manager": "Manager",
+      "member": "Member"
+    },
+    "columnGroups": {
+      "core": "Core Information",
+      "contact": "Contact Details",
+      "professional": "Professional Info",
+      "rsvp": "RSVP & Status",
+      "logistics": "Logistics",
+      "metadata": "Metadata"
+    }
   }
 }

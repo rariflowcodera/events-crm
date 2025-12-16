@@ -672,4 +672,108 @@ export const workspacesRouter = createTRPCRouter({
         description: "You are no longer the owner of this workspace",
       }
     }),
+
+  // Get workspace navigation settings
+  getNavigationSettings: protectedProcedure
+    .input(z.object({ slug: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(workspaces.slug, input.slug),
+        columns: {
+          id: true,
+          navigationSettings: true,
+        },
+      })
+
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Workspace not found" })
+      }
+
+      // Check membership
+      const isMember = await db.query.workspaceMembers.findFirst({
+        where: and(
+          eq(workspaceMembers.workspaceId, workspace.id),
+          eq(workspaceMembers.userId, ctx.user.id)
+        ),
+      })
+
+      if (!isMember) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not a member of this workspace" })
+      }
+
+      return {
+        workspaceId: workspace.id,
+        navigationSettings: workspace.navigationSettings ?? null,
+      }
+    }),
+
+  // Update workspace navigation settings
+  updateNavigationSettings: protectedProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().uuid(),
+        navigationSettings: z.object({
+          eventNav: z
+            .object({
+              overview: z.array(z.string()).optional(),
+              guests: z.array(z.string()).optional(),
+              categories: z.array(z.string()).optional(),
+              forms: z.array(z.string()).optional(),
+              branding: z.array(z.string()).optional(),
+              emails: z.array(z.string()).optional(),
+              reports: z.array(z.string()).optional(),
+              settings: z.array(z.string()).optional(),
+            })
+            .optional(),
+          workspaceNav: z
+            .object({
+              dashboard: z.array(z.string()).optional(),
+              docs: z.array(z.string()).optional(),
+              settings: z.array(z.string()).optional(),
+            })
+            .optional(),
+        }),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { workspaceId, navigationSettings } = input
+
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(workspaces.id, workspaceId),
+      })
+
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Workspace not found" })
+      }
+
+      const canUpdate = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: workspace.id,
+        permissionName: PERMISSIONS.MANAGE_WORKSPACE,
+      })
+
+      if (!canUpdate) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not authorized to update workspace navigation settings",
+        })
+      }
+
+      const [updated] = await db
+        .update(workspaces)
+        .set({
+          navigationSettings,
+          updatedAt: new Date(),
+        })
+        .where(eq(workspaces.id, workspaceId))
+        .returning({
+          id: workspaces.id,
+          navigationSettings: workspaces.navigationSettings,
+        })
+
+      return {
+        message: "Navigation settings updated successfully",
+        navigationSettings: updated.navigationSettings,
+      }
+    }),
 })

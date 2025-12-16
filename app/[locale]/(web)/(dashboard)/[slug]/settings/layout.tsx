@@ -13,6 +13,7 @@ const workspaceSettingsRoutes: RouteConfigType[] = [
   ROUTES["settings-workspace"],
   ROUTES["settings-members"],
   ROUTES["settings-branding"],
+  ROUTES["settings-navigation"],
 ]
 
 type SettingsLayoutProps = {

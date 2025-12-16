@@ -1,7 +1,7 @@
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
 
-import { getDocBySlug, getAllDocs, extractToc } from "@/lib/docs"
+import { getDocBySlug, extractToc } from "@/lib/docs"
 import { DocsContentRenderer, DocsToc } from "@/components/docs"
 
 // Force dynamic rendering - these pages are under authenticated routes
@@ -25,20 +25,6 @@ export async function generateMetadata({ params }: DocPageProps): Promise<Metada
     title: doc.frontmatter.title,
     description: doc.frontmatter.description,
   }
-}
-
-export async function generateStaticParams() {
-  const docs = await getAllDocs()
-
-  // Flatten the tree to get all doc slugs
-  function flattenDocs(items: typeof docs): { docSlug: string[] }[] {
-    return items.flatMap((item) => [
-      { docSlug: item.slug.split("/") },
-      ...flattenDocs(item.children),
-    ])
-  }
-
-  return flattenDocs(docs)
 }
 
 export default async function DocPage({ params }: DocPageProps) {

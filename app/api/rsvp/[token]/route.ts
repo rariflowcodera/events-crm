@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { eq, and, gt } from "drizzle-orm"
+import { eq, and, gt, isNull } from "drizzle-orm"
 import { db } from "@/server/db/config/database"
-import { guests, events, guestCategories, rsvpResponses, workspaces } from "@/server/db/schemas"
+import { guests, events, guestCategories, rsvpResponses, workspaces, emailTemplates } from "@/server/db/schemas"
 import { getMaterializedColumn, isStandardField } from "@/lib/rsvp"
 import { resolveBranding } from "@/lib/branding"
+import { addSingleEmailJob } from "@/lib/queue/queues"
+import type { EmailTemplateType } from "@/lib/schemas"
 
 // GET: Fetch guest info by RSVP token (public, no auth required)
 export async function GET(
@@ -312,6 +314,49 @@ export async function POST(
   }
 
   await db.update(guests).set(updateData).where(eq(guests.id, guest.id))
+
+  // Send acknowledgement email if enabled
+  const autoEnabled = guest.event.settings?.autoAcknowledgementEmails !== false
+
+  if (autoEnabled && guest.email) {
+    // Map response status to template type
+    const templateTypeMap: Record<string, EmailTemplateType> = {
+      confirmed: "confirmation",
+      declined: "declined_acknowledgment",
+      maybe: "maybe_acknowledgment",
+    }
+    const templateType = templateTypeMap[responseStatus]
+
+    if (templateType) {
+      // Find default template for this type
+      const template = await db.query.emailTemplates.findFirst({
+        where: and(
+          eq(emailTemplates.eventId, guest.event.id),
+          eq(emailTemplates.type, templateType),
+          eq(emailTemplates.isDefault, true),
+          isNull(emailTemplates.categoryId)
+        ),
+      })
+
+      if (template) {
+        // Queue the acknowledgement email (non-blocking)
+        try {
+          await addSingleEmailJob({
+            type: "single",
+            guestId: guest.id,
+            eventId: guest.event.id,
+            templateId: template.id,
+            emailType: templateType,
+            bulkJobId: `rsvp-ack-${response.id}`,
+            language: ((standardResponses as Record<string, unknown>)?.preferredLanguage as "en" | "ar") || "en",
+          })
+        } catch (error) {
+          // Log error but don't fail the RSVP submission
+          console.error("Failed to queue acknowledgement email:", error)
+        }
+      }
+    }
+  }
 
   return NextResponse.json({
     success: true,

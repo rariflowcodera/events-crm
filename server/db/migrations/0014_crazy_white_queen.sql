@@ -1,0 +1,2 @@
+ALTER TABLE "guest_list_view" ADD COLUMN "is_default" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE INDEX "guest_list_view_default_idx" ON "guest_list_view" USING btree ("event_id","is_default");

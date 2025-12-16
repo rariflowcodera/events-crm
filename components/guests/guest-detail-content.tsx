@@ -33,9 +33,11 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Icons } from "@/components/global/icons"
 import { GuestStatusBadge } from "@/components/guests/guest-status-badge"
 import { GuestEmailHistory } from "@/components/guests/guest-email-history"
+import { GuestProfileImage } from "@/components/guests/guest-profile-image"
 import { countries, getCountryName } from "@/lib/data/countries"
 import {
   Collapsible,
@@ -77,6 +79,7 @@ interface Guest {
   internalNotes: string | null
   hasCompanion: boolean | null
   dietaryRequirements: string | null
+  profileImage: string | null
   category: GuestCategory
   createdAt: Date
   rsvpRespondedAt: Date | null
@@ -138,6 +141,7 @@ const editGuestSchema = z.object({
   internalNotes: z.string().optional(),
   hasCompanion: z.boolean().optional(),
   dietaryRequirements: z.string().optional(),
+  profileImage: z.string().nullable().optional(),
 })
 
 type EditGuestFormValues = z.infer<typeof editGuestSchema>
@@ -181,6 +185,7 @@ export function GuestDetailContent({
       internalNotes: guest.internalNotes || "",
       hasCompanion: guest.hasCompanion || false,
       dietaryRequirements: guest.dietaryRequirements || "",
+      profileImage: guest.profileImage || "",
     },
   })
 
@@ -208,6 +213,7 @@ export function GuestDetailContent({
       internalNotes: values.internalNotes || undefined,
       hasCompanion: values.hasCompanion,
       dietaryRequirements: values.dietaryRequirements || undefined,
+      profileImage: values.profileImage || undefined,
     })
   }
 
@@ -268,6 +274,38 @@ export function GuestDetailContent({
       {isEditing ? (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Profile Image */}
+            <div className="flex justify-center pb-2">
+              <FormField
+                control={form.control}
+                name="profileImage"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col items-center">
+                    <FormControl>
+                      <GuestProfileImage
+                        value={field.value}
+                        onChange={(url) => {
+                          field.onChange(url)
+                          // Auto-save to database
+                          if (url) {
+                            updateGuest({
+                              guestId: guest.id,
+                              profileImage: url,
+                            })
+                          }
+                        }}
+                        eventId={eventId}
+                        disabled={isUpdating}
+                        guestName={`${form.watch("firstName")} ${form.watch("lastName")}`}
+                        size="lg"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -506,6 +544,18 @@ export function GuestDetailContent({
         <>
           {/* View Mode */}
           <div className="space-y-4">
+            {/* Profile Image Display */}
+            <div className="flex justify-center pb-2">
+              <Avatar className="size-24 border-2 border-border">
+                {guest.profileImage && (
+                  <AvatarImage src={guest.profileImage} alt={`${guest.firstName} ${guest.lastName}`} />
+                )}
+                <AvatarFallback className="text-lg">
+                  {guest.firstName[0]}{guest.lastName[0]}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium">Contact Information</h4>
               {canEditGuests && (

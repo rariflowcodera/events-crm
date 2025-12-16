@@ -1,13 +1,14 @@
 import { db } from "@/server/db/config/database"
-import { events, emailTemplates, guestCategories, workspaceMembers } from "@/server/db/schemas"
+import { events, emailTemplates, guestCategories, workspaceMembers, eventDocuments } from "@/server/db/schemas"
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import {
   emailTemplateTypeValues,
   bilingualEmailContentSchema,
 } from "@/lib/schemas"
+import { DEFAULT_EMAIL_TEMPLATES } from "@/lib/email/default-templates"
 import { TRPCError } from "@trpc/server"
-import { and, desc, eq, isNull } from "drizzle-orm"
+import { and, asc, desc, eq, isNull } from "drizzle-orm"
 import { z } from "zod"
 
 export const emailTemplatesRouter = createTRPCRouter({
@@ -401,6 +402,12 @@ export const emailTemplatesRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN", message: "Not a member of this workspace" })
       }
 
+      // Fetch documents for this event
+      const documents = await db.query.eventDocuments.findMany({
+        where: eq(eventDocuments.eventId, input.eventId),
+        orderBy: [asc(eventDocuments.name)],
+      })
+
       // Return available template variables
       return {
         guest: [
@@ -431,6 +438,13 @@ export const emailTemplatesRouter = createTRPCRouter({
           { key: "{{category.name}}", description: "Category name" },
           { key: "{{category.services}}", description: "Category service summary" },
         ],
+        documents: documents.map((doc) => ({
+          key: `{{document.${doc.id}}}`,
+          description: `${doc.name} (${doc.type})`,
+          url: doc.url,
+          name: doc.name,
+          type: doc.type,
+        })),
       }
     }),
 
@@ -557,5 +571,71 @@ export const emailTemplatesRouter = createTRPCRouter({
       }
 
       return { success: true }
+    }),
+
+  // Import default templates for existing events
+  importDefaults: protectedProcedure
+    .input(z.object({ eventId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, input.eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_TEMPLATES,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to manage templates",
+        })
+      }
+
+      // Get existing default template types (event-level only, no category)
+      const existingTypes = await db.query.emailTemplates.findMany({
+        where: and(
+          eq(emailTemplates.eventId, input.eventId),
+          eq(emailTemplates.isDefault, true),
+          isNull(emailTemplates.categoryId)
+        ),
+        columns: { type: true },
+      })
+
+      const existingTypeSet = new Set(existingTypes.map((t) => t.type))
+
+      // Filter to templates that don't exist
+      const templatesToCreate = DEFAULT_EMAIL_TEMPLATES.filter(
+        (t) => !existingTypeSet.has(t.type)
+      )
+
+      if (templatesToCreate.length === 0) {
+        return { created: 0, skipped: DEFAULT_EMAIL_TEMPLATES.length }
+      }
+
+      // Insert missing templates
+      await db.insert(emailTemplates).values(
+        templatesToCreate.map((template) => ({
+          eventId: input.eventId,
+          name: template.name,
+          type: template.type,
+          content: template.content,
+          defaultLanguage: "en" as const,
+          isDefault: true,
+          isActive: true,
+          createdBy: ctx.user.id,
+        }))
+      )
+
+      return {
+        created: templatesToCreate.length,
+        skipped: existingTypeSet.size,
+      }
     }),
 })

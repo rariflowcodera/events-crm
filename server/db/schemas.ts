@@ -21,6 +21,12 @@ export * from "@/server/db/schemas/bulk-email-job"
 export * from "@/server/db/schemas/guest-import"
 export * from "@/server/db/schemas/email-suppression"
 
+// Event Documents
+export * from "@/server/db/schemas/event-document"
+
+// Guest List Views
+export * from "@/server/db/schemas/guest-list-view"
+
 // Custom Event Forms
 export * from "@/server/db/schemas/event-form"
 export * from "@/server/db/schemas/form-response"

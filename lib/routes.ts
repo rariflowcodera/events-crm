@@ -35,6 +35,7 @@ export type RouteName =
   | "settings-workspace"
   | "settings-branding"
   | "settings-personalization"
+  | "settings-navigation"
   | "error"
   | "terms"
   | "privacy"
@@ -463,6 +464,20 @@ export const ROUTES: Record<RouteName, RouteConfigType> = {
     },
   },
 
+  "settings-navigation": {
+    name: "settings-navigation",
+    path: "/:slug/settings/navigation",
+    metadata: {
+      title: documentTitle("Navigation"),
+      description: "Configure navigation visibility by role",
+    },
+    metadataExtra: {
+      name: "Navigation",
+      image: placeholderImageUrl({}),
+      icon: "sidebar",
+    },
+  },
+
   "settings-workspaces": {
     name: "settings-workspaces",
     path: "/:slug/settings/workspaces",
@@ -560,6 +575,7 @@ type RouteParams = {
   "settings-workspace": { slug: string }
   "settings-branding": { slug: string }
   "settings-personalization": { slug: string }
+  "settings-navigation": { slug: string }
   "settings-workspaces": { slug: string }
   error: never
   terms: never

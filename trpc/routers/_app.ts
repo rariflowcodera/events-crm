@@ -7,10 +7,12 @@ import { workspacesRouter } from "@/trpc/routers/workspaces"
 import { eventsRouter } from "@/trpc/routers/events"
 import { guestCategoriesRouter } from "@/trpc/routers/guest-categories"
 import { guestsRouter } from "@/trpc/routers/guests"
+import { guestListViewsRouter } from "@/trpc/routers/guest-list-views"
 import { emailTemplatesRouter } from "@/trpc/routers/email-templates"
 import { emailLogsRouter } from "@/trpc/routers/email-logs"
 import { bulkEmailRouter } from "@/trpc/routers/bulk-email"
 import { emailDeliveryRouter } from "@/trpc/routers/email-delivery"
+import { eventDocumentsRouter } from "@/trpc/routers/event-documents"
 // RSVP domain routers
 import { rsvpFormsRouter } from "@/trpc/routers/rsvp-forms"
 import { rsvpTemplatesRouter } from "@/trpc/routers/rsvp-templates"
@@ -30,10 +32,12 @@ export const appRouter = createTRPCRouter({
   events: eventsRouter,
   guestCategories: guestCategoriesRouter,
   guests: guestsRouter,
+  guestListViews: guestListViewsRouter,
   emailTemplates: emailTemplatesRouter,
   emailLogs: emailLogsRouter,
   bulkEmail: bulkEmailRouter,
   emailDelivery: emailDeliveryRouter,
+  eventDocuments: eventDocumentsRouter,
   // RSVP domain
   rsvpForms: rsvpFormsRouter,
   rsvpTemplates: rsvpTemplatesRouter,

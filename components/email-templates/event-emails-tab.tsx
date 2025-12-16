@@ -5,7 +5,8 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 
-import { useEmailTemplates, useDeleteEmailTemplate, useDuplicateEmailTemplate } from "@/trpc/hooks/email-hooks"
+import { useEmailTemplates, useDeleteEmailTemplate, useDuplicateEmailTemplate, useImportDefaultTemplates } from "@/trpc/hooks/email-hooks"
+import { toast } from "sonner"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -41,6 +42,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import type { BilingualEmailContent } from "@/server/db/schemas/email-template"
 import { EmailDeliveryDashboard } from "@/components/events/email-delivery-dashboard"
+import { DocumentLibrary } from "@/components/documents"
 import { usePermissions } from "@/hooks/use-permissions"
 import { PERMISSIONS } from "@/lib/permissions"
 import {
@@ -147,6 +149,16 @@ export function EventEmailsTab({ event, workspaceSlug }: EventEmailsTabProps) {
     },
   })
 
+  const { mutate: importDefaults, isPending: isImporting } = useImportDefaultTemplates({
+    onSuccess: (data) => {
+      if (data.created > 0) {
+        toast.success(t("importDefaultsSuccess", { created: data.created, skipped: data.skipped }))
+      } else {
+        toast.info(t("importDefaultsNone"))
+      }
+    },
+  })
+
   // Handlers
   const handleDeleteTemplate = useCallback(() => {
     if (!deletingTemplate) return
@@ -159,6 +171,10 @@ export function EventEmailsTab({ event, workspaceSlug }: EventEmailsTabProps) {
     },
     [duplicateTemplate]
   )
+
+  const handleImportDefaults = useCallback(() => {
+    importDefaults({ eventId: event.id })
+  }, [importDefaults, event.id])
 
   // Filter templates
   const filteredTemplates = (templates as EmailTemplate[] | undefined)?.filter((template) => {
@@ -220,6 +236,12 @@ export function EventEmailsTab({ event, workspaceSlug }: EventEmailsTabProps) {
         </Card>
       </Collapsible>
 
+      {/* Document Library - Collapsible */}
+      <DocumentLibrary
+        eventId={event.id}
+        categories={event.guestCategories}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -227,12 +249,23 @@ export function EventEmailsTab({ event, workspaceSlug }: EventEmailsTabProps) {
           <p className="text-muted-foreground text-sm">{t("description")}</p>
         </div>
         {canManageTemplates && (
-          <Button asChild>
-            <Link href={addTemplateHref}>
-              <Icons.plus className="mr-2 h-4 w-4" />
-              {t("create")}
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleImportDefaults}
+              disabled={isImporting}
+            >
+              {isImporting && <Icons.loader className="mr-2 h-4 w-4 animate-spin" />}
+              <Icons.download className="mr-2 h-4 w-4" />
+              {t("importDefaults")}
+            </Button>
+            <Button asChild>
+              <Link href={addTemplateHref}>
+                <Icons.plus className="mr-2 h-4 w-4" />
+                {t("create")}
+              </Link>
+            </Button>
+          </div>
         )}
       </div>
 

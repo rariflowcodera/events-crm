@@ -1,5 +1,5 @@
 import { getDocsNavTree } from "@/lib/docs"
-import { DocsNavigation } from "@/components/docs"
+import { DocsNavigation, DocsExportButton } from "@/components/docs"
 
 interface DocsLayoutProps {
   children: React.ReactNode
@@ -18,7 +18,15 @@ export default async function DocsLayout({ children, params }: DocsLayoutProps) 
       </aside>
 
       {/* Main content area */}
-      <main className="flex-1 overflow-auto">{children}</main>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Docs Header with Export Button */}
+        <div className="flex shrink-0 items-center justify-end border-b px-4 py-2">
+          <DocsExportButton />
+        </div>
+
+        {/* Content */}
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
     </div>
   )
 }

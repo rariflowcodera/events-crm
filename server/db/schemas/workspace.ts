@@ -24,6 +24,28 @@ export type WorkspaceEmailSettings = {
   fromName?: string // Sender display name (e.g., "Company Events Team")
 }
 
+// ============================================================================
+// Workspace Navigation Settings Type
+// ============================================================================
+
+export type NavigationSettings = {
+  eventNav?: {
+    overview?: string[] // Roles that can see this item (e.g., ["owner", "admin", "manager", "member"])
+    guests?: string[]
+    categories?: string[]
+    forms?: string[]
+    branding?: string[]
+    emails?: string[]
+    reports?: string[]
+    settings?: string[]
+  }
+  workspaceNav?: {
+    dashboard?: string[]
+    docs?: string[]
+    settings?: string[]
+  }
+}
+
 export const workspaces = pgTable(
   "workspace",
   {
@@ -43,6 +65,7 @@ export const workspaces = pgTable(
 
     branding: json("branding").$type<WorkspaceBranding>(),
     emailSettings: json("email_settings").$type<WorkspaceEmailSettings>(),
+    navigationSettings: json("navigation_settings").$type<NavigationSettings>(),
 
     createdAt: timestamp("created_at", { mode: "date" })
       .notNull()

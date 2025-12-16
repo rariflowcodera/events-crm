@@ -17,6 +17,7 @@ export const emailTemplateTypeEnum = pgEnum("email_template_type", [
   "reminder",
   "confirmation",
   "declined_acknowledgment",
+  "maybe_acknowledgment",
   "update",
   "cancellation",
   "custom",

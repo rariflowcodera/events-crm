@@ -103,6 +103,7 @@ export function BulkSendEmailDialog({
     reminder: t("types.reminder"),
     confirmation: t("types.confirmation"),
     declined_acknowledgment: t("types.declined"),
+    maybe_acknowledgment: t("types.maybe_acknowledgment"),
     update: t("types.update"),
     cancellation: t("types.cancellation"),
     custom: t("types.custom"),

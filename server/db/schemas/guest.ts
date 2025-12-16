@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core"
 import { events } from "./event"
 import { guestCategories } from "./guest-category"
+import { users } from "./user"
 
 export const guestStatusEnum = pgEnum("guest_status", [
   "pending",
@@ -92,6 +93,9 @@ export const guests = pgTable(
     customFields: json("custom_fields").$type<Record<string, unknown>>(),
     internalNotes: text("internal_notes"),
 
+    // Profile
+    profileImage: text("profile_image"),
+
     // Import tracking
     importBatchId: text("import_batch_id"),
     externalId: text("external_id"),
@@ -100,6 +104,12 @@ export const guests = pgTable(
     lastEmailSentAt: timestamp("last_email_sent_at", { mode: "date" }),
     lastEmailOpenedAt: timestamp("last_email_opened_at", { mode: "date" }),
     lastRsvpPageVisitAt: timestamp("last_rsvp_page_visit_at", { mode: "date" }),
+
+    // Check-in tracking
+    checkedInAt: timestamp("checked_in_at", { mode: "date" }),
+    checkedInBy: text("checked_in_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
 
     createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
@@ -112,6 +122,7 @@ export const guests = pgTable(
     index("guest_status_idx").on(table.eventId, table.status),
     index("guest_rsvp_token_idx").on(table.rsvpToken),
     index("guest_email_idx").on(table.eventId, table.email),
+    index("guest_checked_in_idx").on(table.eventId, table.checkedInAt),
   ]
 )
 
@@ -123,5 +134,9 @@ export const guestsRelations = relations(guests, ({ one }) => ({
   category: one(guestCategories, {
     fields: [guests.categoryId],
     references: [guestCategories.id],
+  }),
+  checkedInByUser: one(users, {
+    fields: [guests.checkedInBy],
+    references: [users.id],
   }),
 }))

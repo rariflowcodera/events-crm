@@ -6,6 +6,7 @@ import {
   emailLogs,
   emailSuppressions,
   emailTemplates,
+  eventDocuments,
   events,
   guests,
 } from "@/server/db/schemas"
@@ -123,7 +124,7 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
   console.log(`Processing single email job for guest ${guestId}`)
 
   // Fetch all required data in parallel
-  const [guest, template, event] = await Promise.all([
+  const [guest, template, event, documents] = await Promise.all([
     db.query.guests.findFirst({
       where: eq(guests.id, guestId),
       with: {
@@ -137,6 +138,9 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
     }),
     db.query.events.findFirst({
       where: eq(events.id, eventId),
+    }),
+    db.query.eventDocuments.findMany({
+      where: eq(eventDocuments.eventId, eventId),
     }),
   ])
 
@@ -225,8 +229,8 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
     .returning()
 
   try {
-    // Render template with variables
-    const rendered = renderEmailTemplate(template, guest, event, language)
+    // Render template with variables (including document links)
+    const rendered = renderEmailTemplate(template, guest, event, language, documents)
 
     // Update email log with rendered subject
     await db

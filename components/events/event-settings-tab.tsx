@@ -59,6 +59,7 @@ interface Event {
     maxPlusOnes?: number
     requireApproval?: boolean
     sendReminders?: boolean
+    autoAcknowledgementEmails?: boolean
     emailSettings?: {
       fromEmail?: string
       fromName?: string
@@ -100,6 +101,7 @@ const eventSettingsSchema = z.object({
     maxPlusOnes: z.number().optional(),
     requireApproval: z.boolean().optional(),
     sendReminders: z.boolean().optional(),
+    autoAcknowledgementEmails: z.boolean().optional(),
   }).optional(),
 })
 
@@ -140,6 +142,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
         maxPlusOnes: event.settings?.maxPlusOnes ?? 1,
         requireApproval: event.settings?.requireApproval ?? false,
         sendReminders: event.settings?.sendReminders ?? true,
+        autoAcknowledgementEmails: event.settings?.autoAcknowledgementEmails ?? true,
       },
     },
   })
@@ -522,6 +525,28 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                     <FormLabel className="text-base">Send Reminders</FormLabel>
                     <FormDescription>
                       Automatically send reminder emails to pending guests
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isDisabled}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="settings.autoAcknowledgementEmails"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">{t("settings.autoAcknowledgementEmails")}</FormLabel>
+                    <FormDescription>
+                      {t("settings.autoAcknowledgementEmailsDescription")}
                     </FormDescription>
                   </div>
                   <FormControl>

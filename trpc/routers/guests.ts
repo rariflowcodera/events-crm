@@ -9,7 +9,7 @@ import {
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import { TRPCError } from "@trpc/server"
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm"
+import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm"
 import { z } from "zod"
 
 const guestStatusValues = [
@@ -32,9 +32,29 @@ export const guestsRouter = createTRPCRouter({
     .input(
       z.object({
         eventId: z.string().uuid(),
+        // Legacy single-value filters (for backwards compatibility)
         status: z.enum(guestStatusValues).optional(),
         categoryId: z.string().uuid().optional(),
         search: z.string().optional(),
+        // New multi-value filters (from view config)
+        filters: z
+          .object({
+            status: z.array(z.string()).optional(),
+            categoryIds: z.array(z.string()).optional(),
+            countries: z.array(z.string()).optional(),
+            search: z.string().optional(),
+            tags: z.array(z.string()).optional(),
+          })
+          .optional(),
+        // Sorting configuration
+        sorting: z
+          .array(
+            z.object({
+              column: z.string(),
+              direction: z.enum(["asc", "desc"]),
+            })
+          )
+          .optional(),
         limit: z.number().min(1).max(100).default(50),
         offset: z.number().min(0).default(0),
       })
@@ -65,25 +85,104 @@ export const guestsRouter = createTRPCRouter({
       // Build query conditions
       const conditions = [eq(guests.eventId, input.eventId)]
 
-      if (input.status) {
+      // Handle filters - prefer new filters object over legacy params
+      const filters = input.filters
+
+      // Status filter (array or single value)
+      if (filters?.status && filters.status.length > 0) {
+        conditions.push(inArray(guests.status, filters.status as typeof guestStatusValues[number][]))
+      } else if (input.status) {
         conditions.push(eq(guests.status, input.status))
       }
 
-      if (input.categoryId) {
+      // Category filter (array or single value)
+      if (filters?.categoryIds && filters.categoryIds.length > 0) {
+        conditions.push(inArray(guests.categoryId, filters.categoryIds))
+      } else if (input.categoryId) {
         conditions.push(eq(guests.categoryId, input.categoryId))
       }
 
-      if (input.search) {
-        const searchTerm = `%${input.search}%`
+      // Country filter (array)
+      if (filters?.countries && filters.countries.length > 0) {
+        conditions.push(inArray(guests.country, filters.countries))
+      }
+
+      // Tags filter (array - check if guest has any of the specified tags)
+      if (filters?.tags && filters.tags.length > 0) {
+        // Use SQL array overlap operator to check if any tags match
+        conditions.push(
+          sql`${guests.tags} && ARRAY[${sql.join(filters.tags.map(t => sql`${t}`), sql`, `)}]::text[]`
+        )
+      }
+
+      // Search filter (from filters object or legacy param)
+      const searchTerm = filters?.search || input.search
+      if (searchTerm) {
+        const term = `%${searchTerm}%`
         conditions.push(
           or(
-            ilike(guests.firstName, searchTerm),
-            ilike(guests.lastName, searchTerm),
-            ilike(guests.email, searchTerm),
-            ilike(guests.entity, searchTerm),
-            ilike(guests.position, searchTerm)
+            ilike(guests.firstName, term),
+            ilike(guests.lastName, term),
+            ilike(guests.email, term),
+            ilike(guests.entity, term),
+            ilike(guests.position, term)
           )!
         )
+      }
+
+      // Build order by from sorting config
+      const orderByConfig = input.sorting?.length ? input.sorting : [{ column: "createdAt", direction: "desc" as const }]
+
+      // Build orderBy expressions
+      const getOrderBy = (columnName: string, direction: "asc" | "desc") => {
+        const sortFn = direction === "asc" ? asc : desc
+        switch (columnName) {
+          case "firstName":
+            return sortFn(guests.firstName)
+          case "lastName":
+          case "fullName": // Sort by lastName for fullName
+            return sortFn(guests.lastName)
+          case "email":
+            return sortFn(guests.email)
+          case "entity":
+            return sortFn(guests.entity)
+          case "position":
+            return sortFn(guests.position)
+          case "department":
+            return sortFn(guests.department)
+          case "country":
+            return sortFn(guests.country)
+          case "status":
+            return sortFn(guests.status)
+          case "category":
+            return sortFn(guests.categoryId)
+          case "createdAt":
+            return sortFn(guests.createdAt)
+          case "rsvpRespondedAt":
+            return sortFn(guests.rsvpRespondedAt)
+          case "hasCompanion":
+            return sortFn(guests.hasCompanion)
+          case "lastEmailSentAt":
+            return sortFn(guests.lastEmailSentAt)
+          case "lastEmailOpenedAt":
+            return sortFn(guests.lastEmailOpenedAt)
+          case "lastRsvpPageVisitAt":
+            return sortFn(guests.lastRsvpPageVisitAt)
+          case "checkedIn":
+          case "checkedInAt":
+            return sortFn(guests.checkedInAt)
+          default:
+            return null
+        }
+      }
+
+      const orderByExpressions = orderByConfig
+        .map((sort) => getOrderBy(sort.column, sort.direction))
+        .filter((expr): expr is NonNullable<typeof expr> => expr !== null)
+
+      // Default to createdAt desc if no valid sort columns
+      if (orderByExpressions.length === 0) {
+        orderByExpressions.push(desc(guests.createdAt))
       }
 
       const guestList = await db.query.guests.findMany({
@@ -92,8 +191,11 @@ export const guestsRouter = createTRPCRouter({
           category: {
             columns: { id: true, name: true, code: true, color: true },
           },
+          checkedInByUser: {
+            columns: { id: true, name: true, email: true },
+          },
         },
-        orderBy: [desc(guests.createdAt)],
+        orderBy: orderByExpressions,
         limit: input.limit,
         offset: input.offset,
       })
@@ -176,6 +278,7 @@ export const guestsRouter = createTRPCRouter({
         customFields: z.record(z.unknown()).optional(),
         externalId: z.string().optional(),
         country: z.string().optional(),
+        profileImage: z.string().url().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -264,6 +367,7 @@ export const guestsRouter = createTRPCRouter({
           .nullable()
           .optional(),
         country: z.string().nullable().optional(),
+        profileImage: z.string().url().nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -447,11 +551,82 @@ export const guestsRouter = createTRPCRouter({
         .from(guests)
         .where(eq(guests.eventId, input.eventId))
 
+      // Check-in stats
+      const [checkInStats] = await db
+        .select({
+          checkedIn: sql<number>`count(*) FILTER (WHERE ${guests.checkedInAt} IS NOT NULL)::int`,
+          notCheckedIn: sql<number>`count(*) FILTER (WHERE ${guests.checkedInAt} IS NULL AND ${guests.status} IN ('confirmed', 'maybe', 'reminded', 'viewed', 'invited'))::int`,
+        })
+        .from(guests)
+        .where(eq(guests.eventId, input.eventId))
+
       return {
         byStatus: statusStats,
         byCategory: categoryStats,
         total,
+        checkIn: {
+          checkedIn: checkInStats.checkedIn,
+          notCheckedIn: checkInStats.notCheckedIn,
+        },
       }
+    }),
+
+  // Get guest statistics by category and status (for dashboard chart)
+  getStatsByCategoryAndStatus: protectedProcedure
+    .input(z.object({ eventId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, input.eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      const canView = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.VIEW_GUESTS,
+      })
+
+      if (!canView) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to view guests",
+        })
+      }
+
+      // Query: group by categoryId and status, count guests
+      const results = await db
+        .select({
+          categoryId: guests.categoryId,
+          status: guests.status,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(guests)
+        .where(eq(guests.eventId, input.eventId))
+        .groupBy(guests.categoryId, guests.status)
+
+      // Get category info ordered by sortOrder
+      const categories = await db.query.guestCategories.findMany({
+        where: eq(guestCategories.eventId, input.eventId),
+        orderBy: [guestCategories.sortOrder],
+      })
+
+      // Transform to matrix format for the chart
+      return categories.map((cat) => {
+        const catResults = results.filter((r) => r.categoryId === cat.id)
+        return {
+          categoryId: cat.id,
+          categoryName: cat.name,
+          categoryColor: cat.color || "#6366f1",
+          confirmed: catResults.find((r) => r.status === "confirmed")?.count ?? 0,
+          pending: catResults.find((r) => r.status === "pending")?.count ?? 0,
+          maybe: catResults.find((r) => r.status === "maybe")?.count ?? 0,
+          declined: catResults.find((r) => r.status === "declined")?.count ?? 0,
+          total: catResults.reduce((sum, r) => sum + r.count, 0),
+        }
+      })
     }),
 
   // Regenerate RSVP token for a guest
@@ -596,6 +771,112 @@ export const guestsRouter = createTRPCRouter({
           and(
             eq(guests.eventId, input.eventId),
             sql`${guests.id} = ANY(${input.guestIds})`
+          )
+        )
+        .returning({ id: guests.id })
+
+      return { updatedCount: updated.length }
+    }),
+
+  // Check in a single guest
+  checkIn: protectedProcedure
+    .input(
+      z.object({
+        guestId: z.string().uuid(),
+        checkIn: z.boolean(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const guest = await db.query.guests.findFirst({
+        where: eq(guests.id, input.guestId),
+        with: { event: true },
+      })
+
+      if (!guest) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Guest not found" })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: guest.event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_GUESTS,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to check in guests",
+        })
+      }
+
+      // Only allow check-in for certain statuses
+      const allowedStatuses = ["confirmed", "maybe", "reminded", "viewed", "invited"]
+      if (!allowedStatuses.includes(guest.status)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Cannot check in guest with status "${guest.status}"`,
+        })
+      }
+
+      const [updated] = await db
+        .update(guests)
+        .set({
+          checkedInAt: input.checkIn ? new Date() : null,
+          checkedInBy: input.checkIn ? ctx.user.id : null,
+          updatedAt: new Date(),
+        })
+        .where(eq(guests.id, input.guestId))
+        .returning()
+
+      return updated
+    }),
+
+  // Bulk check in guests
+  bulkCheckIn: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        guestIds: z.array(z.string().uuid()).min(1).max(100),
+        checkIn: z.boolean(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, input.eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_GUESTS,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to check in guests",
+        })
+      }
+
+      // Only update guests with allowed statuses
+      const allowedStatuses = ["confirmed", "maybe", "reminded", "viewed", "invited"]
+
+      const updated = await db
+        .update(guests)
+        .set({
+          checkedInAt: input.checkIn ? new Date() : null,
+          checkedInBy: input.checkIn ? ctx.user.id : null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(guests.eventId, input.eventId),
+            inArray(guests.id, input.guestIds),
+            inArray(guests.status, allowedStatuses as typeof guestStatusValues[number][])
           )
         )
         .returning({ id: guests.id })

@@ -372,6 +372,7 @@ export const emailTemplateTypeValues = [
   "reminder",
   "confirmation",
   "declined_acknowledgment",
+  "maybe_acknowledgment",
   "update",
   "cancellation",
   "custom",

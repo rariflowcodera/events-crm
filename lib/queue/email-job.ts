@@ -11,6 +11,7 @@ interface Guest {
   position: string | null
   entity: string | null
   rsvpToken: string
+  categoryId?: string | null
   category?: {
     name: string
     code: string
@@ -28,6 +29,13 @@ interface Event {
   rsvpDeadline: Date | null
   customDomain: string | null
   customDomainVerified: boolean | null
+}
+
+interface EventDocument {
+  id: string
+  name: string
+  url: string
+  categoryIds: string[] | null
 }
 
 interface Template {
@@ -55,7 +63,8 @@ export function renderEmailTemplate(
   template: Template,
   guest: Guest,
   event: Event,
-  language: "en" | "ar" = "en"
+  language: "en" | "ar" = "en",
+  documents: EventDocument[] = []
 ): RenderResult {
   // Get content for the specified language, fallback to English
   // Arabic content has optional fields, so we only use it if subject and htmlContent exist
@@ -118,9 +127,86 @@ export function renderEmailTemplate(
   }
 
   // Replace variables in content
-  const renderedSubject = replaceVariables(subject, variables)
-  const html = replaceVariables(htmlContent, variables)
-  const text = textContent ? replaceVariables(textContent, variables) : undefined
+  let renderedSubject = replaceVariables(subject, variables)
+  let html = replaceVariables(htmlContent, variables)
+  let text = textContent ? replaceVariables(textContent, variables) : undefined
+
+  // Replace document variables
+  // Filter documents visible to this guest's category
+  const visibleDocs = documents.filter(
+    (doc) =>
+      !doc.categoryIds ||
+      doc.categoryIds.length === 0 ||
+      (guest.categoryId && doc.categoryIds.includes(guest.categoryId))
+  )
+
+  // Determine base URL for document links (use custom domain if available)
+  const documentBaseUrl =
+    event.customDomain && event.customDomainVerified
+      ? `https://${event.customDomain}`
+      : process.env.NEXT_PUBLIC_APP_URL || ""
+
+  for (const doc of visibleDocs) {
+    // Use branded /d/{id} URL instead of direct S3 URL
+    const brandedUrl = `${documentBaseUrl}/d/${doc.id}`
+
+    // Pattern 1: {{documentUrl.UUID}} - URL only
+    const urlOnlyPattern = new RegExp(`\\{\\{documentUrl\\.${doc.id}\\}\\}`, "g")
+    html = html.replace(urlOnlyPattern, brandedUrl)
+    if (text) {
+      text = text.replace(urlOnlyPattern, brandedUrl)
+    }
+    renderedSubject = renderedSubject.replace(urlOnlyPattern, brandedUrl)
+
+    // Pattern 2: {{document.UUID|Custom Text}} - link with custom display text
+    const customTextPattern = new RegExp(`\\{\\{document\\.${doc.id}\\|([^}]+)\\}\\}`, "g")
+    html = html.replace(customTextPattern, (_, customText) => {
+      return `<a href="${brandedUrl}">${customText.trim()}</a>`
+    })
+    if (text) {
+      text = text.replace(customTextPattern, (_, customText) => {
+        return `${customText.trim()}: ${brandedUrl}`
+      })
+    }
+    // Subject: just the custom text (links don't work in subjects)
+    renderedSubject = renderedSubject.replace(customTextPattern, (_, customText) => {
+      return customText.trim()
+    })
+
+    // Pattern 3: {{document.UUID}} - link with document name (no custom text)
+    const defaultPattern = new RegExp(`\\{\\{document\\.${doc.id}\\}\\}`, "g")
+    html = html.replace(defaultPattern, `<a href="${brandedUrl}">${doc.name}</a>`)
+    if (text) {
+      text = text.replace(defaultPattern, `${doc.name}: ${brandedUrl}`)
+    }
+    // Subject: just the name (links don't work in subjects)
+    renderedSubject = renderedSubject.replace(defaultPattern, doc.name)
+  }
+
+  // Handle missing/deleted documents gracefully
+  // First handle documentUrl patterns
+  const missingDocUrlPattern = /\{\{documentUrl\.[a-f0-9-]+\}\}/g
+  html = html.replace(missingDocUrlPattern, "[Document unavailable]")
+  if (text) {
+    text = text.replace(missingDocUrlPattern, "[Document unavailable]")
+  }
+  renderedSubject = renderedSubject.replace(missingDocUrlPattern, "")
+
+  // Then handle document patterns with custom text
+  const missingDocWithTextPattern = /\{\{document\.[a-f0-9-]+\|[^}]+\}\}/g
+  html = html.replace(missingDocWithTextPattern, "[Document unavailable]")
+  if (text) {
+    text = text.replace(missingDocWithTextPattern, "[Document unavailable]")
+  }
+  renderedSubject = renderedSubject.replace(missingDocWithTextPattern, "")
+
+  // Finally handle basic document patterns
+  const missingDocPattern = /\{\{document\.[a-f0-9-]+\}\}/g
+  html = html.replace(missingDocPattern, "[Document unavailable]")
+  if (text) {
+    text = text.replace(missingDocPattern, "[Document unavailable]")
+  }
+  renderedSubject = renderedSubject.replace(missingDocPattern, "")
 
   // Build from address
   let from: string | undefined

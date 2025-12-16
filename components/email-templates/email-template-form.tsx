@@ -12,6 +12,7 @@ import {
   useCreateEmailTemplate,
   useUpdateEmailTemplate,
 } from "@/trpc/hooks/email-hooks"
+import { useEventDocuments } from "@/trpc/hooks/document-hooks"
 import { bilingualEmailContentSchema, emailTemplateTypeValues } from "@/lib/schemas"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,6 +40,7 @@ import { Icons } from "@/components/global/icons"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmailTemplateEditor, type EditorHandle } from "@/components/email-templates/email-template-editor"
 import { VariableInserter } from "@/components/email-templates/variable-inserter"
+import { DocumentInserter } from "@/components/email-templates/document-inserter"
 
 interface GuestCategory {
   id: string
@@ -97,6 +99,9 @@ export function EmailTemplateForm({
 
   // Fetch template if editing
   const { data: template, isLoading: isLoadingTemplate } = useEmailTemplate(templateId || "")
+
+  // Fetch documents for preview
+  const { data: documents } = useEventDocuments(eventId)
 
   // Mutations
   const { mutate: createTemplate, isPending: isCreating } = useCreateEmailTemplate({
@@ -215,11 +220,17 @@ export function EmailTemplateForm({
           ? form.getValues("content.en.textContent")
           : form.getValues("content.ar.textContent") || form.getValues("content.en.textContent"),
       lang: activeLanguage,
+      // Include documents for preview rendering
+      documents: documents?.map((doc) => ({
+        id: doc.id,
+        name: doc.name,
+        url: doc.url,
+      })) || [],
     }
 
     sessionStorage.setItem("emailPreviewData", JSON.stringify(previewData))
     router.push(`/${workspaceSlug}/events/${eventSlug}/email-preview`)
-  }, [activeLanguage, form, router, workspaceSlug, eventSlug])
+  }, [activeLanguage, form, router, workspaceSlug, eventSlug, documents])
 
   if (templateId && isLoadingTemplate) {
     return (
@@ -399,11 +410,18 @@ export function EmailTemplateForm({
                       <FormItem>
                         <div className="flex items-center justify-between">
                           <FormLabel>{t("fields.subject")}</FormLabel>
-                          <VariableInserter
-                            eventId={eventId}
-                            onInsert={handleInsertVariable}
-                            onFocus={() => setActiveField("subject")}
-                          />
+                          <div className="flex items-center gap-2">
+                            <DocumentInserter
+                              eventId={eventId}
+                              onInsert={handleInsertVariable}
+                              onFocus={() => setActiveField("subject")}
+                            />
+                            <VariableInserter
+                              eventId={eventId}
+                              onInsert={handleInsertVariable}
+                              onFocus={() => setActiveField("subject")}
+                            />
+                          </div>
                         </div>
                         <FormControl>
                           <Input
@@ -425,11 +443,18 @@ export function EmailTemplateForm({
                       <FormItem>
                         <div className="flex items-center justify-between">
                           <FormLabel>{t("fields.htmlContent")}</FormLabel>
-                          <VariableInserter
-                            eventId={eventId}
-                            onInsert={handleInsertVariable}
-                            onFocus={() => setActiveField("html")}
-                          />
+                          <div className="flex items-center gap-2">
+                            <DocumentInserter
+                              eventId={eventId}
+                              onInsert={handleInsertVariable}
+                              onFocus={() => setActiveField("html")}
+                            />
+                            <VariableInserter
+                              eventId={eventId}
+                              onInsert={handleInsertVariable}
+                              onFocus={() => setActiveField("html")}
+                            />
+                          </div>
                         </div>
                         <FormControl>
                           <EmailTemplateEditor
@@ -454,11 +479,18 @@ export function EmailTemplateForm({
                       <FormItem>
                         <div className="flex items-center justify-between">
                           <FormLabel>{t("fields.textContentOptional")}</FormLabel>
-                          <VariableInserter
-                            eventId={eventId}
-                            onInsert={handleInsertVariable}
-                            onFocus={() => setActiveField("text")}
-                          />
+                          <div className="flex items-center gap-2">
+                            <DocumentInserter
+                              eventId={eventId}
+                              onInsert={handleInsertVariable}
+                              onFocus={() => setActiveField("text")}
+                            />
+                            <VariableInserter
+                              eventId={eventId}
+                              onInsert={handleInsertVariable}
+                              onFocus={() => setActiveField("text")}
+                            />
+                          </div>
                         </div>
                         <FormControl>
                           <EmailTemplateEditor
@@ -486,11 +518,18 @@ export function EmailTemplateForm({
                       <FormItem>
                         <div className="flex items-center justify-between">
                           <FormLabel>{t("fields.subject")}</FormLabel>
-                          <VariableInserter
-                            eventId={eventId}
-                            onInsert={handleInsertVariable}
-                            onFocus={() => setActiveField("subject")}
-                          />
+                          <div className="flex items-center gap-2">
+                            <DocumentInserter
+                              eventId={eventId}
+                              onInsert={handleInsertVariable}
+                              onFocus={() => setActiveField("subject")}
+                            />
+                            <VariableInserter
+                              eventId={eventId}
+                              onInsert={handleInsertVariable}
+                              onFocus={() => setActiveField("subject")}
+                            />
+                          </div>
                         </div>
                         <FormControl>
                           <Input
@@ -514,11 +553,18 @@ export function EmailTemplateForm({
                       <FormItem>
                         <div className="flex items-center justify-between">
                           <FormLabel>{t("fields.htmlContent")}</FormLabel>
-                          <VariableInserter
-                            eventId={eventId}
-                            onInsert={handleInsertVariable}
-                            onFocus={() => setActiveField("html")}
-                          />
+                          <div className="flex items-center gap-2">
+                            <DocumentInserter
+                              eventId={eventId}
+                              onInsert={handleInsertVariable}
+                              onFocus={() => setActiveField("html")}
+                            />
+                            <VariableInserter
+                              eventId={eventId}
+                              onInsert={handleInsertVariable}
+                              onFocus={() => setActiveField("html")}
+                            />
+                          </div>
                         </div>
                         <FormControl>
                           <EmailTemplateEditor
@@ -544,11 +590,18 @@ export function EmailTemplateForm({
                       <FormItem>
                         <div className="flex items-center justify-between">
                           <FormLabel>{t("fields.textContentOptional")}</FormLabel>
-                          <VariableInserter
-                            eventId={eventId}
-                            onInsert={handleInsertVariable}
-                            onFocus={() => setActiveField("text")}
-                          />
+                          <div className="flex items-center gap-2">
+                            <DocumentInserter
+                              eventId={eventId}
+                              onInsert={handleInsertVariable}
+                              onFocus={() => setActiveField("text")}
+                            />
+                            <VariableInserter
+                              eventId={eventId}
+                              onInsert={handleInsertVariable}
+                              onFocus={() => setActiveField("text")}
+                            />
+                          </div>
                         </div>
                         <FormControl>
                           <EmailTemplateEditor

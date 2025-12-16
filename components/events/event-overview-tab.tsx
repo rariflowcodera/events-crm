@@ -2,15 +2,36 @@
 
 import { useTranslations } from "next-intl"
 import { format } from "date-fns"
+import { Users, TrendingUp, UserCheck } from "lucide-react"
 
-import { useGuestStats } from "@/trpc/hooks/guests-hooks"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import {
+  useGuestStats,
+  useGuestStatsByCategoryAndStatus,
+} from "@/trpc/hooks/guests-hooks"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Icons } from "@/components/global/icons"
+import { DashboardStatTile } from "./dashboard-stat-tile"
+import { EventCountdownTile } from "./event-countdown-tile"
+import { CategoryStatusChart } from "./category-status-chart"
+import { LocationPreviewPlaceholder } from "./location-preview-placeholder"
 
-type EventStatus = "draft" | "planning" | "invitations_sent" | "rsvp_open" | "rsvp_closed" | "in_progress" | "completed" | "cancelled"
+type EventStatus =
+  | "draft"
+  | "planning"
+  | "invitations_sent"
+  | "rsvp_open"
+  | "rsvp_closed"
+  | "in_progress"
+  | "completed"
+  | "cancelled"
 
 interface GuestCategory {
   id: string
@@ -40,191 +61,202 @@ interface EventOverviewTabProps {
   workspaceSlug: string
 }
 
-export function EventOverviewTab({ event, workspaceSlug }: EventOverviewTabProps) {
+export function EventOverviewTab({
+  event,
+  workspaceSlug,
+}: EventOverviewTabProps) {
   const t = useTranslations()
   const { data: stats, isLoading: statsLoading } = useGuestStats(event.id)
+  const { data: categoryStats, isLoading: categoryStatsLoading } =
+    useGuestStatsByCategoryAndStatus(event.id)
 
+  // Calculate metrics
   const totalGuests = stats?.total ?? 0
-  const confirmedGuests = stats?.byStatus?.find((s) => s.status === "confirmed")?.count ?? 0
-  const declinedGuests = stats?.byStatus?.find((s) => s.status === "declined")?.count ?? 0
-  const pendingGuests = stats?.byStatus?.find((s) => s.status === "pending")?.count ?? 0
-  const maybeGuests = stats?.byStatus?.find((s) => s.status === "maybe")?.count ?? 0
+  const confirmedGuests =
+    stats?.byStatus?.find((s) => s.status === "confirmed")?.count ?? 0
+  const declinedGuests =
+    stats?.byStatus?.find((s) => s.status === "declined")?.count ?? 0
+  const pendingGuests =
+    stats?.byStatus?.find((s) => s.status === "pending")?.count ?? 0
+  const maybeGuests =
+    stats?.byStatus?.find((s) => s.status === "maybe")?.count ?? 0
+  const attendedGuests =
+    stats?.byStatus?.find((s) => s.status === "attended")?.count ?? 0
 
-  const responseRate = totalGuests > 0
-    ? Math.round(((confirmedGuests + declinedGuests + maybeGuests) / totalGuests) * 100)
-    : 0
+  const responseRate =
+    totalGuests > 0
+      ? Math.round(
+          ((confirmedGuests + declinedGuests + maybeGuests) / totalGuests) * 100
+        )
+      : 0
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      {/* RSVP Stats Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">RSVP Response Rate</CardTitle>
-          <CardDescription>Track guest responses and attendance</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {statsLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-8 w-full" />
-              <div className="grid grid-cols-4 gap-2">
-                <Skeleton className="h-16" />
-                <Skeleton className="h-16" />
-                <Skeleton className="h-16" />
-                <Skeleton className="h-16" />
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">Response Rate</span>
-                  <span className="text-2xl font-bold">{responseRate}%</span>
+    <div className="space-y-6">
+      {/* ROW 1: Stat Tiles */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <DashboardStatTile
+          label={t("event.dashboard.totalInvited")}
+          value={totalGuests}
+          icon={Users}
+          isLoading={statsLoading}
+        />
+        <DashboardStatTile
+          label={t("event.dashboard.responseRate")}
+          value={`${responseRate}%`}
+          icon={TrendingUp}
+          variant={
+            responseRate >= 50
+              ? "success"
+              : responseRate > 0
+                ? "warning"
+                : "default"
+          }
+          isLoading={statsLoading}
+        />
+        <DashboardStatTile
+          label={t("event.dashboard.attended")}
+          value={attendedGuests}
+          icon={UserCheck}
+          variant={attendedGuests > 0 ? "success" : "muted"}
+          isLoading={statsLoading}
+        />
+        <EventCountdownTile
+          startDate={event.startDate}
+          endDate={event.endDate}
+          isLoading={false}
+        />
+      </div>
+
+      {/* ROW 2: Charts */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* RSVP Response Rate Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              {t("event.dashboard.rsvpBreakdown")}
+            </CardTitle>
+            <CardDescription>
+              {t("event.dashboard.rsvpBreakdownDescription")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {statsLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <div className="grid grid-cols-4 gap-2">
+                  <Skeleton className="h-16" />
+                  <Skeleton className="h-16" />
+                  <Skeleton className="h-16" />
+                  <Skeleton className="h-16" />
                 </div>
-                <Progress value={responseRate} className="h-3" />
-                <p className="text-muted-foreground text-xs">
-                  {confirmedGuests + declinedGuests + maybeGuests} of {totalGuests} guests have responded
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground text-sm">
+                      {t("event.dashboard.responseRate")}
+                    </span>
+                    <span className="text-2xl font-bold">{responseRate}%</span>
+                  </div>
+                  <Progress value={responseRate} className="h-3" />
+                  <p className="text-muted-foreground text-xs">
+                    {confirmedGuests + declinedGuests + maybeGuests} of{" "}
+                    {totalGuests} {t("event.dashboard.guestsResponded")}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2">
+                  <StatusCard
+                    label={t("event.dashboard.statusConfirmed")}
+                    count={confirmedGuests}
+                    color="bg-green-500"
+                    icon={Icons.check}
+                  />
+                  <StatusCard
+                    label={t("event.dashboard.statusPending")}
+                    count={pendingGuests}
+                    color="bg-yellow-500"
+                    icon={Icons.clock}
+                  />
+                  <StatusCard
+                    label={t("event.dashboard.statusMaybe")}
+                    count={maybeGuests}
+                    color="bg-blue-500"
+                    icon={Icons.helpCircle}
+                  />
+                  <StatusCard
+                    label={t("event.dashboard.statusDeclined")}
+                    count={declinedGuests}
+                    color="bg-red-500"
+                    icon={Icons.x}
+                  />
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Category Status Chart */}
+        <CategoryStatusChart
+          data={categoryStats || []}
+          isLoading={categoryStatsLoading}
+        />
+      </div>
+
+      {/* ROW 3: Details */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Event Details Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              {t("event.dashboard.eventDetails")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {event.description && (
+              <div>
+                <p className="text-muted-foreground text-sm font-medium">
+                  {t("event.fields.description")}
+                </p>
+                <p className="text-sm">{event.description}</p>
+              </div>
+            )}
+            {event.rsvpDeadline && (
+              <div>
+                <p className="text-muted-foreground text-sm font-medium">
+                  {t("event.fields.rsvpDeadline")}
+                </p>
+                <p className="text-sm">
+                  {format(new Date(event.rsvpDeadline), "MMMM d, yyyy")}
                 </p>
               </div>
-
-              <div className="grid grid-cols-4 gap-2">
-                <StatusCard
-                  label="Confirmed"
-                  count={confirmedGuests}
-                  color="bg-green-500"
-                  icon={Icons.check}
-                />
-                <StatusCard
-                  label="Pending"
-                  count={pendingGuests}
-                  color="bg-yellow-500"
-                  icon={Icons.clock}
-                />
-                <StatusCard
-                  label="Maybe"
-                  count={maybeGuests}
-                  color="bg-blue-500"
-                  icon={Icons.helpCircle}
-                />
-                <StatusCard
-                  label="Declined"
-                  count={declinedGuests}
-                  color="bg-red-500"
-                  icon={Icons.x}
-                />
+            )}
+            {event.maxGuests && (
+              <div>
+                <p className="text-muted-foreground text-sm font-medium">
+                  {t("event.fields.maxGuests")}
+                </p>
+                <p className="text-sm">
+                  {event.maxGuests} {t("event.dashboard.guests")}
+                </p>
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            )}
+            {!event.description && !event.rsvpDeadline && !event.maxGuests && (
+              <p className="text-muted-foreground text-sm italic">
+                {t("event.dashboard.noDetailsYet")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Quick Actions Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
-          <CardDescription>Common tasks for this event</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button variant="outline" className="w-full justify-start" disabled>
-            <Icons.mail className="mr-2 h-4 w-4" />
-            Send Reminders to Pending Guests
-          </Button>
-          <Button variant="outline" className="w-full justify-start" disabled>
-            <Icons.upload className="mr-2 h-4 w-4" />
-            Export Guest List
-          </Button>
-          <Button variant="outline" className="w-full justify-start" disabled>
-            <Icons.userPlus className="mr-2 h-4 w-4" />
-            Import Guests
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Event Details Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Event Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {event.description && (
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">Description</p>
-              <p className="text-sm">{event.description}</p>
-            </div>
-          )}
-          {event.venue && (
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">Venue</p>
-              <p className="text-sm">{event.venue}</p>
-              {event.venueAddress && (
-                <p className="text-muted-foreground text-xs">{event.venueAddress}</p>
-              )}
-            </div>
-          )}
-          {event.rsvpDeadline && (
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">RSVP Deadline</p>
-              <p className="text-sm">{format(new Date(event.rsvpDeadline), "MMMM d, yyyy")}</p>
-            </div>
-          )}
-          {event.maxGuests && (
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">Maximum Capacity</p>
-              <p className="text-sm">{event.maxGuests} guests</p>
-            </div>
-          )}
-          {!event.description && !event.venue && !event.rsvpDeadline && !event.maxGuests && (
-            <p className="text-muted-foreground text-sm italic">
-              No additional details added yet. Update in Settings tab.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Categories Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">By Category</CardTitle>
-          <CardDescription>Guest breakdown by category</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {statsLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : stats?.byCategory && stats.byCategory.length > 0 ? (
-            <div className="space-y-3">
-              {stats.byCategory.map((category) => (
-                <div
-                  key={category.categoryId}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{
-                        backgroundColor:
-                          event.guestCategories.find((c) => c.id === category.categoryId)?.color ||
-                          "#6366f1",
-                      }}
-                    />
-                    <span className="text-sm font-medium">{category.categoryName}</span>
-                  </div>
-                  <span className="text-muted-foreground text-sm">
-                    {category.count} guest{category.count !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-sm italic">
-              No guests added yet. Add categories and guests to see breakdown.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        {/* Location Card */}
+        <LocationPreviewPlaceholder
+          venue={event.venue}
+          venueAddress={event.venueAddress}
+        />
+      </div>
     </div>
   )
 }
@@ -242,7 +274,9 @@ function StatusCard({
 }) {
   return (
     <div className="rounded-lg border p-3 text-center">
-      <div className={`mx-auto mb-1 flex h-8 w-8 items-center justify-center rounded-full ${color}/10`}>
+      <div
+        className={`mx-auto mb-1 flex h-8 w-8 items-center justify-center rounded-full ${color}/10`}
+      >
         <Icon className={`h-4 w-4 ${color.replace("bg-", "text-")}`} />
       </div>
       <p className="text-lg font-semibold">{count}</p>

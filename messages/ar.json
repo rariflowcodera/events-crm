@@ -1,4 +1,12 @@
 {
+  "nav": {
+    "overview": "نظرة عامة",
+    "switchEvent": "تبديل الحدث",
+    "selectEvent": "اختر حدثاً",
+    "eventManagement": "إدارة الحدث",
+    "viewAllEvents": "عرض جميع الأحداث",
+    "backToWorkspace": "العودة إلى مساحة العمل"
+  },
   "common": {
     "loading": "جار التحميل...",
     "save": "حفظ",
@@ -97,6 +105,36 @@
       "endDate": "تاريخ النهاية",
       "rsvpDeadline": "موعد انتهاء التسجيل",
       "maxGuests": "الحد الأقصى للضيوف"
+    },
+    "settings": {
+      "autoAcknowledgementEmails": "إرسال رسائل تأكيد RSVP تلقائياً",
+      "autoAcknowledgementEmailsDescription": "إرسال رسائل تأكيد تلقائية عند رد الضيوف على نموذج RSVP"
+    },
+    "dashboard": {
+      "totalInvited": "إجمالي المدعوين",
+      "responseRate": "معدل الاستجابة",
+      "attended": "الحضور",
+      "countdown": "العد التنازلي",
+      "today": "اليوم",
+      "completed": "منتهي",
+      "daysUntil": "{days} يوم",
+      "guestsByCategory": "الضيوف حسب الفئة",
+      "guestsByCategoryDescription": "تفصيل حالة الرد حسب فئة الضيوف",
+      "noCategories": "لا توجد فئات بها ضيوف حتى الآن",
+      "rsvpBreakdown": "معدل الاستجابة للدعوات",
+      "rsvpBreakdownDescription": "تتبع ردود الضيوف والحضور",
+      "statusConfirmed": "مؤكد",
+      "statusPending": "قيد الانتظار",
+      "statusMaybe": "ربما",
+      "statusDeclined": "اعتذر",
+      "eventDetails": "تفاصيل الفعالية",
+      "noDetailsYet": "لم تتم إضافة تفاصيل إضافية بعد. يمكنك التحديث من تبويب الإعدادات.",
+      "location": "الموقع",
+      "mapComingSoon": "عرض الخريطة قريباً",
+      "mapComingSoonTooltip": "تكامل خرائط جوجل مخطط في تحديث مستقبلي",
+      "viewOnMap": "عرض على الخريطة",
+      "guestsResponded": "ضيف قد استجاب",
+      "guests": "ضيف"
     }
   },
   "categories": {
@@ -167,6 +205,17 @@
       "sendInvitations": "إرسال الدعوات",
       "sendEmail": "إرسال بريد",
       "delete": "حذف"
+    },
+    "checkIn": {
+      "title": "تسجيل الحضور",
+      "checkedIn": "تم التسجيل",
+      "notCheckedIn": "لم يتم التسجيل",
+      "checkInGuest": "تسجيل حضور الضيف",
+      "undoCheckIn": "إلغاء التسجيل",
+      "checkedInAt": "وقت التسجيل",
+      "checkedInBy": "تم التسجيل بواسطة",
+      "bulkCheckIn": "تسجيل حضور المحددين",
+      "bulkUndoCheckIn": "إلغاء تسجيل المحددين"
     }
   },
   "rsvp": {
@@ -238,9 +287,13 @@
     "noTemplates": "لا توجد قوالب بريد بعد",
     "noTemplatesDescription": "أنشئ قوالب للدعوات والتذكيرات والمزيد",
     "createFirst": "إنشاء القالب الأول",
+    "importDefaults": "استيراد الافتراضيات",
+    "importDefaultsSuccess": "تم إنشاء {created} قوالب ({skipped} موجودة بالفعل)",
+    "importDefaultsNone": "جميع القوالب الافتراضية موجودة بالفعل",
     "setAsDefault": "تعيين كافتراضي",
     "isDefault": "افتراضي",
     "insertVariable": "إدراج متغير",
+    "insertDocument": "إدراج مستند",
     "availableVariables": "المتغيرات المتاحة",
     "lastUpdated": "آخر تحديث",
     "templateDetails": "تفاصيل القالب",
@@ -267,6 +320,7 @@
       "reminder": "تذكير",
       "confirmation": "تأكيد",
       "declined_acknowledgment": "إقرار الاعتذار",
+      "maybe_acknowledgment": "إقرار التردد",
       "update": "تحديث",
       "cancellation": "إلغاء",
       "custom": "مخصص"
@@ -319,6 +373,7 @@
       "reminder": "تذكير",
       "confirmation": "تأكيد",
       "declined": "إقرار بالاعتذار",
+      "maybe_acknowledgment": "إقرار التردد",
       "update": "تحديث",
       "cancellation": "إلغاء",
       "custom": "مخصص"
@@ -680,5 +735,114 @@
     "sectionTextColor": "لون النص",
     "preview": "معاينة",
     "sampleSectionTitle": "السفر والخدمات اللوجستية"
+  },
+  "documents": {
+    "title": "مكتبة المستندات",
+    "description": "تحميل وإدارة مستندات الفعالية لقوالب البريد الإلكتروني",
+    "searchDocuments": "البحث في المستندات...",
+    "uploadButton": "تحميل مستند",
+    "noDocuments": "لا توجد مستندات حتى الآن",
+    "noDocumentsDescription": "قم بتحميل ملفات PDF وصور لتضمينها في قوالب البريد الإلكتروني",
+    "uploadFirst": "تحميل المستند الأول",
+    "name": "اسم المستند",
+    "type": "النوع",
+    "categories": "مرئي للفئات",
+    "allCategories": "جميع الفئات",
+    "fileSize": "حجم الملف",
+    "uploadedAt": "تاريخ التحميل",
+    "uploadedBy": "تم التحميل بواسطة",
+    "copyLink": "نسخ الرابط",
+    "linkCopied": "تم نسخ الرابط",
+    "delete": "حذف المستند",
+    "confirmDelete": "هل أنت متأكد من حذف هذا المستند؟",
+    "deleteWarning": "قوالب البريد الإلكتروني التي تستخدم هذا المستند ستظهر روابط معطلة.",
+    "types": {
+      "schedule": "جدول",
+      "map": "خريطة",
+      "policy": "سياسة",
+      "brochure": "كتيب",
+      "invitation": "دعوة",
+      "other": "أخرى"
+    },
+    "upload": {
+      "title": "تحميل مستند",
+      "dragDrop": "اسحب وأفلت أو انقر للتحميل",
+      "maxSize": "الحد الأقصى لحجم الملف: ١٠ ميجابايت",
+      "allowedTypes": "PDF، PNG، JPEG، GIF",
+      "uploading": "جاري التحميل...",
+      "success": "تم تحميل المستند بنجاح"
+    },
+    "edit": {
+      "title": "تعديل المستند",
+      "save": "حفظ التغييرات"
+    },
+    "errors": {
+      "fileTooLarge": "حجم الملف يتجاوز الحد المسموح ١٠ ميجابايت",
+      "invalidType": "يُسمح فقط بملفات PDF والصور",
+      "uploadFailed": "فشل تحميل المستند"
+    },
+    "insert": {
+      "configure": "تكوين رابط المستند",
+      "displayText": "نص العرض",
+      "displayTextPlaceholder": "اتركه فارغاً لاستخدام اسم المستند",
+      "insertAs": "إدراج كـ",
+      "linkWithText": "رابط مع نص",
+      "urlOnly": "الرابط فقط",
+      "insert": "إدراج",
+      "back": "رجوع"
+    }
+  },
+  "docs": {
+    "exportPdf": "تصدير PDF",
+    "exportPdfTooltip": "تصدير جميع الوثائق كملف PDF",
+    "exporting": "جارٍ التصدير...",
+    "loadingDocs": "جارٍ تحميل الوثائق...",
+    "preparingContent": "جارٍ تجهيز المحتوى...",
+    "processingPage": "جارٍ المعالجة: {title}",
+    "downloadComplete": "اكتمل التنزيل!",
+    "exportFailed": "فشل تصدير PDF",
+    "noDocsFound": "لم يتم العثور على وثائق للتصدير"
+  },
+  "views": {
+    "allGuests": "جميع الضيوف",
+    "savedViews": "العروض التشغيلية",
+    "saveView": "حفظ العرض",
+    "saveViewDescription": "حفظ إعدادات الأعمدة والتصفية الحالية كعرض مسمى.",
+    "manageViews": "إدارة العروض",
+    "columns": "الأعمدة",
+    "createView": "إنشاء عرض",
+    "viewName": "اسم العرض",
+    "viewNamePlaceholder": "مثال: كبار الشخصيات المؤكدين",
+    "color": "اللون",
+    "colorDescription": "اختر لوناً لتصنيف هذا العرض",
+    "visibleTo": "مرئي لـ",
+    "visibleToDescription": "حدد الأدوار التي يمكنها رؤية هذا العرض في الشريط الجانبي",
+    "pinToSidebar": "تثبيت في الشريط الجانبي",
+    "pinToSidebarDescription": "إظهار هذا العرض في قائمة الشريط الجانبي للوصول السريع",
+    "saving": "جارٍ الحفظ...",
+    "selectView": "اختر عرضاً",
+    "noViews": "لا توجد عروض محفوظة",
+    "colors": {
+      "gray": "افتراضي",
+      "blue": "تشغيلي",
+      "green": "إداري",
+      "orange": "في الموقع",
+      "purple": "كبار الشخصيات",
+      "red": "أولوية"
+    },
+    "roles": {
+      "owner": "المالك",
+      "admin": "المشرف",
+      "manager": "المدير",
+      "member": "العضو"
+    },
+    "columnGroups": {
+      "core": "المعلومات الأساسية",
+      "contact": "تفاصيل الاتصال",
+      "professional": "المعلومات المهنية",
+      "rsvp": "الرد والحالة",
+      "logistics": "اللوجستيات",
+      "metadata": "البيانات الوصفية"
+    }
   }
 }

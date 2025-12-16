@@ -2,13 +2,18 @@ import { trpc } from "@/trpc/client"
 import { toast } from "sonner"
 
 import { GLOBAL_ERROR_MESSAGE } from "@/lib/constants"
+import type { GuestListViewFilterConfig, GuestListViewSortConfig } from "@/lib/guest-columns"
 
 // Query hooks
 export const useGuests = (params: {
   eventId: string
+  // Legacy single-value filters
   status?: string
   categoryId?: string
   search?: string
+  // New view-based filters
+  filters?: GuestListViewFilterConfig
+  sorting?: GuestListViewSortConfig[]
   limit?: number
   offset?: number
 }) => {
@@ -21,6 +26,13 @@ export const useGuest = (guestId: string) => {
 
 export const useGuestStats = (eventId: string) => {
   return trpc.guests.getStats.useQuery({ eventId }, { enabled: !!eventId })
+}
+
+export const useGuestStatsByCategoryAndStatus = (eventId: string) => {
+  return trpc.guests.getStatsByCategoryAndStatus.useQuery(
+    { eventId },
+    { enabled: !!eventId }
+  )
 }
 
 export const useGuestsWithCategories = (params: {
@@ -220,6 +232,60 @@ export const useBulkCreateGuests = ({
   const { mutate, isPending } = trpc.guests.bulkCreate.useMutation({
     onSuccess: (data) => {
       toast.success(`${data.createdCount} guest(s) imported successfully`)
+      utils.guests.getMany.invalidate()
+      utils.guests.getStats.invalidate()
+      onSuccess?.(data)
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}
+
+export const useCheckInGuest = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: () => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.guests.checkIn.useMutation({
+    onSuccess: (data) => {
+      const message = data.checkedInAt
+        ? "Guest checked in successfully"
+        : "Check-in undone"
+      toast.success(message)
+      utils.guests.getOne.invalidate({ guestId: data.id })
+      utils.guests.getMany.invalidate({ eventId: data.eventId })
+      utils.guests.getStats.invalidate({ eventId: data.eventId })
+      onSuccess?.()
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}
+
+export const useBulkCheckInGuests = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (data: { updatedCount: number }) => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.guests.bulkCheckIn.useMutation({
+    onSuccess: (data) => {
+      toast.success(`${data.updatedCount} guest(s) checked in`)
       utils.guests.getMany.invalidate()
       utils.guests.getStats.invalidate()
       onSuccess?.(data)

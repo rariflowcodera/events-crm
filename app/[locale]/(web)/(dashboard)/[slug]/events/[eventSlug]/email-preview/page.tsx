@@ -48,12 +48,65 @@ function replaceVariables(content: string, data: PreviewData): string {
   })
 }
 
+// Document variable replacement function
+function replaceDocumentVariables(
+  content: string,
+  documents: DocumentData[],
+  isHtml: boolean
+): string {
+  // First handle {{documentUrl.UUID}} - URL only
+  let result = content.replace(/\{\{documentUrl\.([a-f0-9-]+)\}\}/gi, (match, docId) => {
+    const doc = documents.find((d) => d.id === docId)
+    if (!doc) return match // Keep original if document not found
+    return doc.url
+  })
+
+  // Then handle {{document.UUID|Custom Text}} - link with custom display text
+  result = result.replace(/\{\{document\.([a-f0-9-]+)\|([^}]+)\}\}/gi, (match, docId, customText) => {
+    const doc = documents.find((d) => d.id === docId)
+    if (!doc) return match // Keep original if document not found
+
+    const displayText = customText.trim()
+    if (isHtml) {
+      // HTML: render as clickable link with custom text
+      return `<a href="${doc.url}" target="_blank" rel="noopener noreferrer">${displayText}</a>`
+    } else {
+      // Plain text: show custom text and URL
+      return `${displayText}: ${doc.url}`
+    }
+  })
+
+  // Finally handle {{document.UUID}} - link with document name (no custom text)
+  result = result.replace(/\{\{document\.([a-f0-9-]+)\}\}/gi, (match, docId) => {
+    const doc = documents.find((d) => d.id === docId)
+    if (!doc) return match // Keep original if document not found
+
+    if (isHtml) {
+      // HTML: render as clickable link
+      return `<a href="${doc.url}" target="_blank" rel="noopener noreferrer">${doc.name}</a>`
+    } else {
+      // Plain text: show name and URL
+      return `${doc.name}: ${doc.url}`
+    }
+  })
+
+  return result
+}
+
+// Type for document data
+type DocumentData = {
+  id: string
+  name: string
+  url: string
+}
+
 // Type for sessionStorage preview data
 type EmailPreviewData = {
   subject: string
   html: string
   text: string
   lang: "en" | "ar"
+  documents?: DocumentData[]
 }
 
 export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
@@ -82,6 +135,7 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
   const htmlContent = templateData?.html || ""
   const textContent = templateData?.text || ""
   const language = templateData?.lang || "en"
+  const documents = templateData?.documents || []
 
   // State
   const [selectedGuestId, setSelectedGuestId] = useState<string>("")
@@ -148,19 +202,21 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
     return { guest: guestData, event: eventData, rsvp: rsvpData, category: categoryData }
   }, [selectedGuest, event])
 
-  // Render content with variables replaced
-  const renderedSubject = useMemo(
-    () => replaceVariables(subject, previewData),
-    [subject, previewData]
-  )
-  const renderedHtml = useMemo(
-    () => replaceVariables(htmlContent, previewData),
-    [htmlContent, previewData]
-  )
-  const renderedText = useMemo(
-    () => replaceVariables(textContent, previewData),
-    [textContent, previewData]
-  )
+  // Render content with variables replaced (first documents, then other variables)
+  const renderedSubject = useMemo(() => {
+    const withDocs = replaceDocumentVariables(subject, documents, false)
+    return replaceVariables(withDocs, previewData)
+  }, [subject, previewData, documents])
+
+  const renderedHtml = useMemo(() => {
+    const withDocs = replaceDocumentVariables(htmlContent, documents, true)
+    return replaceVariables(withDocs, previewData)
+  }, [htmlContent, previewData, documents])
+
+  const renderedText = useMemo(() => {
+    const withDocs = replaceDocumentVariables(textContent, documents, false)
+    return replaceVariables(withDocs, previewData)
+  }, [textContent, previewData, documents])
 
   const direction = language === "ar" ? "rtl" : "ltr"
   const isLoading = isLoadingEvent || isLoadingGuests || templateData === null

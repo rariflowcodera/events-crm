@@ -192,6 +192,7 @@ export const events = pgTable(
       sendReminders?: boolean
       reminderDays?: number[]
       emailSettings?: EventEmailSettings
+      autoAcknowledgementEmails?: boolean
     }>(),
 
     createdBy: text("created_by").references(() => users.id, {

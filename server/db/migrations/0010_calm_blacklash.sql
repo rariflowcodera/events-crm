@@ -1,0 +1,1 @@
+ALTER TABLE "guest" ADD COLUMN "profile_image" text;

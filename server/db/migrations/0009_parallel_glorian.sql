@@ -1,0 +1,1 @@
+ALTER TYPE "public"."email_template_type" ADD VALUE 'maybe_acknowledgment' BEFORE 'update';

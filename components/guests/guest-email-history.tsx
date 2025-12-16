@@ -157,7 +157,7 @@ export function GuestEmailStatusIndicator({
   }
 
   if (!logs || logs.length === 0) {
-    return <span className="text-xs text-muted-foreground">-</span>
+    return null
   }
 
   // Get the most recent email status

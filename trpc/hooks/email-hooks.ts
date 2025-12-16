@@ -152,6 +152,31 @@ export const useSetDefaultEmailTemplate = ({
   return { mutate, isPending }
 }
 
+// Import default templates for existing events
+export const useImportDefaultTemplates = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (data: { created: number; skipped: number }) => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.emailTemplates.importDefaults.useMutation({
+    onSuccess: (data, variables) => {
+      utils.emailTemplates.getMany.invalidate({ eventId: variables.eventId })
+      utils.emailTemplates.getDefaultTemplates.invalidate({ eventId: variables.eventId })
+      onSuccess?.(data)
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}
+
 // Email Logs - Query hooks
 type EmailStatus =
   | "pending"

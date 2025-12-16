@@ -1,9 +1,11 @@
 import { db } from "@/server/db/config/database"
-import { events, workspaces, workspaceMembers, users, guestCategories } from "@/server/db/schemas"
+import { events, workspaces, workspaceMembers, users, guestCategories, emailTemplates, guestListViews } from "@/server/db/schemas"
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
+import { DEFAULT_EMAIL_TEMPLATES } from "@/lib/email/default-templates"
+import { GUEST_COLUMNS, type GuestListViewConfig } from "@/lib/guest-columns"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import { TRPCError } from "@trpc/server"
-import { and, desc, eq, ne, getTableColumns } from "drizzle-orm"
+import { and, desc, eq, ne, getTableColumns, sql } from "drizzle-orm"
 import { z } from "zod"
 import { randomBytes } from "crypto"
 import dns from "dns/promises"
@@ -51,7 +53,7 @@ export const eventsRouter = createTRPCRouter({
 
       return db.query.events.findMany({
         where: eq(events.workspaceId, workspace.id),
-        orderBy: [desc(events.createdAt)],
+        orderBy: [sql`${events.startDate} ASC NULLS LAST`],
         with: {
           creator: {
             columns: { id: true, name: true, image: true },
@@ -228,6 +230,55 @@ export const eventsRouter = createTRPCRouter({
           createdBy: ctx.user.id,
         })
         .returning()
+
+      // Create default email templates for the new event
+      const templateInserts = DEFAULT_EMAIL_TEMPLATES.map((template) => ({
+        eventId: event.id,
+        name: template.name,
+        type: template.type,
+        content: template.content,
+        defaultLanguage: "en" as const,
+        isDefault: true,
+        isActive: true,
+        createdBy: ctx.user.id,
+      }))
+
+      await db.insert(emailTemplates).values(templateInserts)
+
+      // Create default Check-in view for the new event
+      const checkInViewConfig: GuestListViewConfig = {
+        columns: [
+          { id: "select", visible: true, width: 48 },
+          { id: "checkedIn", visible: true, width: 90 },
+          { id: "fullName", visible: true, width: 180 },
+          { id: "category", visible: true, width: 100 },
+          { id: "status", visible: true, width: 110 },
+          { id: "entity", visible: true, width: 150 },
+          { id: "checkedInAt", visible: true, width: 140 },
+          // Include all other columns as hidden
+          ...GUEST_COLUMNS
+            .filter(c => !["select", "checkedIn", "fullName", "category", "status", "entity", "checkedInAt", "actions"].includes(c.id))
+            .map(c => ({ id: c.id, visible: false, width: c.defaultWidth })),
+          { id: "actions", visible: true, width: 50 },
+        ],
+        filters: {
+          status: ["confirmed", "maybe", "reminded", "viewed", "invited"],
+        },
+        sorting: [{ column: "fullName", direction: "asc" }],
+      }
+
+      await db.insert(guestListViews).values({
+        eventId: event.id,
+        name: "Check-in",
+        description: "On-site check-in view for event day operations",
+        config: checkInViewConfig,
+        visibleToRoles: ["owner", "admin", "manager", "member"],
+        color: "orange",
+        isPinned: true,
+        pinOrder: 1,
+        isSystem: true,
+        createdBy: ctx.user.id,
+      })
 
       return event
     }),

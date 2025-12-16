@@ -96,6 +96,17 @@ function handleCustomDomain(
     return response
   }
 
+  // Handle document routes: /d/{documentId}
+  // These pass through to the route handler with custom domain header
+  const docMatch = pathname.match(/^\/d\/([a-zA-Z0-9-]+)\/?$/)
+
+  if (docMatch) {
+    // Pass through to document route handler with custom domain info
+    const response = NextResponse.next()
+    response.headers.set("x-custom-domain", host)
+    return response
+  }
+
   // Handle other paths that might be RSVP-related
   // e.g., /expired, /thank-you
   const staticPages = ["expired", "thank-you", "invalid"]
@@ -133,6 +144,11 @@ export default async function middleware(
     return handleCustomDomain(request, host, pathname)
   }
 
+  // Main app domain: handle /d/ document routes without locale prefix
+  if (pathname.match(/^\/d\/[a-zA-Z0-9-]+\/?$/)) {
+    return NextResponse.next()
+  }
+
   // Main app domain: use standard next-intl routing
   return intlMiddleware(request)
 }
@@ -143,5 +159,6 @@ export const config = {
   // - Next.js internals (/_next/...)
   // - Short form URLs (/f/...) - these bypass i18n to remain locale-agnostic
   // - Static files (files with extensions like .png, .jpg, etc.)
+  // Note: /d/ document routes are included so custom domains can set headers
   matcher: ["/((?!api|_next|f/|.*\\..*).*)"],
 }

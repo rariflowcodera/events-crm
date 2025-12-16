@@ -1,14 +1,37 @@
 "use client"
 
+import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
+import { Filter, X, Check, Search } from "lucide-react"
 
-import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import MultipleSelector, { Option } from "@/components/ui/multiselect"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { Icons } from "@/components/global/icons"
 import { usePermissions } from "@/hooks/use-permissions"
 import { PERMISSIONS } from "@/lib/permissions"
+import { ColumnPicker, SaveViewDialog, ViewSelector } from "@/components/guests/view-manager"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import type { GuestListViewConfig, GuestListViewColumnConfig } from "@/lib/guest-columns"
 
 type GuestStatus =
   | "pending"
@@ -39,6 +62,7 @@ interface CountryOption {
 }
 
 interface GuestsToolbarProps {
+  // Filter props
   searchQuery: string
   onSearchChange: (query: string) => void
   statusFilter: GuestStatus[]
@@ -49,15 +73,30 @@ interface GuestsToolbarProps {
   onCountryFilterChange: (countries: string[]) => void
   availableCountries: CountryOption[]
   categories: GuestCategory[]
+  // Core props
   selectedCount: number
   addGuestHref: string
   importHref: string
   onBulkAction: (action: BulkAction) => void
   onExport?: () => void
   workspaceSlug: string
+  // View management props
+  eventId: string
+  viewConfig?: GuestListViewConfig
+  onColumnsChange?: (columns: GuestListViewColumnConfig[]) => void
+  // New view management props
+  currentViewId?: string | null
+  hasUnsavedChanges?: boolean
+  onViewSelect?: (viewId: string | null) => void
+  onSaveView?: () => void
+  onSetDefault?: () => void
+  defaultViewId?: string
+  // Optional: guest count display
+  totalGuests?: number
+  filteredCount?: number
 }
 
-const statusOptions: Option[] = [
+const STATUS_OPTIONS: { value: GuestStatus; label: string }[] = [
   { value: "pending", label: "Pending" },
   { value: "invited", label: "Invited" },
   { value: "reminded", label: "Reminded" },
@@ -70,10 +109,6 @@ const statusOptions: Option[] = [
   { value: "attended", label: "Attended" },
   { value: "no_show", label: "No Show" },
 ]
-
-// Helper to convert status array to Option array
-const statusToOptions = (statuses: GuestStatus[]): Option[] =>
-  statuses.map((s) => statusOptions.find((o) => o.value === s)!).filter(Boolean)
 
 export function GuestsToolbar({
   searchQuery,
@@ -92,9 +127,22 @@ export function GuestsToolbar({
   onBulkAction,
   onExport,
   workspaceSlug,
+  eventId,
+  viewConfig,
+  onColumnsChange,
+  currentViewId,
+  hasUnsavedChanges = false,
+  onViewSelect,
+  onSaveView,
+  onSetDefault,
+  defaultViewId,
+  totalGuests,
+  filteredCount,
 }: GuestsToolbarProps) {
   const t = useTranslations("guest")
   const { can } = usePermissions(workspaceSlug)
+  const [showSaveViewDialog, setShowSaveViewDialog] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
 
   // Permission checks
   const canManageGuests = can(PERMISSIONS.MANAGE_GUESTS)
@@ -102,160 +150,348 @@ export function GuestsToolbar({
   const canDeleteGuests = can(PERMISSIONS.DELETE_GUESTS)
   const canSendEmails = can(PERMISSIONS.SEND_EMAILS)
 
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0
+    if (searchQuery) count++
+    if (statusFilter.length > 0) count++
+    if (categoryFilter.length > 0) count++
+    if (countryFilter.length > 0) count++
+    return count
+  }, [searchQuery, statusFilter, categoryFilter, countryFilter])
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    onSearchChange("")
+    onStatusFilterChange([])
+    onCategoryFilterChange([])
+    onCountryFilterChange([])
+  }
+
+  // Category options for filter
+  const categoryOptions = useMemo(
+    () =>
+      categories.map((cat) => ({
+        value: cat.id,
+        label: cat.name,
+        color: cat.color,
+      })),
+    [categories]
+  )
+
   return (
-    <div className="space-y-4">
-      {/* Top row: Search and Actions */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-xs">
-          <Icons.search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-          <Input
-            placeholder="Search guests..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex gap-2">
-          {onExport && (
-            <Button variant="outline" onClick={onExport}>
-              <Icons.download className="mr-2 h-4 w-4" />
-              {t("export")}
-            </Button>
-          )}
-          {canImportGuests && (
-            <Button variant="outline" asChild>
-              <Link href={importHref}>
-                <Icons.upload className="mr-2 h-4 w-4" />
-                {t("import.title")}
-              </Link>
-            </Button>
-          )}
-          {canManageGuests && (
-            <Button asChild>
-              <Link href={addGuestHref}>
-                <Icons.plus className="mr-2 h-4 w-4" />
-                {t("add")}
-              </Link>
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom row: Filters and Bulk Actions */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-row flex-wrap items-start gap-2">
-          <div className="w-[200px]">
-            <MultipleSelector
-              options={statusOptions}
-              value={statusToOptions(statusFilter)}
-              onChange={(options) =>
-                onStatusFilterChange(options.map((o) => o.value as GuestStatus))
-              }
-              placeholder="Filter by status"
-              hidePlaceholderWhenSelected
-              badgeClassName="bg-muted"
-            />
-          </div>
-
-          {categories.length > 0 && (
-            <div className="w-[200px]">
-              <MultipleSelector
-                options={categories.map((c) => ({
-                  value: c.id,
-                  label: `${c.name} (${c.code})`,
-                }))}
-                value={categoryFilter.map((id) => {
-                  const cat = categories.find((c) => c.id === id)
-                  return cat ? { value: cat.id, label: `${cat.name} (${cat.code})` } : null
-                }).filter(Boolean) as Option[]}
-                onChange={(options) =>
-                  onCategoryFilterChange(options.map((o) => o.value))
-                }
-                placeholder="Filter by category"
-                hidePlaceholderWhenSelected
-                badgeClassName="bg-muted"
-              />
-            </div>
-          )}
-
-          {availableCountries.length > 0 && (
-            <div className="w-[200px]">
-              <MultipleSelector
-                options={availableCountries.map((c) => ({
-                  value: c.code,
-                  label: c.name,
-                }))}
-                value={countryFilter.map((code) => {
-                  const country = availableCountries.find((c) => c.code === code)
-                  return country ? { value: country.code, label: country.name } : null
-                }).filter(Boolean) as Option[]}
-                onChange={(options) =>
-                  onCountryFilterChange(options.map((o) => o.value))
-                }
-                placeholder="Filter by country"
-                hidePlaceholderWhenSelected
-                badgeClassName="bg-muted"
-              />
-            </div>
-          )}
-
-          {(statusFilter.length > 0 || categoryFilter.length > 0 || countryFilter.length > 0 || searchQuery) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                onSearchChange("")
-                onStatusFilterChange([])
-                onCategoryFilterChange([])
-                onCountryFilterChange([])
-              }}
-              className="h-[38px]"
-            >
-              <Icons.x className="mr-2 h-4 w-4" />
-              Clear filters
-            </Button>
-          )}
-        </div>
-
-        {selectedCount > 0 && (
+    <div className="space-y-3">
+      {/* Command bar - styled zone */}
+      <div className="rounded-lg border bg-muted/30 px-3 py-2">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left zone: View selector + Filters + Columns */}
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-sm">
-              {selectedCount} selected
+            {/* View selector */}
+            {onViewSelect && (
+              <ViewSelector
+                eventId={eventId}
+                currentViewId={currentViewId}
+                hasUnsavedChanges={hasUnsavedChanges}
+                onViewSelect={onViewSelect}
+                onSaveView={onSaveView}
+                onCreateView={() => setShowSaveViewDialog(true)}
+                onSetDefault={onSetDefault}
+                defaultViewId={defaultViewId}
+              />
+            )}
+
+            {/* Filter toggle button */}
+            <Collapsible open={showFilters} onOpenChange={setShowFilters}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant={activeFilterCount > 0 ? "default" : "ghost"}
+                  size="sm"
+                >
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                    >
+                      {activeFilterCount}
+                    </Badge>
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+            </Collapsible>
+
+            {/* Column picker */}
+            {viewConfig && onColumnsChange && (
+              <ColumnPicker
+                columns={viewConfig.columns}
+                onColumnsChange={onColumnsChange}
+              />
+            )}
+
+            {/* Separator + Guest count */}
+            <div className="h-4 w-px bg-border" />
+            <span className="text-muted-foreground text-sm whitespace-nowrap">
+              {activeFilterCount > 0 && filteredCount !== undefined
+                ? `${filteredCount} filtered`
+                : totalGuests !== undefined
+                  ? `${totalGuests} guest${totalGuests !== 1 ? "s" : ""}`
+                  : null}
             </span>
-            {canSendEmails && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onBulkAction("send_invitation")}
-              >
-                <Icons.mail className="mr-2 h-4 w-4" />
-                {t("bulkActions.sendInvitations")}
+          </div>
+
+          {/* Center zone: Selection actions (only when items selected) */}
+          {selectedCount > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-primary/10 border border-primary/20">
+              <span className="text-sm font-medium whitespace-nowrap">
+                {selectedCount} selected
+              </span>
+              <div className="h-4 w-px bg-border" />
+              {canSendEmails && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7"
+                  onClick={() => onBulkAction("send_invitation")}
+                >
+                  <Icons.mail className="mr-1 h-4 w-4" />
+                  <span className="hidden lg:inline">Invite</span>
+                </Button>
+              )}
+              {canSendEmails && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7"
+                  onClick={() => onBulkAction("send_email")}
+                >
+                  <Icons.mail className="mr-1 h-4 w-4" />
+                  <span className="hidden lg:inline">Email</span>
+                </Button>
+              )}
+              {canDeleteGuests && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-destructive hover:text-destructive"
+                  onClick={() => onBulkAction("delete")}
+                >
+                  <Icons.trash className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Right zone: Primary actions */}
+          <div className="flex items-center gap-2">
+            {onExport && (
+              <Button variant="ghost" size="sm" onClick={onExport}>
+                <Icons.download className="mr-1 h-4 w-4" />
+                <span className="hidden sm:inline">{t("export")}</span>
               </Button>
             )}
-            {canSendEmails && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onBulkAction("send_email")}
-              >
-                <Icons.mail className="mr-2 h-4 w-4" />
-                {t("bulkActions.sendEmail")}
+            {canImportGuests && (
+              <Button variant="ghost" size="sm" asChild>
+                <Link href={importHref}>
+                  <Icons.upload className="mr-1 h-4 w-4" />
+                  <span className="hidden sm:inline">{t("import.title")}</span>
+                </Link>
               </Button>
             )}
-            {canDeleteGuests && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onBulkAction("delete")}
-                className="text-destructive hover:text-destructive"
-              >
-                <Icons.trash className="mr-2 h-4 w-4" />
-                {t("bulkActions.delete")}
+            {canManageGuests && (
+              <Button size="sm" asChild>
+                <Link href={addGuestHref}>
+                  <Icons.plus className="mr-1 h-4 w-4" />
+                  {t("add")}
+                </Link>
               </Button>
             )}
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Collapsible filter row */}
+      <Collapsible open={showFilters} onOpenChange={setShowFilters}>
+        <CollapsibleContent>
+          <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-3">
+            {/* Search input */}
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Search guests..."
+                className="pl-9 h-9"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0"
+                  onClick={() => onSearchChange("")}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+
+            {/* Status filter */}
+            <MultiSelectFilter
+              value={statusFilter}
+              onChange={onStatusFilterChange as (values: string[]) => void}
+              options={STATUS_OPTIONS}
+              placeholder="Status"
+              searchPlaceholder="Search status..."
+            />
+
+            {/* Category filter */}
+            {categoryOptions.length > 0 && (
+              <MultiSelectFilter
+                value={categoryFilter}
+                onChange={onCategoryFilterChange}
+                options={categoryOptions}
+                placeholder="Category"
+                searchPlaceholder="Search category..."
+              />
+            )}
+
+            {/* Country filter */}
+            {availableCountries.length > 0 && (
+              <MultiSelectFilter
+                value={countryFilter}
+                onChange={onCountryFilterChange}
+                options={availableCountries.map((c) => ({ value: c.code, label: c.name }))}
+                placeholder="Country"
+                searchPlaceholder="Search country..."
+              />
+            )}
+
+            {/* Clear all button */}
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+                Clear all
+                <X className="ml-1 h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Save View Dialog */}
+      {viewConfig && (
+        <SaveViewDialog
+          open={showSaveViewDialog}
+          onOpenChange={setShowSaveViewDialog}
+          eventId={eventId}
+          config={viewConfig}
+        />
+      )}
     </div>
+  )
+}
+
+// Multi-select filter component
+interface MultiSelectFilterProps {
+  value: string[]
+  onChange: (values: string[]) => void
+  options: { value: string; label: string; color?: string | null }[]
+  placeholder: string
+  searchPlaceholder?: string
+}
+
+function MultiSelectFilter({
+  value,
+  onChange,
+  options,
+  placeholder,
+  searchPlaceholder = "Search...",
+}: MultiSelectFilterProps) {
+  const [open, setOpen] = useState(false)
+  const selectedSet = useMemo(() => new Set(value), [value])
+
+  const handleToggle = (optionValue: string) => {
+    const newSet = new Set(selectedSet)
+    if (newSet.has(optionValue)) {
+      newSet.delete(optionValue)
+    } else {
+      newSet.add(optionValue)
+    }
+    onChange(Array.from(newSet))
+  }
+
+  const handleClear = () => {
+    onChange([])
+    setOpen(false)
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "h-9 min-w-[100px] justify-start",
+            value.length > 0 && "border-primary"
+          )}
+        >
+          <span className="truncate">
+            {value.length > 0 ? `${placeholder} (${value.length})` : placeholder}
+          </span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <Command>
+          <div className="flex items-center justify-between border-b px-3 py-2">
+            <span className="text-sm font-medium">{placeholder}</span>
+            {value.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={handleClear}
+              >
+                Clear
+                <X className="ml-1 h-3 w-3" />
+              </Button>
+            )}
+          </div>
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList>
+            <CommandEmpty>No options found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => {
+                const isSelected = selectedSet.has(option.value)
+                return (
+                  <CommandItem
+                    key={option.value}
+                    value={option.label}
+                    onSelect={() => handleToggle(option.value)}
+                  >
+                    <div
+                      className={cn(
+                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "opacity-50 [&_svg]:invisible"
+                      )}
+                    >
+                      <Check className="h-3 w-3" />
+                    </div>
+                    {option.color && (
+                      <div
+                        className="mr-2 h-3 w-3 rounded-full"
+                        style={{ backgroundColor: option.color }}
+                      />
+                    )}
+                    <span className="truncate">{option.label}</span>
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }
