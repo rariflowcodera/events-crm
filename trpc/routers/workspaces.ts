@@ -1,5 +1,5 @@
 import { db, dbClient } from "@/server/db/config/database"
-import { roles, users, workspaceMembers, workspaces } from "@/server/db/schemas"
+import { roles, users, workspaceMembers, workspaces, emailMasterTemplates } from "@/server/db/schemas"
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import { TRPCError } from "@trpc/server"
@@ -7,6 +7,10 @@ import { and, desc, eq, getTableColumns } from "drizzle-orm"
 import { z } from "zod"
 
 import { createRoute } from "@/lib/routes"
+import {
+  defaultMasterTemplate,
+  defaultMasterTemplateStructure,
+} from "@/lib/email/master-templates/default"
 import {
   createWorkspaceSchema,
   deleteWorkspaceSchema,
@@ -203,6 +207,18 @@ export const workspacesRouter = createTRPCRouter({
         roleId: ownerRole.id,
         userId: user.id,
         workspaceId: newWorkspace.id,
+      })
+
+      // Seed default master template for structured emails
+      await tx.insert(emailMasterTemplates).values({
+        workspaceId: newWorkspace.id,
+        name: "Default Email Template",
+        description: "Standard bilingual email template with logo, accent strip, and footer",
+        htmlTemplate: defaultMasterTemplate,
+        structure: defaultMasterTemplateStructure,
+        isDefault: true,
+        isActive: true,
+        createdBy: user.id,
       })
 
       return newWorkspace

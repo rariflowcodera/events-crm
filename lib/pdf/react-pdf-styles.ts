@@ -51,6 +51,7 @@ export const pdfStyles = StyleSheet.create({
   },
   listContent: {
     flex: 1,
+    lineHeight: 1.4,
   },
   code: {
     fontFamily: "Courier",

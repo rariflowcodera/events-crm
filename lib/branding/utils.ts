@@ -265,3 +265,120 @@ export function hasBrandingValues(
     (value) => typeof value === "string" && value.length > 0
   )
 }
+
+// ============================================================================
+// Email Branding Types and Utilities
+// ============================================================================
+
+import type { EmailBrandingConfig } from "@/server/db/schemas/workspace"
+
+/**
+ * Resolved email branding with all values populated (using defaults where needed).
+ */
+export type ResolvedEmailBranding = {
+  accentStripColor: string
+  accentStripHeight: "thin" | "medium" | "thick"
+  headingColor: string
+  bodyTextColor: string
+  ctaButtonColor: string
+  ctaButtonTextColor: string
+  contentBackgroundColor: string
+  ctaButtonStyle: "rounded" | "pill" | "square"
+  fontFamily: "noto-sans" | "inter" | "arial" | "georgia" | "system"
+  arabicFontFamily: "noto-sans" | "din-next" | "geeza" | "tahoma" | "system"
+  footerText?: string
+}
+
+/**
+ * Resolve email branding by merging event overrides with workspace defaults.
+ * Falls back to visual branding colors when email-specific colors are not set.
+ *
+ * @param workspaceEmailBranding - Workspace email branding configuration
+ * @param eventEmailBranding - Event email branding configuration (may be null)
+ * @param resolvedVisualBranding - Resolved visual branding for color fallbacks
+ * @returns Resolved email branding with all values populated
+ */
+export function resolveEmailBranding(
+  workspaceEmailBranding?: EmailBrandingConfig,
+  eventEmailBranding?: EmailBrandingConfig,
+  resolvedVisualBranding?: ResolvedBranding
+): ResolvedEmailBranding {
+  const ws = workspaceEmailBranding ?? {}
+  const ev = eventEmailBranding ?? {}
+
+  // Helper to get first non-empty string value
+  const resolveString = (...values: (string | null | undefined)[]): string | undefined => {
+    return values.find((v): v is string => typeof v === "string" && v.length > 0)
+  }
+
+  return {
+    accentStripColor:
+      resolveString(ev.accentStripColor, ws.accentStripColor, resolvedVisualBranding?.accentColor) ||
+      "#A67C52",
+    accentStripHeight: ev.accentStripHeight || ws.accentStripHeight || "medium",
+    headingColor:
+      resolveString(ev.headingColor, ws.headingColor, resolvedVisualBranding?.primaryColor) ||
+      "#1B5E5E",
+    bodyTextColor: resolveString(ev.bodyTextColor, ws.bodyTextColor) || "#374151",
+    ctaButtonColor:
+      resolveString(ev.ctaButtonColor, ws.ctaButtonColor, resolvedVisualBranding?.accentColor) ||
+      "#A67C52",
+    ctaButtonTextColor: resolveString(ev.ctaButtonTextColor, ws.ctaButtonTextColor) || "#ffffff",
+    contentBackgroundColor: resolveString(ev.contentBackgroundColor, ws.contentBackgroundColor) || "#ffffff",
+    ctaButtonStyle: ev.ctaButtonStyle || ws.ctaButtonStyle || "rounded",
+    fontFamily: ev.fontFamily || ws.fontFamily || "inter",
+    arabicFontFamily: ev.arabicFontFamily || ws.arabicFontFamily || "din-next",
+    footerText: resolveString(ev.footerText, ws.footerText),
+  }
+}
+
+// ============================================================================
+// Email Styling Helpers
+// ============================================================================
+
+/**
+ * Get the web-safe font stack for a given font family.
+ */
+export function getFontStack(family: ResolvedEmailBranding["fontFamily"]): string {
+  const stacks: Record<string, string> = {
+    inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    arial: "Arial, Helvetica, sans-serif",
+    georgia: "Georgia, 'Times New Roman', serif",
+    system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  }
+  return stacks[family] || stacks.inter
+}
+
+/**
+ * Get the Arabic font stack for a given font family.
+ */
+export function getArabicFontStack(family: ResolvedEmailBranding["arabicFontFamily"]): string {
+  const stacks: Record<string, string> = {
+    "din-next": "'DIN Next Arabic', 'Geeza Pro', Tahoma, sans-serif",
+    geeza: "'Geeza Pro', 'Arabic Typesetting', Tahoma, sans-serif",
+    tahoma: "Tahoma, 'Arabic Typesetting', sans-serif",
+    system: "'Geeza Pro', Tahoma, sans-serif",
+  }
+  return stacks[family] || stacks["din-next"]
+}
+
+/**
+ * Get the pixel height for accent strip.
+ */
+export function getAccentStripHeight(height: ResolvedEmailBranding["accentStripHeight"]): string {
+  return { thin: "3px", medium: "6px", thick: "10px" }[height] || "6px"
+}
+
+/**
+ * Get the border radius for CTA button.
+ */
+export function getCtaBorderRadius(style: ResolvedEmailBranding["ctaButtonStyle"]): string {
+  return { rounded: "6px", pill: "9999px", square: "0px" }[style] || "6px"
+}
+
+/**
+ * Get the content padding based on spacing preference.
+ */
+export function getContentPadding(spacing: "compact" | "normal" | "spacious" = "normal"): string {
+  return { compact: "24px", normal: "40px 48px", spacious: "56px 64px" }[spacing] || "40px 48px"
+}

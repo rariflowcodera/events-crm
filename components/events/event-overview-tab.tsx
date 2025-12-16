@@ -48,6 +48,9 @@ interface Event {
   description: string | null
   venue: string | null
   venueAddress: string | null
+  // Location coordinates from Google Places
+  latitude: string | null
+  longitude: string | null
   startDate: Date | null
   endDate: Date | null
   rsvpDeadline: Date | null
@@ -255,6 +258,8 @@ export function EventOverviewTab({
         <LocationPreviewPlaceholder
           venue={event.venue}
           venueAddress={event.venueAddress}
+          latitude={event.latitude}
+          longitude={event.longitude}
         />
       </div>
     </div>

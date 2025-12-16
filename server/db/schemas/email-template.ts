@@ -11,6 +11,7 @@ import {
 import { events } from "./event"
 import { guestCategories } from "./guest-category"
 import { users } from "./user"
+import { emailMasterTemplates } from "./email-master-template"
 
 export const emailTemplateTypeEnum = pgEnum("email_template_type", [
   "invitation",
@@ -23,7 +24,7 @@ export const emailTemplateTypeEnum = pgEnum("email_template_type", [
   "custom",
 ])
 
-// Bilingual content structure for email templates
+// Bilingual content structure for email templates (legacy HTML mode)
 export type EmailTemplateLanguageContent = {
   subject: string
   htmlContent: string
@@ -33,6 +34,29 @@ export type EmailTemplateLanguageContent = {
 export type BilingualEmailContent = {
   en: EmailTemplateLanguageContent
   ar?: Partial<EmailTemplateLanguageContent>
+}
+
+// ============================================================================
+// Structured Content Types (new mode)
+// ============================================================================
+
+export type StructuredEmailContent = {
+  subject: string
+  greeting?: string // "Dear {{guest.fullName}},"
+  heading: string // "You Are Cordially Invited"
+  subheading?: string // Event name or tagline
+  bodyParagraphs: string[] // Array of paragraphs
+  cta?: {
+    text: string // "Confirm Your Attendance"
+    url: string // "{{rsvp.link}}"
+  }
+  postCtaText?: string // Optional text after CTA
+  htmlOverride?: string // Full HTML override for backwards compat
+}
+
+export type BilingualStructuredContent = {
+  en: StructuredEmailContent
+  ar?: Partial<StructuredEmailContent>
 }
 
 export const emailTemplates = pgTable(
@@ -53,8 +77,17 @@ export const emailTemplates = pgTable(
       onDelete: "set null",
     }),
 
-    // Bilingual content stored as JSON
+    // Bilingual content stored as JSON (legacy HTML mode)
     content: jsonb("content").$type<BilingualEmailContent>().notNull(),
+
+    // Structured content (new mode - optional, takes precedence if set)
+    structuredContent: jsonb("structured_content").$type<BilingualStructuredContent>(),
+
+    // Reference to master template (optional - uses workspace default if not set)
+    masterTemplateId: text("master_template_id").references(
+      () => emailMasterTemplates.id,
+      { onDelete: "set null" }
+    ),
 
     // Default language for this template
     defaultLanguage: text("default_language").notNull().default("en"),
@@ -100,6 +133,10 @@ export const emailTemplatesRelations = relations(
     category: one(guestCategories, {
       fields: [emailTemplates.categoryId],
       references: [guestCategories.id],
+    }),
+    masterTemplate: one(emailMasterTemplates, {
+      fields: [emailTemplates.masterTemplateId],
+      references: [emailMasterTemplates.id],
     }),
     creator: one(users, {
       fields: [emailTemplates.createdBy],

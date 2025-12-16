@@ -1,5 +1,18 @@
 import type { BilingualEmailContentInput } from "@/lib/schemas"
+import type { BilingualStructuredContent } from "@/server/db/schemas/email-template"
+import type { MasterTemplateStructure } from "@/server/db/schemas/email-master-template"
+import type { WorkspaceBranding, EventBranding } from "@/server/db/schemas"
 import { getRsvpUrl, getRsvpConfirmUrl, getRsvpDeclineUrl } from "@/lib/rsvp-url"
+import { buildStaticMapHtml, buildGoogleMapsLink } from "@/lib/maps"
+import { renderStructuredEmail } from "@/lib/email/render-structured"
+import {
+  defaultMasterTemplate,
+  defaultMasterTemplateStructure,
+} from "@/lib/email/master-templates/default"
+
+// ============================================================================
+// Types
+// ============================================================================
 
 interface Guest {
   id: string
@@ -24,6 +37,8 @@ interface Event {
   slug: string
   venue: string | null
   venueAddress: string | null
+  latitude: string | null
+  longitude: string | null
   startDate: Date | null
   endDate: Date | null
   rsvpDeadline: Date | null
@@ -38,14 +53,46 @@ interface EventDocument {
   categoryIds: string[] | null
 }
 
-interface Template {
+/** Legacy template with HTML content */
+interface LegacyTemplate {
   id: string
   name: string
   content: BilingualEmailContentInput
+  structuredContent?: null
   defaultLanguage: string
   fromName: string | null
   fromEmail: string | null
   replyTo: string | null
+}
+
+/** Template with structured content */
+interface StructuredTemplate {
+  id: string
+  name: string
+  content: BilingualEmailContentInput
+  structuredContent: BilingualStructuredContent
+  masterTemplateId?: string | null
+  defaultLanguage: string
+  fromName: string | null
+  fromEmail: string | null
+  replyTo: string | null
+}
+
+/** Combined template type - can be legacy or structured */
+type Template = LegacyTemplate | StructuredTemplate
+
+/** Master template for structured emails */
+interface MasterTemplate {
+  id: string
+  htmlTemplate: string
+  structure: MasterTemplateStructure | null
+}
+
+/** Branding context for structured rendering */
+interface BrandingContext {
+  workspaceBranding?: WorkspaceBranding | null
+  eventBranding?: EventBranding | null
+  masterTemplate?: MasterTemplate | null
 }
 
 interface RenderResult {
@@ -57,9 +104,80 @@ interface RenderResult {
 }
 
 /**
- * Render an email template with variables replaced
+ * Render an email template with variables replaced.
+ * Supports both legacy HTML templates and new structured content templates.
+ *
+ * @param template - The email template (legacy or structured)
+ * @param guest - Guest data for variable substitution
+ * @param event - Event data for variable substitution
+ * @param language - Preferred language (en or ar)
+ * @param documents - Event documents for document variable substitution
+ * @param branding - Optional branding context for structured templates
  */
 export function renderEmailTemplate(
+  template: Template,
+  guest: Guest,
+  event: Event,
+  language: "en" | "ar" = "en",
+  documents: EventDocument[] = [],
+  branding?: BrandingContext
+): RenderResult {
+  // Check if template has structured content - use new renderer
+  if (template.structuredContent) {
+    return renderStructuredEmailTemplate(
+      template as StructuredTemplate,
+      guest,
+      event,
+      documents,
+      branding
+    )
+  }
+
+  // Legacy HTML template rendering
+  return renderLegacyEmailTemplate(template, guest, event, language, documents)
+}
+
+/**
+ * Render a structured email template using master template and branding.
+ */
+function renderStructuredEmailTemplate(
+  template: StructuredTemplate,
+  guest: Guest,
+  event: Event,
+  documents: EventDocument[],
+  branding?: BrandingContext
+): RenderResult {
+  // Determine master template to use
+  const masterTemplate = branding?.masterTemplate || {
+    id: "built-in-default",
+    htmlTemplate: defaultMasterTemplate,
+    structure: defaultMasterTemplateStructure,
+  }
+
+  // Render using structured renderer
+  return renderStructuredEmail({
+    template: {
+      id: template.id,
+      name: template.name,
+      structuredContent: template.structuredContent,
+      defaultLanguage: template.defaultLanguage,
+      fromName: template.fromName,
+      fromEmail: template.fromEmail,
+      replyTo: template.replyTo,
+    },
+    masterTemplate,
+    guest,
+    event,
+    workspaceBranding: branding?.workspaceBranding,
+    eventBranding: branding?.eventBranding,
+    documents,
+  })
+}
+
+/**
+ * Render a legacy HTML email template (backwards compatible).
+ */
+function renderLegacyEmailTemplate(
   template: Template,
   guest: Guest,
   event: Event,
@@ -124,6 +242,10 @@ export function renderEmailTemplate(
     // Category variables
     "category.name": guest.category?.name || "",
     "category.code": guest.category?.code || "",
+
+    // Map variables
+    "event.mapImage": buildStaticMapHtml(event),
+    "event.mapLink": buildGoogleMapsLink(event.latitude, event.longitude),
   }
 
   // Replace variables in content
@@ -253,4 +375,18 @@ function formatDate(date: Date, language: "en" | "ar"): string {
  */
 export function guestHasEmail(guest: { email: string | null }): boolean {
   return !!guest.email && guest.email.includes("@")
+}
+
+// ============================================================================
+// Type Exports
+// ============================================================================
+
+export type {
+  Guest as EmailGuest,
+  Event as EmailEvent,
+  EventDocument as EmailEventDocument,
+  Template as EmailTemplate,
+  MasterTemplate as EmailMasterTemplate,
+  BrandingContext as EmailBrandingContext,
+  RenderResult as EmailRenderResult,
 }

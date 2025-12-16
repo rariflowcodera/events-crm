@@ -22,6 +22,8 @@ import { eventFormsRouter } from "@/trpc/routers/event-forms"
 import { publicFormsRouter } from "@/trpc/routers/public-forms"
 // Permissions
 import { permissionsRouter } from "@/trpc/routers/permissions"
+// Email master templates
+import { emailMasterTemplatesRouter } from "@/trpc/routers/email-master-templates"
 
 export const appRouter = createTRPCRouter({
   users: usersRouter,
@@ -47,6 +49,8 @@ export const appRouter = createTRPCRouter({
   publicForms: publicFormsRouter,
   // Permissions
   permissions: permissionsRouter,
+  // Email master templates
+  emailMasterTemplates: emailMasterTemplatesRouter,
 })
 
 // export type definition of API

@@ -31,6 +31,12 @@ interface Event {
   eventType: string | null
   venue: string | null
   venueAddress: string | null
+  // Location coordinates from Google Places
+  latitude: string | null
+  longitude: string | null
+  placeId: string | null
+  city: string | null
+  country: string | null
   startDate: Date | null
   endDate: Date | null
   rsvpDeadline: Date | null

@@ -33,6 +33,8 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Switch } from "@/components/ui/switch"
 import { Icons } from "@/components/global/icons"
+import { PlaceAutocompleteInput, type PlaceResult } from "@/components/forms/place-autocomplete-input"
+import { LocationPreview } from "@/components/events/location-preview"
 import { EmailConfigurationCard } from "@/components/events/email-configuration-card"
 import { EventCustomDomainCard } from "@/components/events/event-custom-domain-card"
 import { EventEmailSenderCard } from "@/components/events/event-email-sender-card"
@@ -49,6 +51,12 @@ interface Event {
   eventType: string | null
   venue: string | null
   venueAddress: string | null
+  // Location coordinates from Google Places
+  latitude: string | null
+  longitude: string | null
+  placeId: string | null
+  city: string | null
+  country: string | null
   startDate: Date | null
   endDate: Date | null
   rsvpDeadline: Date | null
@@ -82,6 +90,12 @@ const eventSettingsSchema = z.object({
   eventType: z.string().optional(),
   venue: z.string().optional(),
   venueAddress: z.string().optional(),
+  // Location coordinates from Google Places
+  latitude: z.string().nullable().optional(),
+  longitude: z.string().nullable().optional(),
+  placeId: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
   startDate: z.date().nullable().optional(),
   endDate: z.date().nullable().optional(),
   rsvpDeadline: z.date().nullable().optional(),
@@ -132,6 +146,11 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
       eventType: event.eventType || "",
       venue: event.venue || "",
       venueAddress: event.venueAddress || "",
+      latitude: event.latitude || null,
+      longitude: event.longitude || null,
+      placeId: event.placeId || null,
+      city: event.city || null,
+      country: event.country || null,
       startDate: event.startDate ? new Date(event.startDate) : null,
       endDate: event.endDate ? new Date(event.endDate) : null,
       rsvpDeadline: event.rsvpDeadline ? new Date(event.rsvpDeadline) : null,
@@ -167,6 +186,16 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Top Submit Button */}
+        {canEdit && (
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isLoading || !isDirty}>
+              {isLoading && <Icons.loader className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </div>
+        )}
+
         {/* Basic Info */}
         <Card>
           <CardHeader>
@@ -265,41 +294,39 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
             <CardDescription>Where is your event taking place?</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="venue"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("fields.venue")}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Riyadh Convention Center"
-                      disabled={isDisabled}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            <FormItem>
+              <FormLabel>{t("fields.venue")}</FormLabel>
+              <PlaceAutocompleteInput
+                value={form.watch("venue") || ""}
+                onChange={(place: PlaceResult | null) => {
+                  if (place) {
+                    form.setValue("venue", place.venue, { shouldDirty: true })
+                    form.setValue("venueAddress", place.venueAddress, { shouldDirty: true })
+                    form.setValue("latitude", place.latitude, { shouldDirty: true })
+                    form.setValue("longitude", place.longitude, { shouldDirty: true })
+                    form.setValue("placeId", place.placeId, { shouldDirty: true })
+                    form.setValue("city", place.city, { shouldDirty: true })
+                    form.setValue("country", place.country, { shouldDirty: true })
+                  }
+                }}
+                placeholder={t("fields.venuePlaceholder")}
+                disabled={isDisabled}
+              />
+              {form.watch("venueAddress") && (
+                <FormDescription className="text-xs">
+                  {form.watch("venueAddress")}
+                </FormDescription>
               )}
-            />
-
-            <FormField
-              control={form.control}
-              name="venueAddress"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("fields.venueAddress")}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Full address..."
-                      disabled={isDisabled}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              {form.watch("latitude") && form.watch("longitude") && (
+                <LocationPreview
+                  latitude={parseFloat(form.watch("latitude")!)}
+                  longitude={parseFloat(form.watch("longitude")!)}
+                  venue={form.watch("venue") || undefined}
+                  height="180px"
+                  className="mt-3"
+                />
               )}
-            />
+            </FormItem>
           </CardContent>
         </Card>
 

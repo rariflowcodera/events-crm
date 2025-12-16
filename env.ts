@@ -35,6 +35,13 @@ export const S3_UPLOAD_BUCKET_ENV = process.env.S3_UPLOAD_BUCKET || ""
 // PUBLIC
 export const NEXT_PUBLIC_APP_URL_ENV = process.env.NEXT_PUBLIC_APP_URL || ""
 
+// Google Maps (client-side key for Places API)
+export const NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_ENV =
+  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
+
+// Google Maps (server-side key for Static Maps API in emails)
+export const GOOGLE_MAPS_API_KEY_ENV = process.env.GOOGLE_MAPS_API_KEY || ""
+
 // OCI Email Delivery (for suppression list sync)
 export const OCI_TENANCY_OCID_ENV = process.env.OCI_TENANCY_OCID || ""
 export const OCI_USER_OCID_ENV = process.env.OCI_USER_OCID || ""

@@ -1,12 +1,30 @@
 import { db } from "@/server/db/config/database"
-import { events, emailTemplates, guestCategories, workspaceMembers, eventDocuments } from "@/server/db/schemas"
+import {
+  events,
+  emailTemplates,
+  emailMasterTemplates,
+  guestCategories,
+  workspaceMembers,
+  workspaces,
+  eventDocuments,
+  guests,
+} from "@/server/db/schemas"
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import {
   emailTemplateTypeValues,
   bilingualEmailContentSchema,
+  bilingualStructuredContentSchema,
 } from "@/lib/schemas"
 import { DEFAULT_EMAIL_TEMPLATES } from "@/lib/email/default-templates"
+import {
+  renderStructuredEmail,
+  getSamplePreviewData,
+} from "@/lib/email/render-structured"
+import {
+  defaultMasterTemplate,
+  defaultMasterTemplateStructure,
+} from "@/lib/email/master-templates/default"
 import { TRPCError } from "@trpc/server"
 import { and, asc, desc, eq, isNull } from "drizzle-orm"
 import { z } from "zod"
@@ -438,6 +456,10 @@ export const emailTemplatesRouter = createTRPCRouter({
           { key: "{{category.name}}", description: "Category name" },
           { key: "{{category.services}}", description: "Category service summary" },
         ],
+        map: event.latitude && event.longitude ? [
+          { key: "{{event.mapImage}}", description: "Static map image (clickable)" },
+          { key: "{{event.mapLink}}", description: "Link to Google Maps" },
+        ] : [],
         documents: documents.map((doc) => ({
           key: `{{document.${doc.id}}}`,
           description: `${doc.name} (${doc.type})`,
@@ -636,6 +658,601 @@ export const emailTemplatesRouter = createTRPCRouter({
       return {
         created: templatesToCreate.length,
         skipped: existingTypeSet.size,
+      }
+    }),
+
+  // ============================================================================
+  // Structured Content Endpoints
+  // ============================================================================
+
+  // Create template with structured content
+  createStructured: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        name: z.string().min(1),
+        type: z.enum(emailTemplateTypeValues),
+        categoryId: z.string().uuid().optional(),
+        structuredContent: bilingualStructuredContentSchema,
+        masterTemplateId: z.string().uuid().optional(),
+        defaultLanguage: z.enum(["en", "ar"]).default("en"),
+        fromName: z.string().optional(),
+        fromEmail: z.string().email().optional().or(z.literal("")),
+        replyTo: z.string().email().optional().or(z.literal("")),
+        isDefault: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, input.eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_TEMPLATES,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to manage templates",
+        })
+      }
+
+      // Verify category if provided
+      if (input.categoryId) {
+        const category = await db.query.guestCategories.findFirst({
+          where: and(
+            eq(guestCategories.id, input.categoryId),
+            eq(guestCategories.eventId, input.eventId)
+          ),
+        })
+
+        if (!category) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid category for this event",
+          })
+        }
+      }
+
+      // Verify master template if provided
+      if (input.masterTemplateId) {
+        const masterTemplate = await db.query.emailMasterTemplates.findFirst({
+          where: eq(emailMasterTemplates.id, input.masterTemplateId),
+        })
+
+        if (!masterTemplate || masterTemplate.workspaceId !== event.workspaceId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid master template",
+          })
+        }
+      }
+
+      // Handle default logic
+      if (input.isDefault) {
+        const conditions = [
+          eq(emailTemplates.eventId, input.eventId),
+          eq(emailTemplates.type, input.type),
+          eq(emailTemplates.isDefault, true),
+        ]
+
+        if (input.categoryId) {
+          conditions.push(eq(emailTemplates.categoryId, input.categoryId))
+        }
+
+        await db
+          .update(emailTemplates)
+          .set({ isDefault: false, updatedAt: new Date() })
+          .where(and(...conditions))
+      }
+
+      // Create with structured content - also create a placeholder legacy content
+      const placeholderContent = {
+        en: {
+          subject: input.structuredContent.en.subject,
+          htmlContent: "<p>This template uses structured content mode.</p>",
+        },
+      }
+
+      const [template] = await db
+        .insert(emailTemplates)
+        .values({
+          eventId: input.eventId,
+          name: input.name,
+          type: input.type,
+          categoryId: input.categoryId,
+          content: placeholderContent,
+          structuredContent: input.structuredContent,
+          masterTemplateId: input.masterTemplateId,
+          defaultLanguage: input.defaultLanguage,
+          fromName: input.fromName || null,
+          fromEmail: input.fromEmail || null,
+          replyTo: input.replyTo || null,
+          isDefault: input.isDefault || false,
+          createdBy: ctx.user.id,
+        })
+        .returning()
+
+      return template
+    }),
+
+  // Update structured content only
+  updateStructuredContent: protectedProcedure
+    .input(
+      z.object({
+        templateId: z.string().uuid(),
+        structuredContent: bilingualStructuredContentSchema,
+        masterTemplateId: z.string().uuid().nullable().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const template = await db.query.emailTemplates.findFirst({
+        where: eq(emailTemplates.id, input.templateId),
+        with: { event: true },
+      })
+
+      if (!template) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: template.event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_TEMPLATES,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to manage templates",
+        })
+      }
+
+      // Verify master template if provided
+      if (input.masterTemplateId) {
+        const masterTemplate = await db.query.emailMasterTemplates.findFirst({
+          where: eq(emailMasterTemplates.id, input.masterTemplateId),
+        })
+
+        if (!masterTemplate || masterTemplate.workspaceId !== template.event.workspaceId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid master template",
+          })
+        }
+      }
+
+      const updateData: Record<string, unknown> = {
+        structuredContent: input.structuredContent,
+        updatedAt: new Date(),
+      }
+
+      if (input.masterTemplateId !== undefined) {
+        updateData.masterTemplateId = input.masterTemplateId
+      }
+
+      const [updated] = await db
+        .update(emailTemplates)
+        .set(updateData)
+        .where(eq(emailTemplates.id, input.templateId))
+        .returning()
+
+      return updated
+    }),
+
+  // Preview rendered email
+  previewRendered: protectedProcedure
+    .input(
+      z.object({
+        templateId: z.string().uuid(),
+        guestId: z.string().uuid().optional(), // Use real guest data if provided
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const template = await db.query.emailTemplates.findFirst({
+        where: eq(emailTemplates.id, input.templateId),
+        with: {
+          event: true,
+          masterTemplate: true,
+        },
+      })
+
+      if (!template) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" })
+      }
+
+      // Check membership
+      const isMember = await db.query.workspaceMembers.findFirst({
+        where: and(
+          eq(workspaceMembers.workspaceId, template.event.workspaceId),
+          eq(workspaceMembers.userId, ctx.user.id)
+        ),
+      })
+
+      if (!isMember) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Not a member of this workspace",
+        })
+      }
+
+      // Check if template has structured content
+      if (!template.structuredContent) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Template does not have structured content. Use legacy preview instead.",
+        })
+      }
+
+      // Get workspace branding
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(workspaces.id, template.event.workspaceId),
+      })
+
+      // Get event documents
+      const documents = await db.query.eventDocuments.findMany({
+        where: eq(eventDocuments.eventId, template.eventId),
+      })
+
+      // Get guest data (real or sample)
+      let guest
+      let event
+
+      if (input.guestId) {
+        const guestRecord = await db.query.guests.findFirst({
+          where: eq(guests.id, input.guestId),
+          with: { category: true },
+        })
+        if (guestRecord) {
+          guest = {
+            id: guestRecord.id,
+            firstName: guestRecord.firstName,
+            lastName: guestRecord.lastName,
+            title: guestRecord.title,
+            salutation: guestRecord.salutation,
+            email: guestRecord.email,
+            position: guestRecord.position,
+            entity: guestRecord.entity,
+            rsvpToken: guestRecord.rsvpToken,
+            categoryId: guestRecord.categoryId,
+            category: guestRecord.category
+              ? { name: guestRecord.category.name, code: guestRecord.category.code }
+              : null,
+          }
+        }
+      }
+
+      if (!guest) {
+        const sampleData = getSamplePreviewData()
+        guest = sampleData.guest
+      }
+
+      event = {
+        id: template.event.id,
+        name: template.event.name,
+        slug: template.event.slug,
+        venue: template.event.venue,
+        venueAddress: template.event.venueAddress,
+        startDate: template.event.startDate,
+        endDate: template.event.endDate,
+        rsvpDeadline: template.event.rsvpDeadline,
+        customDomain: template.event.customDomain,
+        customDomainVerified: template.event.customDomainVerified,
+      }
+
+      // Determine master template to use
+      let masterTemplate = null
+      if (template.masterTemplate) {
+        masterTemplate = {
+          id: template.masterTemplate.id,
+          htmlTemplate: template.masterTemplate.htmlTemplate,
+          structure: template.masterTemplate.structure,
+        }
+      } else {
+        // Try to get workspace default
+        const workspaceDefault = await db.query.emailMasterTemplates.findFirst({
+          where: and(
+            eq(emailMasterTemplates.workspaceId, template.event.workspaceId),
+            isNull(emailMasterTemplates.eventId),
+            eq(emailMasterTemplates.isDefault, true),
+            eq(emailMasterTemplates.isActive, true)
+          ),
+        })
+
+        if (workspaceDefault) {
+          masterTemplate = {
+            id: workspaceDefault.id,
+            htmlTemplate: workspaceDefault.htmlTemplate,
+            structure: workspaceDefault.structure,
+          }
+        } else {
+          // Use built-in default
+          masterTemplate = {
+            id: "built-in",
+            htmlTemplate: defaultMasterTemplate,
+            structure: defaultMasterTemplateStructure,
+          }
+        }
+      }
+
+      // Render the email
+      const result = renderStructuredEmail({
+        template: {
+          id: template.id,
+          name: template.name,
+          structuredContent: template.structuredContent,
+          defaultLanguage: template.defaultLanguage,
+          fromName: template.fromName,
+          fromEmail: template.fromEmail,
+          replyTo: template.replyTo,
+        },
+        masterTemplate,
+        guest,
+        event,
+        workspaceBranding: workspace?.branding,
+        eventBranding: template.event.branding,
+        documents: documents.map((d) => ({
+          id: d.id,
+          name: d.name,
+          url: d.url,
+          categoryIds: d.categoryIds,
+        })),
+      })
+
+      return {
+        subject: result.subject,
+        html: result.html,
+        text: result.text,
+        from: result.from,
+        replyTo: result.replyTo,
+      }
+    }),
+
+  // Convert legacy HTML template to structured content (best-effort)
+  convertToStructured: protectedProcedure
+    .input(z.object({ templateId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const template = await db.query.emailTemplates.findFirst({
+        where: eq(emailTemplates.id, input.templateId),
+        with: { event: true },
+      })
+
+      if (!template) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: template.event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_TEMPLATES,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to manage templates",
+        })
+      }
+
+      if (template.structuredContent) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Template already has structured content",
+        })
+      }
+
+      // Best-effort conversion: extract text from HTML
+      const enContent = template.content.en
+      const arContent = template.content.ar
+
+      const stripHtml = (html: string) => {
+        return html
+          .replace(/<br\s*\/?>/gi, "\n")
+          .replace(/<\/p>/gi, "\n\n")
+          .replace(/<[^>]+>/g, "")
+          .replace(/&nbsp;/g, " ")
+          .replace(/&amp;/g, "&")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim()
+      }
+
+      const extractParagraphs = (html: string) => {
+        const stripped = stripHtml(html)
+        return stripped.split(/\n\n+/).filter((p) => p.trim().length > 0)
+      }
+
+      const structuredContent = {
+        en: {
+          subject: enContent.subject,
+          heading: template.name,
+          bodyParagraphs: extractParagraphs(enContent.htmlContent),
+        },
+        ar: arContent
+          ? {
+              subject: arContent.subject,
+              heading: template.name,
+              bodyParagraphs: arContent.htmlContent
+                ? extractParagraphs(arContent.htmlContent)
+                : undefined,
+            }
+          : undefined,
+      }
+
+      const [updated] = await db
+        .update(emailTemplates)
+        .set({
+          structuredContent,
+          updatedAt: new Date(),
+        })
+        .where(eq(emailTemplates.id, input.templateId))
+        .returning()
+
+      return {
+        template: updated,
+        structuredContent,
+        note: "Conversion is best-effort. Please review and adjust the structured content.",
+      }
+    }),
+
+  // Preview unsaved structured content (for drafts during editing)
+  previewStructuredDraft: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        structuredContent: bilingualStructuredContentSchema,
+        masterTemplateId: z.string().uuid().optional().nullable(),
+        language: z.enum(["en", "ar"]).optional(),
+        guestId: z.string().uuid().optional(), // Use real guest data if provided
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Get event
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, input.eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      // Check membership
+      const isMember = await db.query.workspaceMembers.findFirst({
+        where: and(
+          eq(workspaceMembers.workspaceId, event.workspaceId),
+          eq(workspaceMembers.userId, ctx.user.id)
+        ),
+      })
+
+      if (!isMember) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Not a member of this workspace",
+        })
+      }
+
+      // Get workspace branding
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(workspaces.id, event.workspaceId),
+      })
+
+      // Get master template (provided or default)
+      let masterTemplate = null
+      if (input.masterTemplateId) {
+        masterTemplate = await db.query.emailMasterTemplates.findFirst({
+          where: eq(emailMasterTemplates.id, input.masterTemplateId),
+        })
+      }
+      if (!masterTemplate) {
+        // Get workspace default
+        masterTemplate = await db.query.emailMasterTemplates.findFirst({
+          where: and(
+            eq(emailMasterTemplates.workspaceId, event.workspaceId),
+            eq(emailMasterTemplates.isDefault, true),
+            isNull(emailMasterTemplates.eventId)
+          ),
+        })
+      }
+
+      // Get event documents
+      const documents = await db.query.eventDocuments.findMany({
+        where: eq(eventDocuments.eventId, input.eventId),
+      })
+
+      // Get guest data (real or sample)
+      let guest
+      if (input.guestId) {
+        const guestRecord = await db.query.guests.findFirst({
+          where: eq(guests.id, input.guestId),
+          with: { category: true },
+        })
+        if (guestRecord) {
+          guest = {
+            id: guestRecord.id,
+            firstName: guestRecord.firstName,
+            lastName: guestRecord.lastName,
+            title: guestRecord.title,
+            salutation: guestRecord.salutation,
+            email: guestRecord.email,
+            position: guestRecord.position,
+            entity: guestRecord.entity,
+            rsvpToken: guestRecord.rsvpToken || "preview-token",
+            categoryId: guestRecord.categoryId,
+            category: guestRecord.category
+              ? { name: guestRecord.category.name, code: guestRecord.category.code }
+              : null,
+          }
+        }
+      }
+
+      // Use sample guest if no real guest provided
+      if (!guest) {
+        guest = {
+          id: "sample-guest-id",
+          firstName: "John",
+          lastName: "Doe",
+          title: "Mr.",
+          salutation: "Dear Mr. Doe",
+          email: "john.doe@example.com",
+          position: "Guest",
+          entity: "Sample Organization",
+          rsvpToken: "preview-token",
+          categoryId: null,
+          category: null,
+        }
+      }
+
+      // Render the email
+      const result = renderStructuredEmail({
+        template: {
+          id: "draft",
+          name: "Draft Template",
+          structuredContent: input.structuredContent,
+          defaultLanguage: input.language || "en",
+          fromName: null,
+          fromEmail: null,
+          replyTo: null,
+        },
+        masterTemplate: masterTemplate
+          ? {
+              id: masterTemplate.id,
+              htmlTemplate: masterTemplate.htmlTemplate,
+              structure: masterTemplate.structure,
+            }
+          : null,
+        guest,
+        event: {
+          id: event.id,
+          name: event.name,
+          slug: event.slug,
+          venue: event.venue,
+          venueAddress: event.venueAddress,
+          startDate: event.startDate,
+          endDate: event.endDate,
+          rsvpDeadline: event.rsvpDeadline,
+          customDomain: event.customDomain,
+          customDomainVerified: event.customDomainVerified,
+        },
+        workspaceBranding: workspace?.branding,
+        eventBranding: event.branding,
+        documents: documents.map((d) => ({
+          id: d.id,
+          name: d.name,
+          url: d.url,
+          categoryIds: d.categoryIds,
+        })),
+      })
+
+      return {
+        subject: result.subject,
+        html: result.html,
+        text: result.text,
       }
     }),
 })

@@ -116,15 +116,12 @@ export function renderMarkdocNode(
         <View key={key} style={pdfStyles.list}>
           {children.map((li, i) => {
             if (typeof li === "string" || !li) return null
-            const liNode = li as { children?: MarkdocNode[] }
+            // Extract text content from list item, handling nested paragraph nodes
+            const content = extractText(li as MarkdocNode)
             return (
               <View key={i} style={pdfStyles.listItem}>
                 <Text style={pdfStyles.listBullet}>•</Text>
-                <View style={pdfStyles.listContent}>
-                  {liNode.children?.map((child, j) =>
-                    renderMarkdocNode(child, j)
-                  )}
-                </View>
+                <Text style={pdfStyles.listContent}>{content}</Text>
               </View>
             )
           })}
@@ -136,15 +133,12 @@ export function renderMarkdocNode(
         <View key={key} style={pdfStyles.list}>
           {children.map((li, i) => {
             if (typeof li === "string" || !li) return null
-            const liNode = li as { children?: MarkdocNode[] }
+            // Extract text content from list item, handling nested paragraph nodes
+            const content = extractText(li as MarkdocNode)
             return (
               <View key={i} style={pdfStyles.listItem}>
                 <Text style={pdfStyles.listBullet}>{i + 1}.</Text>
-                <View style={pdfStyles.listContent}>
-                  {liNode.children?.map((child, j) =>
-                    renderMarkdocNode(child, j)
-                  )}
-                </View>
+                <Text style={pdfStyles.listContent}>{content}</Text>
               </View>
             )
           })}

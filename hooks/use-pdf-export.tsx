@@ -8,6 +8,10 @@ import type {
   ExportResponse,
 } from "@/lib/pdf/types"
 
+interface UsePdfExportOptions extends PdfOptions {
+  section?: string // Section slug to export (e.g., "getting-started")
+}
+
 interface UsePdfExportReturn {
   exportPdf: () => Promise<void>
   isExporting: boolean
@@ -15,7 +19,7 @@ interface UsePdfExportReturn {
   error: string | null
 }
 
-export function usePdfExport(options?: PdfOptions): UsePdfExportReturn {
+export function usePdfExport(options?: UsePdfExportOptions): UsePdfExportReturn {
   const [isExporting, setIsExporting] = useState(false)
   const [progress, setProgress] = useState<PdfGenerationProgress | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -26,8 +30,11 @@ export function usePdfExport(options?: PdfOptions): UsePdfExportReturn {
     setProgress({ stage: "fetching", message: "Loading documentation..." })
 
     try {
-      // 1. Fetch all docs from API
-      const response = await fetch("/api/docs/export")
+      // 1. Fetch docs from API (optionally filtered by section)
+      const url = options?.section
+        ? `/api/docs/export?section=${encodeURIComponent(options.section)}`
+        : "/api/docs/export"
+      const response = await fetch(url)
       if (!response.ok) {
         throw new Error("Failed to fetch documentation")
       }
@@ -44,18 +51,25 @@ export function usePdfExport(options?: PdfOptions): UsePdfExportReturn {
       const { pdf } = await import("@react-pdf/renderer")
       const { PdfDocument } = await import("@/lib/pdf/react-pdf-document")
 
-      // 3. Generate PDF using react-pdf
-      const blob = await pdf(<PdfDocument docs={data.docs} options={options} />).toBlob()
+      // 3. Generate PDF using react-pdf (pass options without section)
+      const { section: _, ...pdfOptions } = options || {}
+      const blob = await pdf(
+        <PdfDocument docs={data.docs} options={pdfOptions} />
+      ).toBlob()
 
-      // 4. Trigger download
-      const url = URL.createObjectURL(blob)
+      // 4. Trigger download with appropriate filename
+      const downloadUrl = URL.createObjectURL(blob)
       const link = document.createElement("a")
-      link.href = url
-      link.download = `documentation-${new Date().toISOString().split("T")[0]}.pdf`
+      link.href = downloadUrl
+      const dateStr = new Date().toISOString().split("T")[0]
+      const filename = options?.section
+        ? `${options.section}-${dateStr}.pdf`
+        : `documentation-${dateStr}.pdf`
+      link.download = filename
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      URL.revokeObjectURL(url)
+      URL.revokeObjectURL(downloadUrl)
 
       setProgress({ stage: "complete", message: "Download complete!" })
 

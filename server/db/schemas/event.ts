@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm"
 import {
   boolean,
+  decimal,
   index,
   integer,
   json,
@@ -9,7 +10,7 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core"
-import { workspaces } from "./workspace"
+import { workspaces, type EmailBrandingConfig } from "./workspace"
 import { users } from "./user"
 
 // ============================================================================
@@ -122,6 +123,7 @@ export type EventBranding = {
     backgroundColor: string // Hex color for section header background
     textColor: string // Hex color for section header text
   }
+  emailBranding?: EmailBrandingConfig // Email-specific branding (overrides workspace)
 }
 
 // ============================================================================
@@ -166,6 +168,13 @@ export const events = pgTable(
     eventType: text("event_type"),
     venue: text("venue"),
     venueAddress: text("venue_address"),
+
+    // Location coordinates from Google Places
+    latitude: decimal("latitude", { precision: 10, scale: 7 }),
+    longitude: decimal("longitude", { precision: 10, scale: 7 }),
+    placeId: text("place_id"), // Google's unique place identifier
+    city: text("city"),
+    country: text("country"),
 
     startDate: timestamp("start_date", { mode: "date" }),
     endDate: timestamp("end_date", { mode: "date" }),

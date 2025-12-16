@@ -7,6 +7,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app"
 
 import { configuration } from "@/lib/config"
 import { Toaster } from "@/components/ui/toaster"
+import { GoogleMapsProvider } from "@/components/providers/google-maps-provider"
 import { ModalProvider } from "@/components/providers/modal-provider"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 
@@ -23,11 +24,13 @@ export function Providers({ children }: { children: ReactNode }) {
     <TRPCProvider>
       <Analytics />
       <ThemeProvider attribute="class" defaultTheme={configuration.site.defaultTheme} enableSystem>
-        <NuqsProvider>
-          <ModalProvider />
-          <Toaster position="bottom-center" richColors />
-          {children}
-        </NuqsProvider>
+        <GoogleMapsProvider>
+          <NuqsProvider>
+            <ModalProvider />
+            <Toaster position="bottom-center" richColors />
+            {children}
+          </NuqsProvider>
+        </GoogleMapsProvider>
       </ThemeProvider>
     </TRPCProvider>
   )

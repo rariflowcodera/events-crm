@@ -47,8 +47,38 @@ export const baseBrandingSchema = z.object({
 
 export type BaseBrandingInput = z.infer<typeof baseBrandingSchema>
 
-/** Workspace branding schema */
-export const workspaceBrandingSchema = baseBrandingSchema
+// ============================================================================
+// Email Branding Config Schema
+// ============================================================================
+
+/** Email branding configuration schema */
+export const emailBrandingConfigSchema = z.object({
+  // Colors (defaults from visual branding if not set)
+  accentStripColor: hexColorSchema,
+  headingColor: hexColorSchema,
+  bodyTextColor: hexColorSchema,
+  ctaButtonColor: hexColorSchema,
+  ctaButtonTextColor: hexColorSchema,
+  contentBackgroundColor: hexColorSchema,
+
+  // Typography
+  fontFamily: z.enum(["noto-sans", "inter", "arial", "georgia", "system"]).optional(),
+  arabicFontFamily: z.enum(["noto-sans", "din-next", "geeza", "tahoma", "system"]).optional(),
+
+  // Layout
+  accentStripHeight: z.enum(["thin", "medium", "thick"]).optional(),
+  ctaButtonStyle: z.enum(["rounded", "pill", "square"]).optional(),
+
+  // Footer
+  footerText: z.string().max(500).optional(),
+})
+
+export type EmailBrandingConfigInput = z.infer<typeof emailBrandingConfigSchema>
+
+/** Workspace branding schema (with email branding) */
+export const workspaceBrandingSchema = baseBrandingSchema.extend({
+  emailBranding: emailBrandingConfigSchema.optional(),
+})
 
 export type WorkspaceBrandingInput = z.infer<typeof workspaceBrandingSchema>
 
@@ -77,6 +107,7 @@ export const eventBrandingSchema = baseBrandingSchema.extend({
   backgroundImageMode: backgroundImageModeSchema,
   cardAccent: cardAccentSchema,
   sectionHeader: sectionHeaderSchema,
+  emailBranding: emailBrandingConfigSchema.optional(),
 })
 
 export type EventBrandingInput = z.infer<typeof eventBrandingSchema>
@@ -436,6 +467,162 @@ export const updateEmailTemplateSchema = z.object({
 })
 
 export type UpdateEmailTemplateInput = z.infer<typeof updateEmailTemplateSchema>
+
+// ============================================================================
+// Master Template Schemas
+// ============================================================================
+
+/** Master template structure schema */
+export const masterTemplateStructureSchema = z.object({
+  showLogo: z.boolean().default(true),
+  showAccentStrip: z.boolean().default(true),
+  showEnglishSection: z.boolean().default(true),
+  showArabicSection: z.boolean().default(true),
+  showDivider: z.boolean().default(true),
+  showFooter: z.boolean().default(true),
+  sectionOrder: z.array(z.enum(["en", "ar"])).default(["en", "ar"]),
+})
+
+export type MasterTemplateStructureInput = z.infer<typeof masterTemplateStructureSchema>
+
+/** Create master template schema */
+export const createMasterTemplateSchema = z.object({
+  workspaceId: z.string().uuid("Invalid workspace ID"),
+  eventId: z.string().uuid("Invalid event ID").optional(),
+  name: z.string().min(1, "Template name is required").max(100),
+  description: z.string().max(500).optional(),
+  htmlTemplate: z.string().min(1, "HTML template is required").max(500000),
+  structure: masterTemplateStructureSchema.optional(),
+  isDefault: z.boolean().optional(),
+})
+
+export type CreateMasterTemplateInput = z.infer<typeof createMasterTemplateSchema>
+
+/** Update master template schema */
+export const updateMasterTemplateSchema = z.object({
+  templateId: z.string().uuid("Invalid template ID"),
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).nullable().optional(),
+  htmlTemplate: z.string().min(1).max(500000).optional(),
+  structure: masterTemplateStructureSchema.optional(),
+  isActive: z.boolean().optional(),
+  isDefault: z.boolean().optional(),
+})
+
+export type UpdateMasterTemplateInput = z.infer<typeof updateMasterTemplateSchema>
+
+// ============================================================================
+// Structured Email Content Schemas
+// ============================================================================
+
+/** CTA button schema - used when CTA is provided with content */
+const ctaSchema = z.object({
+  text: z.string().min(1, "CTA text is required").max(100),
+  url: z.string().min(1, "CTA URL is required").max(500),
+})
+
+/** CTA schema that handles empty values from form inputs */
+const optionalCtaSchema = z
+  .object({
+    text: z.string().max(100).optional(),
+    url: z.string().max(500).optional(),
+  })
+  .optional()
+  .transform((val) => {
+    // If CTA doesn't exist or both fields are empty, return undefined
+    if (!val || (!val.text?.trim() && !val.url?.trim())) {
+      return undefined
+    }
+    // Return the CTA with trimmed values
+    return {
+      text: val.text?.trim() || "",
+      url: val.url?.trim() || "",
+    }
+  })
+
+/** Structured email content for a single language */
+export const structuredEmailContentSchema = z.object({
+  subject: z.string().min(1, "Subject is required").max(200),
+  greeting: z.string().max(200).optional(),
+  heading: z.string().min(1, "Heading is required").max(200),
+  subheading: z.string().max(300).optional(),
+  bodyParagraphs: z.array(z.string().max(2000)).min(1, "At least one paragraph is required").max(10),
+  cta: optionalCtaSchema,
+  postCtaText: z.string().max(500).optional(),
+  htmlOverride: z.string().max(100000).optional(),
+})
+
+export type StructuredEmailContentInput = z.infer<typeof structuredEmailContentSchema>
+
+/** Flexible Arabic content schema that handles empty/partial content */
+const flexibleArabicContentSchema = z
+  .object({
+    subject: z.string().max(200).optional(),
+    greeting: z.string().max(200).optional(),
+    heading: z.string().max(200).optional(),
+    subheading: z.string().max(300).optional(),
+    bodyParagraphs: z.array(z.string().max(2000)).max(10).optional(),
+    cta: optionalCtaSchema,
+    postCtaText: z.string().max(500).optional(),
+    htmlOverride: z.string().max(100000).optional(),
+  })
+  .optional()
+  .transform((val) => {
+    if (!val) return undefined
+
+    // Filter out empty strings from bodyParagraphs
+    const filteredParagraphs = val.bodyParagraphs?.filter((p) => p.trim()) || []
+
+    // Check if Arabic content has any meaningful content
+    const hasContent =
+      val.subject?.trim() ||
+      val.greeting?.trim() ||
+      val.heading?.trim() ||
+      val.subheading?.trim() ||
+      filteredParagraphs.length > 0 ||
+      val.cta ||
+      val.postCtaText?.trim()
+
+    if (!hasContent) return undefined
+
+    return {
+      ...val,
+      bodyParagraphs: filteredParagraphs.length > 0 ? filteredParagraphs : undefined,
+    }
+  })
+
+/** Bilingual structured content schema */
+export const bilingualStructuredContentSchema = z.object({
+  en: structuredEmailContentSchema,
+  ar: flexibleArabicContentSchema,
+})
+
+export type BilingualStructuredContentInput = z.infer<typeof bilingualStructuredContentSchema>
+
+/** Create email template with structured content schema */
+export const createStructuredEmailTemplateSchema = z.object({
+  eventId: z.string().uuid("Invalid event ID"),
+  name: z.string().min(1, "Template name is required").max(100),
+  type: z.enum(emailTemplateTypeValues, { required_error: "Template type is required" }),
+  categoryId: z.string().uuid().nullable().optional(),
+  structuredContent: bilingualStructuredContentSchema,
+  masterTemplateId: z.string().uuid().nullable().optional(),
+  defaultLanguage: z.enum(["en", "ar"]).default("en"),
+  fromName: z.string().max(100).optional(),
+  fromEmail: z.string().email("Invalid email address").optional().or(z.literal("")),
+  replyTo: z.string().email("Invalid email address").optional().or(z.literal("")),
+  isDefault: z.boolean().optional(),
+})
+
+export type CreateStructuredEmailTemplateInput = z.infer<typeof createStructuredEmailTemplateSchema>
+
+/** Update structured content schema */
+export const updateStructuredContentSchema = z.object({
+  templateId: z.string().uuid("Invalid template ID"),
+  structuredContent: bilingualStructuredContentSchema,
+})
+
+export type UpdateStructuredContentInput = z.infer<typeof updateStructuredContentSchema>
 
 // ============================================================================
 // RSVP Form Builder Schemas

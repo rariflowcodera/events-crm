@@ -5,8 +5,10 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { format } from "date-fns"
 
+import { buildStaticMapHtml, buildGoogleMapsLink } from "@/lib/maps"
 import { useEventBySlug } from "@/trpc/hooks/events-hooks"
 import { useGuests } from "@/trpc/hooks/guests-hooks"
+import { usePreviewStructuredDraft } from "@/trpc/hooks/email-hooks"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -107,6 +109,13 @@ type EmailPreviewData = {
   text: string
   lang: "en" | "ar"
   documents?: DocumentData[]
+  // Metadata for refresh functionality
+  _meta?: {
+    eventId: string
+    structuredContent: unknown
+    masterTemplateId: string | null
+    isStructuredMode: boolean
+  }
 }
 
 export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
@@ -117,6 +126,9 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
 
   // State for template content from sessionStorage
   const [templateData, setTemplateData] = useState<EmailPreviewData | null>(null)
+
+  // Preview mutation for refresh
+  const { mutateAsync: previewStructuredDraft, isPending: isRefreshing } = usePreviewStructuredDraft()
 
   // Load template content from sessionStorage on mount
   useEffect(() => {
@@ -129,6 +141,39 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
       }
     }
   }, [])
+
+  // Refresh handler - re-renders the email with latest branding/template
+  const handleRefresh = async () => {
+    if (!templateData?._meta?.isStructuredMode || !templateData._meta.eventId) {
+      // Legacy mode or missing metadata - just reload from sessionStorage
+      const stored = sessionStorage.getItem("emailPreviewData")
+      if (stored) {
+        setTemplateData(JSON.parse(stored))
+      }
+      return
+    }
+
+    try {
+      const result = await previewStructuredDraft({
+        eventId: templateData._meta.eventId,
+        structuredContent: templateData._meta.structuredContent as Parameters<typeof previewStructuredDraft>[0]["structuredContent"],
+        masterTemplateId: templateData._meta.masterTemplateId || undefined,
+        language: templateData.lang,
+      })
+
+      const newData: EmailPreviewData = {
+        ...templateData,
+        subject: result.subject,
+        html: result.html,
+        text: result.text || "",
+      }
+
+      setTemplateData(newData)
+      sessionStorage.setItem("emailPreviewData", JSON.stringify(newData))
+    } catch (error) {
+      console.error("Failed to refresh preview:", error)
+    }
+  }
 
   // Extract values from template data
   const subject = templateData?.subject || ""
@@ -181,6 +226,12 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
           startDate: formatDate(event.startDate),
           endDate: formatDate(event.endDate),
           rsvpDeadline: formatDate(event.rsvpDeadline),
+          mapImage: buildStaticMapHtml({
+            latitude: event.latitude,
+            longitude: event.longitude,
+            venue: event.venue,
+          }),
+          mapLink: buildGoogleMapsLink(event.latitude, event.longitude),
         }
       : undefined
 
@@ -251,6 +302,15 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
             <div className="h-6 w-px bg-border" />
             <h1 className="text-lg font-semibold">{t("preview")}</h1>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <Icons.refresh className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            {isRefreshing ? "Refreshing..." : "Refresh"}
+          </Button>
         </div>
       </div>
 

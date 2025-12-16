@@ -212,3 +212,114 @@ export const useEmailStats = (params: { eventId: string; dateFrom?: Date; dateTo
 export const useGuestEmailLogs = (guestId: string, limit?: number) => {
   return trpc.emailLogs.getByGuest.useQuery({ guestId, limit }, { enabled: !!guestId })
 }
+
+// ============================================================================
+// Structured Content Hooks
+// ============================================================================
+
+/**
+ * Create a template with structured content.
+ */
+export const useCreateStructuredEmailTemplate = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (data: { id: string }) => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.emailTemplates.createStructured.useMutation({
+    onSuccess: (data) => {
+      toast.success("Template created successfully")
+      utils.emailTemplates.getMany.invalidate({ eventId: data.eventId })
+      onSuccess?.(data)
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}
+
+/**
+ * Update structured content of a template.
+ */
+export const useUpdateStructuredContent = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: () => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.emailTemplates.updateStructuredContent.useMutation({
+    onSuccess: (data) => {
+      toast.success("Template content updated")
+      utils.emailTemplates.getOne.invalidate({ templateId: data.id })
+      utils.emailTemplates.getMany.invalidate({ eventId: data.eventId })
+      onSuccess?.()
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}
+
+/**
+ * Preview a rendered email template with sample or real guest data.
+ */
+export const useEmailTemplatePreview = (templateId: string, guestId?: string) => {
+  return trpc.emailTemplates.previewRendered.useQuery(
+    { templateId, guestId },
+    { enabled: !!templateId }
+  )
+}
+
+/**
+ * Convert a legacy HTML template to structured content.
+ */
+export const useConvertToStructured = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (data: { note: string }) => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.emailTemplates.convertToStructured.useMutation({
+    onSuccess: (data) => {
+      toast.success("Template converted to structured content")
+      utils.emailTemplates.getOne.invalidate({ templateId: data.template.id })
+      utils.emailTemplates.getMany.invalidate({ eventId: data.template.eventId })
+      onSuccess?.(data)
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}
+
+/**
+ * Preview unsaved structured content draft.
+ * Returns a mutateAsync function for use in handlePreview.
+ */
+export const usePreviewStructuredDraft = () => {
+  const { mutateAsync, isPending } = trpc.emailTemplates.previewStructuredDraft.useMutation({
+    onError: (error) => {
+      toast.error(error.message || "Failed to render preview")
+    },
+  })
+
+  return { mutateAsync, isPending }
+}

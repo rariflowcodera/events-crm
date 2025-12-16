@@ -15,7 +15,7 @@ import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ColorPicker, LogoUploadGroup, BrandingPreview, InheritanceIndicator, BackgroundImageUpload, CardAccentSettings, SectionHeaderSettings } from "@/components/branding"
+import { ColorPicker, LogoUploadGroup, BrandingPreview, InheritanceIndicator, BackgroundImageUpload, CardAccentSettings, SectionHeaderSettings, EmailBrandingSettings } from "@/components/branding"
 import { Icons } from "@/components/global/icons"
 
 // ============================================================================
@@ -55,6 +55,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
       backgroundImageMode: undefined,
       cardAccent: undefined,
       sectionHeader: undefined,
+      emailBranding: undefined,
     },
   })
 
@@ -77,6 +78,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
         backgroundImageMode: data.eventBranding?.backgroundImageMode,
         cardAccent: data.eventBranding?.cardAccent,
         sectionHeader: data.eventBranding?.sectionHeader,
+        emailBranding: data.eventBranding?.emailBranding,
       }
       form.reset(newValues)
     }
@@ -110,6 +112,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
         backgroundImageMode: values.backgroundImageMode || undefined,
         cardAccent: values.cardAccent || undefined,
         sectionHeader: values.sectionHeader || undefined,
+        emailBranding: values.emailBranding || undefined,
       },
     })
   }
@@ -130,6 +133,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
       backgroundImageMode: undefined,
       cardAccent: undefined,
       sectionHeader: undefined,
+      emailBranding: undefined,
     })
   }
 
@@ -430,6 +434,26 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
                     })
                   }}
                   disabled={isPending}
+                />
+              </div>
+
+              <Separator />
+
+              {/* Email Branding Section */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium">Email Branding</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Customize colors and styles for email templates. Leave empty to inherit from workspace.
+                  </p>
+                </div>
+                <EmailBrandingSettings
+                  namePrefix="emailBranding"
+                  inheritedValues={workspaceBranding?.emailBranding}
+                  visualBrandingColors={{
+                    primaryColor: resolved?.primaryColor || undefined,
+                    accentColor: resolved?.accentColor || undefined,
+                  }}
                 />
               </div>
             </CardContent>

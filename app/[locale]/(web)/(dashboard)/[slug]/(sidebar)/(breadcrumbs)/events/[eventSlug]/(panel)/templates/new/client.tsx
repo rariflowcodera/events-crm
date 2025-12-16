@@ -65,6 +65,7 @@ export function TemplateNewPageClient({ workspaceSlug, eventSlug }: TemplateNewP
         eventId={event.id}
         templateId={null}
         categories={categoriesData || []}
+        workspaceId={event.workspaceId}
         workspaceSlug={workspaceSlug}
         eventSlug={eventSlug}
         onSuccess={handleSuccess}

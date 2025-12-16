@@ -25,6 +25,7 @@ interface EmailTemplateModalProps {
   eventId: string
   templateId: string | null
   categories: GuestCategory[]
+  workspaceId: string
   workspaceSlug: string
   eventSlug: string
 }
@@ -35,6 +36,7 @@ export function EmailTemplateModal({
   eventId,
   templateId,
   categories,
+  workspaceId,
   workspaceSlug,
   eventSlug,
 }: EmailTemplateModalProps) {
@@ -57,6 +59,7 @@ export function EmailTemplateModal({
               eventId={eventId}
               templateId={templateId}
               categories={categories}
+              workspaceId={workspaceId}
               workspaceSlug={workspaceSlug}
               eventSlug={eventSlug}
               onSuccess={() => onOpenChange(false)}

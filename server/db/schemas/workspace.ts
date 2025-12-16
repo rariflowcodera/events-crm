@@ -3,6 +3,31 @@ import { relations } from "drizzle-orm"
 import { index, json, pgTable, text, timestamp } from "drizzle-orm/pg-core"
 
 // ============================================================================
+// Email Branding Config Type
+// ============================================================================
+
+export type EmailBrandingConfig = {
+  // Colors (defaults from visual branding if not set)
+  accentStripColor?: string // Top accent strip (default: accentColor)
+  headingColor?: string // h1/h2 headings (default: primaryColor)
+  bodyTextColor?: string // Body text (default: #374151)
+  ctaButtonColor?: string // CTA button bg (default: accentColor)
+  ctaButtonTextColor?: string // CTA button text (default: #ffffff)
+  contentBackgroundColor?: string // Content area background (default: #ffffff)
+
+  // Typography
+  fontFamily?: "noto-sans" | "inter" | "arial" | "georgia" | "system"
+  arabicFontFamily?: "noto-sans" | "din-next" | "geeza" | "tahoma" | "system"
+
+  // Layout
+  accentStripHeight?: "thin" | "medium" | "thick" // 3px, 6px, 10px
+  ctaButtonStyle?: "rounded" | "pill" | "square"
+
+  // Footer
+  footerText?: string
+}
+
+// ============================================================================
 // Workspace Branding Type
 // ============================================================================
 
@@ -13,6 +38,7 @@ export type WorkspaceBranding = {
   accentColor?: string // Accent color (hex)
   primaryColorDark?: string // Dark mode primary color
   accentColorDark?: string // Dark mode accent color
+  emailBranding?: EmailBrandingConfig // Email-specific branding
 }
 
 // ============================================================================

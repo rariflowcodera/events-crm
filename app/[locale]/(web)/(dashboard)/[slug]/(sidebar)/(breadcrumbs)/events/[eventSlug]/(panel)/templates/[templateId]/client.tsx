@@ -77,6 +77,7 @@ export function TemplateDetailPageClient({
         eventId={event.id}
         templateId={templateId}
         categories={categoriesData || []}
+        workspaceId={event.workspaceId}
         workspaceSlug={workspaceSlug}
         eventSlug={eventSlug}
         onSuccess={handleSuccess}

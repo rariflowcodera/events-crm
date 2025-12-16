@@ -25,6 +25,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Icons } from "@/components/global/icons"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Calendar } from "@/components/ui/calendar"
+import { PlaceAutocompleteInput, type PlaceResult } from "@/components/forms/place-autocomplete-input"
+import { LocationPreview } from "@/components/events/location-preview"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 
@@ -34,6 +36,12 @@ const createEventSchema = z.object({
   eventType: z.string().optional(),
   venue: z.string().optional(),
   venueAddress: z.string().optional(),
+  // Location coordinates from Google Places
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  placeId: z.string().optional(),
+  city: z.string().optional(),
+  country: z.string().optional(),
   startDate: z.date().optional(),
   endDate: z.date().optional(),
   rsvpDeadline: z.date().optional(),
@@ -145,43 +153,39 @@ export function CreateEventForm({
           )}
         />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="venue"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("fields.venue")}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Riyadh Convention Center"
-                    disabled={isLoading}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+        <FormItem>
+          <FormLabel>{t("fields.venue")}</FormLabel>
+          <PlaceAutocompleteInput
+            value={form.watch("venue")}
+            onChange={(place: PlaceResult | null) => {
+              if (place) {
+                form.setValue("venue", place.venue)
+                form.setValue("venueAddress", place.venueAddress)
+                form.setValue("latitude", place.latitude)
+                form.setValue("longitude", place.longitude)
+                form.setValue("placeId", place.placeId)
+                form.setValue("city", place.city)
+                form.setValue("country", place.country)
+              }
+            }}
+            placeholder={t("fields.venuePlaceholder")}
+            disabled={isLoading}
           />
-
-          <FormField
-            control={form.control}
-            name="venueAddress"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("fields.venueAddress")}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Full address..."
-                    disabled={isLoading}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+          {form.watch("venueAddress") && (
+            <FormDescription className="text-xs">
+              {form.watch("venueAddress")}
+            </FormDescription>
+          )}
+          {form.watch("latitude") && form.watch("longitude") && (
+            <LocationPreview
+              latitude={parseFloat(form.watch("latitude")!)}
+              longitude={parseFloat(form.watch("longitude")!)}
+              venue={form.watch("venue")}
+              height="180px"
+              className="mt-3"
+            />
+          )}
+        </FormItem>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField

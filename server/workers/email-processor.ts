@@ -9,6 +9,7 @@ import {
   eventDocuments,
   events,
   guests,
+  workspaces,
 } from "@/server/db/schemas"
 import { SMTP_FROM_ENV } from "@/env"
 import { email, resolveEmailSender } from "@/lib/email"
@@ -124,7 +125,7 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
   console.log(`Processing single email job for guest ${guestId}`)
 
   // Fetch all required data in parallel
-  const [guest, template, event, documents] = await Promise.all([
+  const [guest, template, eventWithWorkspace, documents] = await Promise.all([
     db.query.guests.findFirst({
       where: eq(guests.id, guestId),
       with: {
@@ -138,11 +139,17 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
     }),
     db.query.events.findFirst({
       where: eq(events.id, eventId),
+      with: {
+        workspace: true, // Include workspace for branding inheritance
+      },
     }),
     db.query.eventDocuments.findMany({
       where: eq(eventDocuments.eventId, eventId),
     }),
   ])
+
+  // Extract event from the result (for compatibility with existing code)
+  const event = eventWithWorkspace
 
   // Validate required data exists
   if (!guest) {
@@ -229,8 +236,15 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
     .returning()
 
   try {
-    // Render template with variables (including document links)
-    const rendered = renderEmailTemplate(template, guest, event, language, documents)
+    // Build branding context for email rendering
+    const branding = {
+      workspaceBranding: eventWithWorkspace?.workspace?.branding || null,
+      eventBranding: eventWithWorkspace?.branding || null,
+      masterTemplate: null, // Uses default master template
+    }
+
+    // Render template with variables (including document links and branding)
+    const rendered = renderEmailTemplate(template, guest, event, language, documents, branding)
 
     // Update email log with rendered subject
     await db
