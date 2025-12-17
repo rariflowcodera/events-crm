@@ -102,8 +102,16 @@
       "venue": "المكان",
       "venueAddress": "عنوان المكان",
       "venuePlaceholder": "ابحث عن مكان...",
+      "singleDayEvent": "فعالية يوم واحد",
+      "singleDayDescription": "فعّل لتحديد أوقات بداية ونهاية محددة ليوم واحد",
+      "enableArabicName": "تفعيل الاسم العربي",
+      "enableArabicNameDescription": "إضافة نسخة عربية من اسم الفعالية للاتصالات ثنائية اللغة",
+      "nameAr": "اسم الفعالية بالعربية",
+      "date": "التاريخ",
       "startDate": "تاريخ البداية",
       "endDate": "تاريخ النهاية",
+      "startTime": "وقت البداية",
+      "endTime": "وقت النهاية",
       "rsvpDeadline": "موعد انتهاء التسجيل",
       "maxGuests": "الحد الأقصى للضيوف"
     },
@@ -115,6 +123,7 @@
       "totalInvited": "إجمالي المدعوين",
       "responseRate": "معدل الاستجابة",
       "attended": "الحضور",
+      "notAttended": "لم يحضر",
       "countdown": "العد التنازلي",
       "today": "اليوم",
       "completed": "منتهي",
@@ -134,8 +143,41 @@
       "mapComingSoon": "عرض الخريطة قريباً",
       "mapComingSoonTooltip": "تكامل خرائط جوجل مخطط في تحديث مستقبلي",
       "viewOnMap": "عرض على الخريطة",
+      "noCoordinates": "إحداثيات الخريطة غير متوفرة",
       "guestsResponded": "ضيف قد استجاب",
       "guests": "ضيف"
+    }
+  },
+  "events": {
+    "duplicate": {
+      "title": "تكرار الفعالية",
+      "description": "إنشاء نسخة من هذه الفعالية مع جميع إعداداتها",
+      "name": "اسم الفعالية",
+      "namePlaceholder": "أدخل اسم الفعالية",
+      "includeLabel": "تضمين في التكرار:",
+      "options": {
+        "categories": "فئات الضيوف",
+        "categoriesDesc": "تعريفات الفئات وتخصيصات الخدمات",
+        "emailTemplates": "قوالب البريد الإلكتروني",
+        "emailTemplatesDesc": "جميع قوالب البريد الإلكتروني للفعالية",
+        "guestListViews": "عروض قائمة الضيوف",
+        "guestListViewsDesc": "إعدادات العرض المحفوظة",
+        "eventForms": "نماذج الفعالية",
+        "eventFormsDesc": "نماذج التسجيل والتعليقات المخصصة",
+        "documents": "المستندات",
+        "documentsDesc": "مستندات الفعالية لقوالب البريد الإلكتروني",
+        "itineraries": "جداول الأعمال",
+        "itinerariesDesc": "قوالب جدول الأعمال وعناصر الجدول الزمني",
+        "inventoryTypes": "أنواع المخزون",
+        "inventoryTypesDesc": "هيكل الفنادق والنقل والمخزون الآخر",
+        "workflows": "سير العمل",
+        "workflowsDesc": "سير عمل البريد الإلكتروني الآلي وتغيير الحالة"
+      },
+      "submit": "تكرار الفعالية",
+      "submitting": "جاري التكرار...",
+      "cancel": "إلغاء",
+      "success": "تم تكرار الفعالية بنجاح",
+      "error": "فشل تكرار الفعالية"
     }
   },
   "categories": {
@@ -207,16 +249,16 @@
       "sendEmail": "إرسال بريد",
       "delete": "حذف"
     },
-    "checkIn": {
-      "title": "تسجيل الحضور",
-      "checkedIn": "تم التسجيل",
-      "notCheckedIn": "لم يتم التسجيل",
-      "checkInGuest": "تسجيل حضور الضيف",
-      "undoCheckIn": "إلغاء التسجيل",
-      "checkedInAt": "وقت التسجيل",
-      "checkedInBy": "تم التسجيل بواسطة",
-      "bulkCheckIn": "تسجيل حضور المحددين",
-      "bulkUndoCheckIn": "إلغاء تسجيل المحددين"
+    "attendance": {
+      "title": "الحضور",
+      "attended": "حضر",
+      "notAttended": "لم يحضر",
+      "markAttendance": "تسجيل الحضور",
+      "undoAttendance": "إلغاء الحضور",
+      "attendedAt": "وقت الحضور",
+      "attendedBy": "سجّل بواسطة",
+      "bulkMarkAttendance": "تسجيل حضور المحددين",
+      "bulkUndoAttendance": "إلغاء حضور المحددين"
     }
   },
   "rsvp": {
@@ -646,10 +688,14 @@
     "maybeMessage": "رسالة ربما",
     "submitButtonText": "نص زر الإرسال",
     "submitButtonTextDescription": "النص المعروض على زر الإرسال",
+    "contactMessage": "رسالة التواصل",
+    "contactMessageDescription": "رسالة الدعم المعروضة أسفل كل صفحة تأكيد حضور (مثال: بريد إلكتروني للمساعدة)",
     "rsvpQuestionSection": "سؤال تأكيد الحضور",
     "rsvpQuestionSectionDescription": "تخصيص سؤال تأكيد الحضور وخيارات الرد",
     "showMaybeOption": "إظهار خيار ربما",
     "showMaybeOptionDescription": "السماح للضيوف بالرد بـ 'ربما'",
+    "useVisualResponseStyle": "نمط الاستجابة المرئي",
+    "useVisualResponseStyleDescription": "عرض خيارات الحضور كمربعات أيقونات بدلاً من أزرار الراديو",
     "rsvpQuestionLabel": "تسمية السؤال",
     "rsvpQuestionLabelDescription": "تسمية سؤال تأكيد الحضور (مثال: 'تأكيد الحضور'، 'هل ستحضر؟')",
     "confirmOptionLabel": "تسمية خيار التأكيد",
@@ -841,8 +887,21 @@
     "pinToSidebar": "تثبيت في الشريط الجانبي",
     "pinToSidebarDescription": "إظهار هذا العرض في قائمة الشريط الجانبي للوصول السريع",
     "saving": "جارٍ الحفظ...",
+    "updating": "جارٍ التحديث...",
+    "deleting": "جارٍ الحذف...",
     "selectView": "اختر عرضاً",
     "noViews": "لا توجد عروض محفوظة",
+    "editView": "تعديل العرض",
+    "editViewDescription": "تحديث إعدادات العرض.",
+    "deleteView": "حذف العرض",
+    "deleteViewConfirm": "هل أنت متأكد من حذف \"{name}\"؟ لا يمكن التراجع عن هذا الإجراء.",
+    "manageViewsTitle": "إدارة العروض",
+    "manageViewsDescription": "تعديل أو حذف العروض المحفوظة.",
+    "noCustomViews": "لا توجد عروض مخصصة بعد.",
+    "noCustomViewsDescription": "أنشئ عرضاً من تبويب الضيوف لحفظ تفضيلات الأعمدة والتصفية.",
+    "systemView": "نظام",
+    "actions": "الإجراءات",
+    "pinned": "مثبت",
     "colors": {
       "gray": "افتراضي",
       "blue": "تشغيلي",
@@ -855,6 +914,7 @@
       "owner": "المالك",
       "admin": "المشرف",
       "manager": "المدير",
+      "event_staff": "طاقم الفعالية",
       "member": "العضو"
     },
     "columnGroups": {

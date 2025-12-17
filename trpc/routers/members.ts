@@ -1,5 +1,7 @@
+import { hashPassword } from "better-auth/crypto"
+
 import { db } from "@/server/db/config/database"
-import { roles, workspaceMembers, workspaces } from "@/server/db/schemas"
+import { account, roles, workspaceMembers, workspaces } from "@/server/db/schemas"
 import { getIsUserMember, hasPermission, PERMISSIONS } from "@/server/queries/permissions"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import { TRPCError } from "@trpc/server"
@@ -7,6 +9,16 @@ import { and, eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { slugSchema, userIdSchema, workspaceSchema } from "@/lib/schemas"
+
+// Generate a random password (12 characters, alphanumeric)
+function generateRandomPassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
+  let password = ""
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return password
+}
 
 export const membersRouter = createTRPCRouter({
   getMany: protectedProcedure
@@ -105,7 +117,7 @@ export const membersRouter = createTRPCRouter({
   update: protectedProcedure
     .input(
       z.object({
-        role: z.enum(["member", "admin"]),
+        role: z.enum(["member", "event_staff", "manager", "admin", "owner"]),
         userId: userIdSchema,
         slug: slugSchema,
       })
@@ -134,7 +146,7 @@ export const membersRouter = createTRPCRouter({
         })
       }
 
-      const [canUpdateRole, [newRole], currentRole] = await Promise.all([
+      const [canUpdateRole, [newRole], currentRole, currentUserRole] = await Promise.all([
         hasPermission({
           userId: user.id,
           workspaceId: workspace.id,
@@ -144,6 +156,20 @@ export const membersRouter = createTRPCRouter({
         db.query.workspaceMembers.findFirst({
           where: and(
             eq(workspaceMembers.userId, userId),
+            eq(workspaceMembers.workspaceId, workspace.id)
+          ),
+          with: {
+            role: {
+              columns: {
+                name: true,
+              },
+            },
+          },
+        }),
+        // Get current user's role to check if they're an owner
+        db.query.workspaceMembers.findFirst({
+          where: and(
+            eq(workspaceMembers.userId, user.id),
             eq(workspaceMembers.workspaceId, workspace.id)
           ),
           with: {
@@ -177,6 +203,30 @@ export const membersRouter = createTRPCRouter({
         })
       }
 
+      // Only owners can promote to owner
+      if (role === "owner" && currentUserRole?.role.name !== "owner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only owners can promote members to owner",
+        })
+      }
+
+      // Prevent demotion of primary owner
+      if (userId === workspace.ownerId && currentRole?.role.name === "owner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Cannot demote the primary owner. Use ownership transfer instead.",
+        })
+      }
+
+      // Only owners can demote other owners
+      if (currentRole?.role.name === "owner" && currentUserRole?.role.name !== "owner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only owners can change the role of another owner",
+        })
+      }
+
       // update role in db
       await db
         .update(workspaceMembers)
@@ -187,6 +237,128 @@ export const membersRouter = createTRPCRouter({
 
       return {
         message: "Member role updated successfully",
+      }
+    }),
+
+  resetPassword: protectedProcedure
+    .input(
+      z.object({
+        userId: userIdSchema,
+        slug: slugSchema,
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { user } = ctx
+      const { userId, slug } = input
+
+      // Cannot reset own password through this flow
+      if (user.id === userId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot reset your own password through this action",
+        })
+      }
+
+      const [workspace] = await db
+        .select()
+        .from(workspaces)
+        .where(eq(workspaces.slug, slug))
+        .limit(1)
+
+      if (!workspace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Workspace not found",
+        })
+      }
+
+      // Check permission - only owners and admins can reset passwords
+      const [canManageMembers, targetMember, currentUserMember] = await Promise.all([
+        hasPermission({
+          userId: user.id,
+          workspaceId: workspace.id,
+          permissionName: PERMISSIONS.MANAGE_MEMBERS,
+        }),
+        db.query.workspaceMembers.findFirst({
+          where: and(
+            eq(workspaceMembers.userId, userId),
+            eq(workspaceMembers.workspaceId, workspace.id)
+          ),
+          with: {
+            user: true,
+            role: true,
+          },
+        }),
+        db.query.workspaceMembers.findFirst({
+          where: and(
+            eq(workspaceMembers.userId, user.id),
+            eq(workspaceMembers.workspaceId, workspace.id)
+          ),
+          with: {
+            role: true,
+          },
+        }),
+      ])
+
+      if (!canManageMembers) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have permission to reset passwords",
+        })
+      }
+
+      if (!targetMember) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Member not found",
+        })
+      }
+
+      // Cannot reset password of owner unless you are also owner
+      if (targetMember.role.name === "owner" && currentUserMember?.role.name !== "owner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only owners can reset passwords for other owners",
+        })
+      }
+
+      // Generate new password
+      const generatedPassword = generateRandomPassword()
+      const hashedPassword = await hashPassword(generatedPassword)
+
+      // Check if user has a credential account
+      const [credentialAccount] = await db
+        .select()
+        .from(account)
+        .where(and(eq(account.userId, userId), eq(account.providerId, "credential")))
+        .limit(1)
+
+      if (credentialAccount) {
+        // Update existing credential account password
+        await db
+          .update(account)
+          .set({
+            password: hashedPassword,
+            updatedAt: new Date(),
+          })
+          .where(eq(account.id, credentialAccount.id))
+      } else {
+        // Create new credential account for user (e.g., user only had OAuth)
+        await db.insert(account).values({
+          id: crypto.randomUUID(),
+          userId: userId,
+          accountId: userId,
+          providerId: "credential",
+          password: hashedPassword,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      }
+
+      return {
+        message: "Password reset successfully",
+        email: targetMember.user.email,
+        generatedPassword,
       }
     }),
 

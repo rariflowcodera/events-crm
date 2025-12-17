@@ -1,10 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { format } from "date-fns"
 
+import { formatEventDateTime } from "@/lib/date-utils"
 import { createRoute } from "@/lib/routes"
 import { useDeleteEvent } from "@/trpc/hooks/events-hooks"
 import { Badge } from "@/components/ui/badge"
@@ -28,6 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Icons } from "@/components/global/icons"
+import { DuplicateEventDialog } from "@/components/events/duplicate-event-dialog"
 
 type EventStatus = "draft" | "planning" | "invitations_sent" | "rsvp_open" | "rsvp_closed" | "in_progress" | "completed" | "cancelled"
 
@@ -41,6 +43,8 @@ interface Event {
   venueAddress: string | null
   startDate: Date | null
   endDate: Date | null
+  startTime: string | null
+  endTime: string | null
   status: EventStatus
   createdAt: Date
 }
@@ -68,6 +72,9 @@ export function EventHeader({ event, workspaceSlug }: EventHeaderProps) {
   const t = useTranslations("event")
   const router = useRouter()
   const { label, variant } = statusConfig[event.status]
+
+  // Dialog states
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false)
 
   const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent({
     onSuccess: () => {
@@ -104,10 +111,12 @@ export function EventHeader({ event, workspaceSlug }: EventHeaderProps) {
               <div className="flex items-center gap-1">
                 <Icons.calendar className="h-4 w-4" />
                 <span>
-                  {format(new Date(event.startDate), "MMM d, yyyy")}
-                  {event.endDate && event.endDate !== event.startDate && (
-                    <> - {format(new Date(event.endDate), "MMM d, yyyy")}</>
-                  )}
+                  {formatEventDateTime({
+                    startDate: new Date(event.startDate),
+                    endDate: event.endDate ? new Date(event.endDate) : null,
+                    startTime: event.startTime,
+                    endTime: event.endTime,
+                  })}
                 </span>
               </div>
             )}
@@ -136,7 +145,7 @@ export function EventHeader({ event, workspaceSlug }: EventHeaderProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setDuplicateDialogOpen(true)}>
                   <Icons.copy className="mr-2 h-4 w-4" />
                   Duplicate Event
                 </DropdownMenuItem>
@@ -184,6 +193,14 @@ export function EventHeader({ event, workspaceSlug }: EventHeaderProps) {
           </AlertDialog>
         </div>
       </div>
+
+      {/* Duplicate Event Dialog */}
+      <DuplicateEventDialog
+        open={duplicateDialogOpen}
+        onOpenChange={setDuplicateDialogOpen}
+        event={{ id: event.id, name: event.name }}
+        workspaceSlug={workspaceSlug}
+      />
     </div>
   )
 }

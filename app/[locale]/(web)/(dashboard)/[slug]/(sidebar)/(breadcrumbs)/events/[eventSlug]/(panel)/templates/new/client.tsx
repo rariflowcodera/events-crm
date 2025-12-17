@@ -36,7 +36,8 @@ export function TemplateNewPageClient({ workspaceSlug, eventSlug }: TemplateNewP
   const backHref = createRoute("event-detail", { slug: workspaceSlug, eventSlug }).href + "?tab=emails"
 
   const handleSuccess = () => {
-    router.push(backHref)
+    // Stay on the page after saving - toast notification confirms success
+    // User can navigate away manually via back button when done
   }
 
   const handleCancel = () => {

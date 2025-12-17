@@ -3,6 +3,7 @@ import { eq, and, gt, isNull } from "drizzle-orm"
 import { db } from "@/server/db/config/database"
 import { guests, events, guestCategories, rsvpResponses, workspaces, emailTemplates } from "@/server/db/schemas"
 import { getMaterializedColumn, isStandardField } from "@/lib/rsvp"
+import { isResponseStatus } from "@/lib/guest-status"
 import { resolveBranding } from "@/lib/branding"
 import { addSingleEmailJob } from "@/lib/queue/queues"
 import type { EmailTemplateType } from "@/lib/schemas"
@@ -53,12 +54,12 @@ export async function GET(
     )
   }
 
-  // Track page visit
+  // Track page visit - only update status to "viewed" if guest hasn't already responded
   await db
     .update(guests)
     .set({
       lastRsvpPageVisitAt: new Date(),
-      status: guest.status === "pending" || guest.status === "invited" ? "viewed" : guest.status,
+      status: isResponseStatus(guest.status) ? guest.status : "viewed",
       updatedAt: new Date(),
     })
     .where(eq(guests.id, guest.id))
@@ -97,6 +98,9 @@ export async function GET(
       venueAddress: guest.event.venueAddress,
       startDate: guest.event.startDate,
       endDate: guest.event.endDate,
+      startTime: guest.event.startTime,
+      endTime: guest.event.endTime,
+      isSingleDay: guest.event.isSingleDay,
       timezone: guest.event.timezone,
       rsvpDeadline: guest.event.rsvpDeadline,
       rsvpFormConfig: guest.event.rsvpFormConfig,

@@ -441,6 +441,7 @@ export const emailTemplatesRouter = createTRPCRouter({
         ],
         event: [
           { key: "{{event.name}}", description: "Event name" },
+          { key: "{{event.nameAr}}", description: "Arabic event name" },
           { key: "{{event.venue}}", description: "Event venue" },
           { key: "{{event.venueAddress}}", description: "Venue address" },
           { key: "{{event.startDate}}", description: "Event start date" },
@@ -937,9 +938,12 @@ export const emailTemplatesRouter = createTRPCRouter({
       event = {
         id: template.event.id,
         name: template.event.name,
+        nameAr: template.event.nameAr,
         slug: template.event.slug,
         venue: template.event.venue,
         venueAddress: template.event.venueAddress,
+        latitude: template.event.latitude,
+        longitude: template.event.longitude,
         startDate: template.event.startDate,
         endDate: template.event.endDate,
         rsvpDeadline: template.event.rsvpDeadline,
@@ -1230,9 +1234,12 @@ export const emailTemplatesRouter = createTRPCRouter({
         event: {
           id: event.id,
           name: event.name,
+          nameAr: event.nameAr,
           slug: event.slug,
           venue: event.venue,
           venueAddress: event.venueAddress,
+          latitude: event.latitude,
+          longitude: event.longitude,
           startDate: event.startDate,
           endDate: event.endDate,
           rsvpDeadline: event.rsvpDeadline,

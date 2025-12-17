@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl"
 import { format } from "date-fns"
-import { Users, TrendingUp, UserCheck } from "lucide-react"
+import { Users, TrendingUp, UserCheck, UserX } from "lucide-react"
 
 import {
   useGuestStats,
@@ -19,7 +19,6 @@ import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Icons } from "@/components/global/icons"
 import { DashboardStatTile } from "./dashboard-stat-tile"
-import { EventCountdownTile } from "./event-countdown-tile"
 import { CategoryStatusChart } from "./category-status-chart"
 import { LocationPreviewPlaceholder } from "./location-preview-placeholder"
 
@@ -85,6 +84,7 @@ export function EventOverviewTab({
     stats?.byStatus?.find((s) => s.status === "maybe")?.count ?? 0
   const attendedGuests =
     stats?.byStatus?.find((s) => s.status === "attended")?.count ?? 0
+  const notAttendedGuests = stats?.attendance?.notAttended ?? 0
 
   const responseRate =
     totalGuests > 0
@@ -123,10 +123,12 @@ export function EventOverviewTab({
           variant={attendedGuests > 0 ? "success" : "muted"}
           isLoading={statsLoading}
         />
-        <EventCountdownTile
-          startDate={event.startDate}
-          endDate={event.endDate}
-          isLoading={false}
+        <DashboardStatTile
+          label={t("event.dashboard.notAttended")}
+          value={notAttendedGuests}
+          icon={UserX}
+          variant={notAttendedGuests > 0 ? "warning" : "muted"}
+          isLoading={statsLoading}
         />
       </div>
 

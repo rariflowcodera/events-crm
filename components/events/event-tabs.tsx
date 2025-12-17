@@ -26,6 +26,7 @@ interface GuestCategory {
 interface Event {
   id: string
   name: string
+  nameAr: string | null
   slug: string
   description: string | null
   eventType: string | null
@@ -39,6 +40,9 @@ interface Event {
   country: string | null
   startDate: Date | null
   endDate: Date | null
+  startTime: string | null
+  endTime: string | null
+  isSingleDay: boolean | null
   rsvpDeadline: Date | null
   maxGuests: number | null
   status: EventStatus

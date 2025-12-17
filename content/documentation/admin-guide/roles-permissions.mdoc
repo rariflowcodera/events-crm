@@ -7,7 +7,7 @@ status: "published"
 
 # Roles & Permissions
 
-Events CRM uses a role-based access control system with four distinct roles. Each role has specific permissions that determine what actions a member can perform.
+Events CRM uses a role-based access control system with five distinct roles. Each role has specific permissions that determine what actions a member can perform.
 
 ## Role Overview
 
@@ -16,6 +16,7 @@ Events CRM uses a role-based access control system with four distinct roles. Eac
 | **Owner** | Full control over the workspace | Workspace creator, primary administrator |
 | **Admin** | Complete management capabilities | Team leads, secondary administrators |
 | **Manager** | Event and guest management | Event coordinators, operations staff |
+| **Event Staff** | Attendance marking and view access | On-site check-in staff |
 | **Member** | View-only access | Stakeholders, observers, clients |
 
 ## Owner
@@ -105,6 +106,30 @@ Managers focus on **event operations** with permissions for managing events, gue
 - Access workspace settings
 - Manage email templates
 
+## Event Staff
+
+Event Staff have **limited access** focused on on-site attendance operations.
+
+### What Event Staff Can Do
+
+**Attendance**
+- Mark guest attendance at events
+- View attendance status
+
+**View Access**
+- View events
+- View guest lists
+- View RSVP responses
+
+### What Event Staff Cannot Do
+
+- Create, edit, or delete events
+- Manage guest records
+- Send emails
+- Access workspace or event settings
+- Invite or manage other members
+- Import or export data
+
 ## Member
 
 Members have **view-only access** to monitor workspace activity without making changes.
@@ -127,36 +152,38 @@ Members have **view-only access** to monitor workspace activity without making c
 
 ## Permission Summary Table
 
-| Permission | Owner | Admin | Manager | Member |
-|------------|-------|-------|---------|--------|
+| Permission | Owner | Admin | Manager | Event Staff | Member |
+|------------|-------|-------|---------|-------------|--------|
 | **Workspace** |
-| Manage workspace settings | Yes | No | No | No |
-| Delete workspace | Yes | No | No | No |
-| Transfer ownership | Yes | No | No | No |
+| Manage workspace settings | Yes | No | No | No | No |
+| Delete workspace | Yes | No | No | No | No |
+| Transfer ownership | Yes | No | No | No | No |
 | **Members** |
-| View members | Yes | Yes | Yes | Yes |
-| Invite members | Yes | Yes | No | No |
-| Remove members | Yes | Yes | No | No |
-| Manage roles | Yes | No | No | No |
+| View members | Yes | Yes | Yes | No | Yes |
+| Invite members | Yes | Yes | No | No | No |
+| Remove members | Yes | Yes | No | No | No |
+| Manage roles | Yes | No | No | No | No |
 | **Events** |
-| View events | Yes | Yes | Yes | Yes |
-| Create events | Yes | Yes | No | No |
-| Manage events | Yes | Yes | Yes | No |
-| Delete events | Yes | Yes | No | No |
+| View events | Yes | Yes | Yes | Yes | Yes |
+| Create events | Yes | Yes | No | No | No |
+| Manage events | Yes | Yes | Yes | No | No |
+| Delete events | Yes | Yes | No | No | No |
 | **Guests** |
-| View guests | Yes | Yes | Yes | Yes |
-| Import guests | Yes | Yes | Yes | No |
-| Manage guests | Yes | Yes | Yes | No |
-| Delete guests | Yes | Yes | No | No |
+| View guests | Yes | Yes | Yes | Yes | Yes |
+| Import guests | Yes | Yes | Yes | No | No |
+| Manage guests | Yes | Yes | Yes | No | No |
+| Delete guests | Yes | Yes | No | No | No |
+| **Attendance** |
+| Mark attendance | Yes | Yes | Yes | Yes | No |
 | **RSVPs** |
-| View RSVPs | Yes | Yes | Yes | Yes |
-| Manage RSVPs | Yes | Yes | Yes | No |
+| View RSVPs | Yes | Yes | Yes | Yes | Yes |
+| Manage RSVPs | Yes | Yes | Yes | No | No |
 | **Emails** |
-| Send emails | Yes | Yes | Yes | No |
-| Manage templates | Yes | Yes | No | No |
+| Send emails | Yes | Yes | Yes | No | No |
+| Manage templates | Yes | Yes | No | No | No |
 | **Reporting** |
-| View reports | Yes | Yes | Yes | Yes |
-| Export data | Yes | Yes | Yes | No |
+| View reports | Yes | Yes | Yes | No | Yes |
+| Export data | Yes | Yes | Yes | No | No |
 
 ## Choosing the Right Role
 
@@ -172,6 +199,11 @@ Members have **view-only access** to monitor workspace activity without making c
 - Event coordinators handling day-to-day operations
 - Staff who need to manage guests and RSVPs
 - Team members who send communications
+
+### Use Event Staff for:
+- On-site check-in staff at events
+- Personnel who only need to mark attendance
+- Temporary staff with minimal system access
 
 ### Use Member for:
 - Stakeholders who need visibility but not control

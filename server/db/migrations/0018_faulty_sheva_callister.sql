@@ -1,0 +1,1 @@
+ALTER TABLE "event" ADD COLUMN "name_ar" text;

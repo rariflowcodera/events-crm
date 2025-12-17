@@ -29,7 +29,11 @@ export const PERMISSIONS = {
   IMPORT_GUESTS: "import:guests",
   MANAGE_GUESTS: "manage:guests",
   VIEW_GUESTS: "view:guests",
+  VIEW_GUEST_DETAILS: "view:guest_details",
   DELETE_GUESTS: "delete:guests",
+
+  // Attendance
+  MARK_ATTENDANCE: "mark:attendance",
 
   // RSVP management
   VIEW_RSVPS: "view:rsvps",

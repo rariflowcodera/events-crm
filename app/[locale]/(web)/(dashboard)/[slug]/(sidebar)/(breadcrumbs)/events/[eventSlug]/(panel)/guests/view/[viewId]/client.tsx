@@ -10,6 +10,8 @@ import { PagePanel } from "@/components/global/page-panel"
 import { GuestsDataTable } from "@/components/guests/guests-data-table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { createRoute } from "@/lib/routes"
+import { PERMISSIONS } from "@/lib/permissions"
+import { usePermissions } from "@/hooks/use-permissions"
 import type { GuestListViewConfig } from "@/lib/guest-columns"
 
 interface GuestListViewPageClientProps {
@@ -25,6 +27,10 @@ export function GuestListViewPageClient({
 }: GuestListViewPageClientProps) {
   const t = useTranslations()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  // Check if user can view guest details
+  const { can } = usePermissions(workspaceSlug)
+  const canViewDetails = can(PERMISSIONS.VIEW_GUEST_DETAILS)
 
   // Local view config state (allows users to modify filters without saving)
   const [localViewConfig, setLocalViewConfig] = useState<GuestListViewConfig | null>(null)
@@ -69,7 +75,6 @@ export function GuestListViewPageClient({
     return (
       <PagePanel
         title={t("common.loading")}
-        backHref={backHref}
       >
         <GuestListViewSkeleton />
       </PagePanel>
@@ -84,7 +89,7 @@ export function GuestListViewPageClient({
   const guests = guestsData?.guests ?? []
 
   const getGuestDetailHref = (guestId: string) =>
-    `/${workspaceSlug}/events/${eventSlug}/guests/${guestId}`
+    `/${workspaceSlug}/events/${eventSlug}/guests/${guestId}?fromView=${viewId}`
 
   // Check if filters are modified from saved view
   const hasUnsavedChanges = localViewConfig !== null
@@ -93,7 +98,6 @@ export function GuestListViewPageClient({
     <PagePanel
       title={view.name}
       description={view.description || undefined}
-      backHref={backHref}
       noScroll
     >
       <div className="flex flex-col h-full">
@@ -124,6 +128,7 @@ export function GuestListViewPageClient({
             viewConfig={activeConfig ?? view.config}
             onViewConfigChange={handleViewConfigChange}
             fillHeight
+            canViewDetails={canViewDetails}
           />
         </div>
       </div>

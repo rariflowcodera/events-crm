@@ -1,11 +1,27 @@
 import { db } from "@/server/db/config/database"
-import { events, workspaces, workspaceMembers, users, guestCategories, emailTemplates, guestListViews } from "@/server/db/schemas"
+import {
+  events,
+  workspaces,
+  workspaceMembers,
+  users,
+  guestCategories,
+  emailTemplates,
+  guestListViews,
+  eventForms,
+  eventDocuments,
+  itineraryTemplates,
+  itineraryItems,
+  inventoryTypes,
+  workflows,
+  workflowSteps,
+  emailMasterTemplates,
+} from "@/server/db/schemas"
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
 import { DEFAULT_EMAIL_TEMPLATES } from "@/lib/email/default-templates"
 import { GUEST_COLUMNS, type GuestListViewConfig } from "@/lib/guest-columns"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import { TRPCError } from "@trpc/server"
-import { and, desc, eq, ne, getTableColumns, sql } from "drizzle-orm"
+import { and, desc, eq, ne, getTableColumns, sql, isNotNull } from "drizzle-orm"
 import { z } from "zod"
 import { randomBytes } from "crypto"
 import dns from "dns/promises"
@@ -14,6 +30,21 @@ import { slugify } from "@/lib/utils"
 import { resolveBranding } from "@/lib/branding"
 import { eventBrandingSchema } from "@/lib/schemas"
 import { invalidateDomainCache, isValidDomainFormat } from "@/lib/domain"
+import {
+  createEmptyMapping,
+  createEmptyStats,
+  generateUniqueEventSlug,
+  generateUniqueFormSlug,
+  remapCategoryId,
+  remapCategoryIds,
+  remapDocumentReferences,
+  remapGuestListViewConfig,
+  remapWorkflowTriggerConditions,
+  remapWorkflowStepActionConfig,
+  enforceDependencies,
+  type DuplicationMapping,
+  type DuplicationStats,
+} from "@/lib/event-duplication"
 
 const eventStatusValues = [
   "draft",
@@ -165,6 +196,7 @@ export const eventsRouter = createTRPCRouter({
       z.object({
         workspaceSlug: z.string(),
         name: z.string().min(1),
+        nameAr: z.string().max(100).optional(),
         slug: z.string().min(3).optional(),
         description: z.string().optional(),
         eventType: z.string().optional(),
@@ -178,6 +210,9 @@ export const eventsRouter = createTRPCRouter({
         country: z.string().optional(),
         startDate: z.date().optional(),
         endDate: z.date().optional(),
+        startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+        endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+        isSingleDay: z.boolean().optional(),
         rsvpDeadline: z.date().optional(),
         maxGuests: z.number().int().positive().optional(),
       })
@@ -224,6 +259,7 @@ export const eventsRouter = createTRPCRouter({
         .values({
           workspaceId: workspace.id,
           name: input.name,
+          nameAr: input.nameAr,
           slug: eventSlug,
           description: input.description,
           eventType: input.eventType,
@@ -236,6 +272,9 @@ export const eventsRouter = createTRPCRouter({
           country: input.country,
           startDate: input.startDate,
           endDate: input.endDate,
+          startTime: input.startTime,
+          endTime: input.endTime,
+          isSingleDay: input.isSingleDay,
           rsvpDeadline: input.rsvpDeadline,
           maxGuests: input.maxGuests,
           createdBy: ctx.user.id,
@@ -256,19 +295,19 @@ export const eventsRouter = createTRPCRouter({
 
       await db.insert(emailTemplates).values(templateInserts)
 
-      // Create default Check-in view for the new event
-      const checkInViewConfig: GuestListViewConfig = {
+      // Create default Attendance view for the new event
+      const attendanceViewConfig: GuestListViewConfig = {
         columns: [
           { id: "select", visible: true, width: 48 },
-          { id: "checkedIn", visible: true, width: 90 },
+          { id: "attended", visible: true, width: 90 },
           { id: "fullName", visible: true, width: 180 },
           { id: "category", visible: true, width: 100 },
           { id: "status", visible: true, width: 110 },
           { id: "entity", visible: true, width: 150 },
-          { id: "checkedInAt", visible: true, width: 140 },
+          { id: "attendedAt", visible: true, width: 140 },
           // Include all other columns as hidden
           ...GUEST_COLUMNS
-            .filter(c => !["select", "checkedIn", "fullName", "category", "status", "entity", "checkedInAt", "actions"].includes(c.id))
+            .filter(c => !["select", "attended", "fullName", "category", "status", "entity", "attendedAt", "actions"].includes(c.id))
             .map(c => ({ id: c.id, visible: false, width: c.defaultWidth })),
           { id: "actions", visible: true, width: 50 },
         ],
@@ -280,9 +319,9 @@ export const eventsRouter = createTRPCRouter({
 
       await db.insert(guestListViews).values({
         eventId: event.id,
-        name: "Check-in",
-        description: "On-site check-in view for event day operations",
-        config: checkInViewConfig,
+        name: "Attendance",
+        description: "On-site attendance view for event day operations",
+        config: attendanceViewConfig,
         visibleToRoles: ["owner", "admin", "manager", "member"],
         color: "orange",
         isPinned: true,
@@ -300,6 +339,7 @@ export const eventsRouter = createTRPCRouter({
       z.object({
         eventId: z.string().uuid(),
         name: z.string().min(1).optional(),
+        nameAr: z.string().max(100).nullable().optional(),
         description: z.string().optional(),
         eventType: z.string().optional(),
         venue: z.string().optional(),
@@ -312,6 +352,9 @@ export const eventsRouter = createTRPCRouter({
         country: z.string().nullable().optional(),
         startDate: z.date().nullable().optional(),
         endDate: z.date().nullable().optional(),
+        startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).nullable().optional(),
+        endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).nullable().optional(),
+        isSingleDay: z.boolean().nullable().optional(),
         rsvpDeadline: z.date().nullable().optional(),
         maxGuests: z.number().int().positive().nullable().optional(),
         status: z.enum(eventStatusValues).optional(),
@@ -800,5 +843,432 @@ export const eventsRouter = createTRPCRouter({
         .where(eq(events.id, eventId))
 
       return { success: true, message: "Custom domain removed" }
+    }),
+
+  // ============================================================================
+  // Event Duplication
+  // ============================================================================
+
+  // Duplicate an event with all its configuration
+  duplicate: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        name: z.string().min(1).max(100).optional(),
+        options: z
+          .object({
+            includeCategories: z.boolean().default(true),
+            includeEmailTemplates: z.boolean().default(true),
+            includeGuestListViews: z.boolean().default(true),
+            includeEventForms: z.boolean().default(true),
+            includeDocuments: z.boolean().default(true),
+            includeItineraries: z.boolean().default(true),
+            includeInventoryTypes: z.boolean().default(true),
+            includeWorkflows: z.boolean().default(true),
+            includeMasterTemplates: z.boolean().default(true),
+          })
+          .default({}),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Get source event
+      const sourceEvent = await db.query.events.findFirst({
+        where: eq(events.id, input.eventId),
+      })
+
+      if (!sourceEvent) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      // Check permission to create events in this workspace
+      const canCreate = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: sourceEvent.workspaceId,
+        permissionName: PERMISSIONS.CREATE_EVENT,
+      })
+
+      if (!canCreate) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to create events in this workspace",
+        })
+      }
+
+      // Enforce dependencies (e.g., categories required for templates)
+      const options = enforceDependencies(input.options)
+
+      // Generate new event name and slug
+      const newName = input.name || `${sourceEvent.name} (Copy)`
+      const newSlug = await generateUniqueEventSlug(sourceEvent.workspaceId, sourceEvent.slug)
+
+      // Execute all operations in a transaction
+      const result = await db.transaction(async (tx) => {
+        const mapping = createEmptyMapping()
+        const stats = createEmptyStats()
+
+        // 1. Create the new event
+        const [newEvent] = await tx
+          .insert(events)
+          .values({
+            workspaceId: sourceEvent.workspaceId,
+            name: newName,
+            nameAr: sourceEvent.nameAr,
+            slug: newSlug,
+            description: sourceEvent.description,
+            eventType: sourceEvent.eventType,
+            venue: sourceEvent.venue,
+            venueAddress: sourceEvent.venueAddress,
+            latitude: sourceEvent.latitude,
+            longitude: sourceEvent.longitude,
+            placeId: sourceEvent.placeId,
+            city: sourceEvent.city,
+            country: sourceEvent.country,
+            startDate: sourceEvent.startDate,
+            endDate: sourceEvent.endDate,
+            timezone: sourceEvent.timezone,
+            startTime: sourceEvent.startTime,
+            endTime: sourceEvent.endTime,
+            isSingleDay: sourceEvent.isSingleDay,
+            rsvpDeadline: sourceEvent.rsvpDeadline,
+            rsvpFormConfig: sourceEvent.rsvpFormConfig,
+            maxGuests: sourceEvent.maxGuests,
+            branding: sourceEvent.branding,
+            settings: sourceEvent.settings,
+            status: "draft", // Always start as draft
+            customDomain: null, // Reset custom domain
+            customDomainVerified: false,
+            customDomainVerifiedAt: null,
+            customDomainVerificationToken: null,
+            createdBy: ctx.user.id,
+          })
+          .returning()
+
+        // 2. Duplicate guest categories (if included)
+        if (options.includeCategories) {
+          const sourceCategories = await tx.query.guestCategories.findMany({
+            where: eq(guestCategories.eventId, sourceEvent.id),
+            orderBy: [guestCategories.sortOrder],
+          })
+
+          for (const category of sourceCategories) {
+            const [newCategory] = await tx
+              .insert(guestCategories)
+              .values({
+                eventId: newEvent.id,
+                name: category.name,
+                code: category.code,
+                description: category.description,
+                sortOrder: category.sortOrder,
+                color: category.color,
+                serviceAllocations: category.serviceAllocations,
+                rsvpPageConfig: category.rsvpPageConfig,
+                isActive: category.isActive,
+                // Don't copy defaultEmailTemplateId - it will be remapped later if needed
+              })
+              .returning()
+
+            mapping.categoryIdMap.set(category.id, newCategory.id)
+            stats.categoriesCopied++
+          }
+        }
+
+        // 3. Duplicate event documents (if included) - MUST come before email templates
+        // so document IDs can be remapped in template content
+        if (options.includeDocuments) {
+          const sourceDocs = await tx.query.eventDocuments.findMany({
+            where: eq(eventDocuments.eventId, sourceEvent.id),
+          })
+
+          for (const doc of sourceDocs) {
+            const [newDoc] = await tx
+              .insert(eventDocuments)
+              .values({
+                eventId: newEvent.id,
+                name: doc.name,
+                fileName: doc.fileName,
+                url: doc.url, // URL points to same file - documents are shared
+                mimeType: doc.mimeType,
+                fileSize: doc.fileSize,
+                type: doc.type,
+                categoryIds: remapCategoryIds(doc.categoryIds, mapping),
+                createdBy: ctx.user.id,
+              })
+              .returning()
+
+            // Track document ID mapping for remapping references in email templates
+            mapping.documentIdMap.set(doc.id, newDoc.id)
+            stats.documentsCopied++
+          }
+        }
+
+        // 4. Duplicate email templates (if included)
+        if (options.includeEmailTemplates) {
+          const sourceTemplates = await tx.query.emailTemplates.findMany({
+            where: eq(emailTemplates.eventId, sourceEvent.id),
+          })
+
+          for (const template of sourceTemplates) {
+            // Remap document references in structured content if documents were duplicated
+            const remappedStructuredContent = options.includeDocuments
+              ? remapDocumentReferences(template.structuredContent, mapping)
+              : template.structuredContent
+
+            const [newTemplate] = await tx
+              .insert(emailTemplates)
+              .values({
+                eventId: newEvent.id,
+                name: template.name,
+                type: template.type,
+                categoryId: remapCategoryId(template.categoryId, mapping),
+                content: template.content,
+                structuredContent: remappedStructuredContent,
+                masterTemplateId: template.masterTemplateId, // Will be remapped if master templates are duplicated
+                defaultLanguage: template.defaultLanguage,
+                fromName: template.fromName,
+                fromEmail: template.fromEmail,
+                replyTo: template.replyTo,
+                attachments: template.attachments,
+                availableVariables: template.availableVariables,
+                isActive: template.isActive,
+                isDefault: template.isDefault,
+                createdBy: ctx.user.id,
+              })
+              .returning()
+
+            mapping.emailTemplateIdMap.set(template.id, newTemplate.id)
+            stats.emailTemplatesCopied++
+          }
+        }
+
+        // 5. Duplicate master templates (event-level only, if included)
+        if (options.includeMasterTemplates) {
+          const sourceMasterTemplates = await tx.query.emailMasterTemplates.findMany({
+            where: and(
+              eq(emailMasterTemplates.workspaceId, sourceEvent.workspaceId),
+              eq(emailMasterTemplates.eventId, sourceEvent.id)
+            ),
+          })
+
+          for (const masterTemplate of sourceMasterTemplates) {
+            const [newMasterTemplate] = await tx
+              .insert(emailMasterTemplates)
+              .values({
+                workspaceId: sourceEvent.workspaceId,
+                eventId: newEvent.id,
+                name: masterTemplate.name,
+                description: masterTemplate.description,
+                htmlTemplate: masterTemplate.htmlTemplate,
+                structure: masterTemplate.structure,
+                isDefault: masterTemplate.isDefault,
+                isActive: masterTemplate.isActive,
+                createdBy: ctx.user.id,
+              })
+              .returning()
+
+            mapping.masterTemplateIdMap.set(masterTemplate.id, newMasterTemplate.id)
+            stats.masterTemplatesCopied++
+          }
+
+          // Update email templates to use new master template IDs
+          if (stats.emailTemplatesCopied > 0 && stats.masterTemplatesCopied > 0) {
+            for (const [oldId, newId] of mapping.masterTemplateIdMap) {
+              await tx
+                .update(emailTemplates)
+                .set({ masterTemplateId: newId })
+                .where(
+                  and(
+                    eq(emailTemplates.eventId, newEvent.id),
+                    eq(emailTemplates.masterTemplateId, oldId)
+                  )
+                )
+            }
+          }
+        }
+
+        // 6. Duplicate guest list views (if included)
+        if (options.includeGuestListViews) {
+          const sourceViews = await tx.query.guestListViews.findMany({
+            where: eq(guestListViews.eventId, sourceEvent.id),
+          })
+
+          for (const view of sourceViews) {
+            await tx.insert(guestListViews).values({
+              eventId: newEvent.id,
+              name: view.name,
+              description: view.description,
+              config: remapGuestListViewConfig(view.config, mapping),
+              visibleToRoles: view.visibleToRoles,
+              color: view.color,
+              isPinned: view.isPinned,
+              pinOrder: view.pinOrder,
+              isSystem: view.isSystem,
+              isDefault: view.isDefault,
+              createdBy: ctx.user.id,
+            })
+
+            stats.guestListViewsCopied++
+          }
+        }
+
+        // 7. Duplicate event forms (if included)
+        if (options.includeEventForms) {
+          const sourceForms = await tx.query.eventForms.findMany({
+            where: eq(eventForms.eventId, sourceEvent.id),
+          })
+
+          for (const form of sourceForms) {
+            // Generate unique slug for the new event
+            const newFormSlug = await generateUniqueFormSlug(newEvent.id, form.slug, tx)
+
+            await tx.insert(eventForms).values({
+              eventId: newEvent.id,
+              workspaceId: sourceEvent.workspaceId,
+              name: form.name,
+              slug: newFormSlug,
+              description: form.description,
+              purpose: form.purpose,
+              formConfig: form.formConfig,
+              accessType: form.accessType,
+              visibleToCategories: remapCategoryIds(form.visibleToCategories, mapping),
+              allowMultipleSubmissions: form.allowMultipleSubmissions,
+              allowAmendments: form.allowAmendments,
+              isPublished: false, // Don't auto-publish duplicated forms
+              shortCode: null, // Generate new short code when published
+              createdBy: ctx.user.id,
+            })
+
+            stats.eventFormsCopied++
+          }
+        }
+
+        // 8. Duplicate itinerary templates and items (if included)
+        if (options.includeItineraries) {
+          const sourceItinTemplates = await tx.query.itineraryTemplates.findMany({
+            where: eq(itineraryTemplates.eventId, sourceEvent.id),
+          })
+
+          for (const template of sourceItinTemplates) {
+            const [newTemplate] = await tx
+              .insert(itineraryTemplates)
+              .values({
+                eventId: newEvent.id,
+                categoryId: remapCategoryId(template.categoryId, mapping),
+                name: template.name,
+                description: template.description,
+                isDefault: template.isDefault,
+                isActive: template.isActive,
+              })
+              .returning()
+
+            mapping.itineraryTemplateIdMap.set(template.id, newTemplate.id)
+            stats.itineraryTemplatesCopied++
+
+            // Duplicate items for this template
+            const sourceItems = await tx.query.itineraryItems.findMany({
+              where: eq(itineraryItems.templateId, template.id),
+            })
+
+            for (const item of sourceItems) {
+              await tx.insert(itineraryItems).values({
+                templateId: newTemplate.id,
+                eventId: newEvent.id,
+                title: item.title,
+                description: item.description,
+                itemType: item.itemType,
+                dayNumber: item.dayNumber,
+                startTime: item.startTime,
+                endTime: item.endTime,
+                duration: item.duration,
+                location: item.location,
+                locationDetails: item.locationDetails,
+                visibleToCategories: remapCategoryIds(item.visibleToCategories, mapping),
+                dresscode: item.dresscode,
+                notes: item.notes,
+                attachments: item.attachments,
+                sortOrder: item.sortOrder,
+                isOptional: item.isOptional,
+                requiresRsvp: item.requiresRsvp,
+              })
+
+              stats.itineraryItemsCopied++
+            }
+          }
+        }
+
+        // 9. Duplicate inventory types (if included) - types only, not items
+        if (options.includeInventoryTypes) {
+          const sourceInvTypes = await tx.query.inventoryTypes.findMany({
+            where: eq(inventoryTypes.eventId, sourceEvent.id),
+          })
+
+          for (const invType of sourceInvTypes) {
+            const [newInvType] = await tx
+              .insert(inventoryTypes)
+              .values({
+                eventId: newEvent.id,
+                name: invType.name,
+                category: invType.category,
+                description: invType.description,
+                settings: invType.settings,
+                isActive: invType.isActive,
+              })
+              .returning()
+
+            mapping.inventoryTypeIdMap.set(invType.id, newInvType.id)
+            stats.inventoryTypesCopied++
+          }
+        }
+
+        // 10. Duplicate workflows and steps (event-level only, if included)
+        if (options.includeWorkflows) {
+          const sourceWorkflows = await tx.query.workflows.findMany({
+            where: eq(workflows.eventId, sourceEvent.id),
+          })
+
+          for (const workflow of sourceWorkflows) {
+            const [newWorkflow] = await tx
+              .insert(workflows)
+              .values({
+                workspaceId: sourceEvent.workspaceId,
+                eventId: newEvent.id,
+                name: workflow.name,
+                description: workflow.description,
+                trigger: workflow.trigger,
+                triggerConditions: remapWorkflowTriggerConditions(
+                  workflow.triggerConditions,
+                  mapping
+                ),
+                isActive: false, // Don't auto-activate duplicated workflows
+                isGlobal: false,
+                createdBy: ctx.user.id,
+              })
+              .returning()
+
+            mapping.workflowIdMap.set(workflow.id, newWorkflow.id)
+            stats.workflowsCopied++
+
+            // Duplicate workflow steps
+            const sourceSteps = await tx.query.workflowSteps.findMany({
+              where: eq(workflowSteps.workflowId, workflow.id),
+            })
+
+            for (const step of sourceSteps) {
+              await tx.insert(workflowSteps).values({
+                workflowId: newWorkflow.id,
+                stepOrder: step.stepOrder,
+                action: step.action,
+                actionConfig: remapWorkflowStepActionConfig(step.actionConfig, mapping),
+                continueOnError: step.continueOnError,
+              })
+
+              stats.workflowStepsCopied++
+            }
+          }
+        }
+
+        return { event: newEvent, stats }
+      })
+
+      return result
     }),
 })

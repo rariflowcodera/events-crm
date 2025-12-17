@@ -18,6 +18,7 @@ import {
   arabicContentSectionTemplate,
 } from "./master-templates/default"
 import { getRsvpUrl, getRsvpConfirmUrl, getRsvpDeclineUrl } from "@/lib/rsvp-url"
+import { buildStaticMapHtml, buildGoogleMapsLink } from "@/lib/maps"
 
 // ============================================================================
 // Types
@@ -43,9 +44,12 @@ export interface Guest {
 export interface Event {
   id: string
   name: string
+  nameAr: string | null
   slug: string
   venue: string | null
   venueAddress: string | null
+  latitude: string | null
+  longitude: string | null
   startDate: Date | null
   endDate: Date | null
   rsvpDeadline: Date | null
@@ -125,11 +129,16 @@ export function buildVariableContext(
 
     // Event variables
     "event.name": event.name,
+    "event.nameAr": event.nameAr || event.name, // Falls back to English name
     "event.venue": event.venue || "",
     "event.venueAddress": event.venueAddress || "",
     "event.startDate": event.startDate ? formatDate(event.startDate, language) : "",
     "event.endDate": event.endDate ? formatDate(event.endDate, language) : "",
     "event.rsvpDeadline": event.rsvpDeadline ? formatDate(event.rsvpDeadline, language) : "",
+
+    // Map variables
+    "event.mapImage": buildStaticMapHtml(event),
+    "event.mapLink": buildGoogleMapsLink(event.latitude, event.longitude),
 
     // RSVP link variables
     "rsvp.link": rsvpLink,
@@ -575,9 +584,12 @@ export function getSamplePreviewData(): { guest: Guest; event: Event } {
     event: {
       id: "preview-event",
       name: "Annual Gala 2025",
+      nameAr: "الحفل السنوي 2025",
       slug: "annual-gala-2025",
       venue: "Grand Ballroom",
       venueAddress: "123 Main Street, Riyadh, Saudi Arabia",
+      latitude: "24.7136",
+      longitude: "46.6753",
       startDate: new Date("2025-03-15T19:00:00"),
       endDate: new Date("2025-03-15T23:00:00"),
       rsvpDeadline: new Date("2025-03-10T23:59:59"),

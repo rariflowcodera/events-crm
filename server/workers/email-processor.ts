@@ -15,6 +15,7 @@ import { SMTP_FROM_ENV } from "@/env"
 import { email, resolveEmailSender } from "@/lib/email"
 import { addSingleEmailJob } from "@/lib/queue/queues"
 import { renderEmailTemplate, guestHasEmail } from "@/lib/queue/email-job"
+import { getStatusOnEmailSend } from "@/lib/guest-status"
 import type {
   EmailJobData,
   BulkEmailJobData,
@@ -286,11 +287,13 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
       .where(eq(emailLogs.id, emailLog.id))
 
     // Update guest last email sent timestamp and status
+    // Only update status if guest hasn't already responded (confirmed/declined/maybe/etc.)
+    const newStatus = getStatusOnEmailSend(guest.status, template.type)
     await db
       .update(guests)
       .set({
         lastEmailSentAt: new Date(),
-        status: "invited",
+        ...(newStatus && { status: newStatus }),
       })
       .where(eq(guests.id, guestId))
 

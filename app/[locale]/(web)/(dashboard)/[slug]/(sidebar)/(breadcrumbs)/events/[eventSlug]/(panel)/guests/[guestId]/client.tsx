@@ -7,12 +7,16 @@ import { PagePanel } from "@/components/global/page-panel"
 import { GuestDetailContent } from "@/components/guests/guest-detail-content"
 import { Skeleton } from "@/components/ui/skeleton"
 import { createRoute } from "@/lib/routes"
+import { usePermissions } from "@/hooks/use-permissions"
+import { PERMISSIONS } from "@/lib/permissions"
+import { EmptyPlaceholder } from "@/components/global/empty-placeholder"
 
 interface GuestDetailPageClientProps {
   workspaceSlug: string
   eventSlug: string
   guestId: string
   initialEditMode?: boolean
+  fromView?: string
 }
 
 export function GuestDetailPageClient({
@@ -20,8 +24,13 @@ export function GuestDetailPageClient({
   eventSlug,
   guestId,
   initialEditMode = false,
+  fromView,
 }: GuestDetailPageClientProps) {
-  // Fetch guest data
+  // Check permission
+  const { can } = usePermissions(workspaceSlug)
+  const canViewDetails = can(PERMISSIONS.VIEW_GUEST_DETAILS)
+
+  // Fetch guest data (only if user has permission)
   const { data: guest, isLoading: isLoadingGuest } = trpc.guests.getOne.useQuery(
     { guestId },
     { enabled: !!guestId }
@@ -41,8 +50,10 @@ export function GuestDetailPageClient({
 
   const isLoading = isLoadingGuest || isLoadingEvent
 
-  // Fallback URL for back navigation - include tab=guests to return to Guests tab
-  const backHref = createRoute("event-detail", { slug: workspaceSlug, eventSlug }).href + "?tab=guests"
+  // Fallback URL for back navigation - return to custom view if came from one, otherwise guests tab
+  const backHref = fromView
+    ? `/${workspaceSlug}/events/${eventSlug}/guests/view/${fromView}`
+    : createRoute("event-detail", { slug: workspaceSlug, eventSlug }).href + "?tab=guests"
 
   if (isLoading) {
     return (
@@ -51,6 +62,24 @@ export function GuestDetailPageClient({
         backHref={backHref}
       >
         <GuestDetailSkeleton />
+      </PagePanel>
+    )
+  }
+
+  // Show access denied if user doesn't have permission
+  if (!canViewDetails) {
+    return (
+      <PagePanel
+        title="Access Denied"
+        backHref={backHref}
+      >
+        <EmptyPlaceholder>
+          <EmptyPlaceholder.Icon name="lock" />
+          <EmptyPlaceholder.Title>Access Denied</EmptyPlaceholder.Title>
+          <EmptyPlaceholder.Description>
+            You do not have permission to view guest details.
+          </EmptyPlaceholder.Description>
+        </EmptyPlaceholder>
       </PagePanel>
     )
   }

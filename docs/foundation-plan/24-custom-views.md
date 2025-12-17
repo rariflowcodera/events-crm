@@ -491,3 +491,118 @@ app/[locale]/(web)/(dashboard)/[slug]/(sidebar)/(breadcrumbs)/events/[eventSlug]
 - Column visibility, ordering, and drag-and-drop reordering
 - Full-page dedicated routes with shareable URLs
 - Full Arabic/English i18n support
+- Automatic column schema migration (new columns added to existing views)
+
+---
+
+## Phase 10: Column Schema Migration ✅
+
+When new columns are added to `GUEST_COLUMNS` (e.g., `profileImage`), existing saved views don't automatically receive these columns. To solve this, a synchronization utility ensures view configs always have all current columns.
+
+### Helper Function: `syncViewConfigColumns`
+
+**Location:** `lib/guest-columns.ts`
+
+```typescript
+/**
+ * Ensures a view config has all columns from GUEST_COLUMNS.
+ * - Adds missing columns (new columns added to schema)
+ * - Preserves existing column visibility/width settings
+ * - Removes columns that no longer exist in GUEST_COLUMNS
+ */
+export function syncViewConfigColumns(
+  config: GuestListViewConfig
+): GuestListViewConfig {
+  // ... implementation
+}
+```
+
+**Behavior:**
+- New columns are inserted at their correct position based on `GUEST_COLUMNS` order
+- New columns use their `defaultVisible` and `defaultWidth` from the column definition
+- Existing column settings (visibility, width) are preserved
+- Columns removed from `GUEST_COLUMNS` are filtered out
+
+### Usage in `event-guests-tab.tsx`
+
+The function is called whenever a view config is loaded:
+
+```typescript
+import { syncViewConfigColumns } from "@/lib/guest-columns"
+
+// When loading default view
+const syncedConfig = syncViewConfigColumns(defaultView.config as GuestListViewConfig)
+setViewConfig(syncedConfig)
+
+// When selecting a view
+const syncedConfig = syncViewConfigColumns(selectedView.config as GuestListViewConfig)
+setViewConfig(syncedConfig)
+```
+
+### Benefits
+- **Zero migration needed**: New columns automatically appear in all views
+- **Preserves user customization**: Existing column order and visibility unchanged
+- **Backwards compatible**: Old view configs work seamlessly
+- **Forward compatible**: New columns added to schema are immediately available
+
+---
+
+## Phase 11: View Management UI ✅
+
+Added UI for managing views - editing, renaming, changing permissions, and deleting views.
+
+### New Files Created (3):
+
+1. **`components/guests/view-manager/edit-view-dialog.tsx`**
+   - Edit form for a single view
+   - Fields: name, color, visibleToRoles, isPinned
+   - Reuses ViewColorPicker and ViewRoleSelector components
+   - Delete button with confirmation (opens DeleteViewDialog)
+   - Uses `useUpdateGuestListView` hook
+
+2. **`components/guests/view-manager/delete-view-dialog.tsx`**
+   - AlertDialog confirmation for deleting a view
+   - Uses `useDeleteGuestListView` hook
+   - Shows view name in confirmation message
+
+3. **`components/guests/view-manager/manage-views-dialog.tsx`**
+   - Modal with table of all views
+   - Columns: Color dot, Name, Visible To (role badges), Pinned, Actions
+   - Actions per row: Edit (opens EditViewDialog), Delete (opens DeleteViewDialog)
+   - Empty state when no custom views
+   - System views shown separately with "System" badge
+
+### Files Modified:
+
+1. **`components/guests/view-manager/index.ts`**
+   - Added exports for EditViewDialog, DeleteViewDialog, ManageViewsDialog
+
+2. **`components/guests/guests-toolbar.tsx`**
+   - Added edit button (gear icon) next to ViewSelector
+   - Only visible when custom view is selected and user has MANAGE_EVENT permission
+   - Passes `onManageViews` callback to ViewSelector
+
+3. **`components/events/event-guests-tab.tsx`**
+   - Added state for showEditViewDialog and showManageViewsDialog
+   - Added handleEditView, handleManageViews, handleViewDeleted handlers
+   - Renders EditViewDialog and ManageViewsDialog
+   - Handles edge case: resets to "All Guests" when current view is deleted
+
+4. **`components/navigation/nav-event-views.tsx`**
+   - Added "Manage Views" link at bottom of views section
+   - Only visible to owners/admins (MANAGE_EVENT permission)
+   - Opens ManageViewsDialog
+
+5. **`messages/en.json` & `messages/ar.json`**
+   - Added translation keys: editView, editViewDescription, deleteView, deleteViewConfirm, updating, deleting, manageViewsTitle, manageViewsDescription, noCustomViews, noCustomViewsDescription, systemView, actions, pinned
+
+### Access Points:
+
+1. **Toolbar Edit Button**: Gear icon next to ViewSelector when viewing a custom view
+2. **ViewSelector Dropdown**: "Manage Views" option in dropdown menu
+3. **Sidebar**: "Manage Views" link under the Views section
+
+### Permission Control:
+- All management UI requires `MANAGE_EVENT` permission (owner, admin)
+- System views cannot be deleted
+- Edit button only appears for non-system views

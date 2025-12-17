@@ -2,9 +2,11 @@
 
 ## Overview
 
-This document outlines two related features for the Events CRM:
+This document outlines password management and member administration features for the Events CRM:
 1. **Password Change** - Allow users to change their password from profile settings
 2. **Auto-Accept Invitations** - Allow users to sign in immediately without clicking the invitation link
+3. **Owner Password Reset** - Allow workspace owners/admins to reset member passwords
+4. **Multiple Owners** - Allow promoting members to owner role with full permissions
 
 ## Status: Implemented
 
@@ -274,9 +276,147 @@ switch (result.status) {
 
 ---
 
+## Part 3: Owner Password Reset
+
+### Problem
+
+Workspace owners and admins need the ability to reset passwords for existing members who have forgotten their credentials or need a new password.
+
+### Solution
+
+Added a "Reset Password" action to the member dropdown menu that generates a new password and displays it in a credentials dialog (same pattern as the invitation flow).
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `trpc/routers/members.ts` | Added `resetPassword` mutation and `generateRandomPassword()` function |
+| `trpc/hooks/members-hooks.ts` | Added `useResetPasswordTRPC` hook |
+| `components/members/member-actions.tsx` | Added credentials dialog and Reset Password menu item |
+| `components/global/icons.tsx` | Added `key` icon (KeyRoundIcon) |
+
+### Implementation Details
+
+#### Reset Password Mutation (`trpc/routers/members.ts`)
+
+```typescript
+resetPassword: protectedProcedure
+  .input(z.object({ userId: userIdSchema, slug: slugSchema }))
+  .mutation(async ({ ctx, input }) => {
+    // Validation:
+    // - Cannot reset own password
+    // - Must have MANAGE_MEMBERS permission
+    // - Only owners can reset other owners' passwords
+
+    const generatedPassword = generateRandomPassword()
+    const hashedPassword = await hashPassword(generatedPassword)
+
+    // Update or create credential account
+    // Returns: { message, email, generatedPassword }
+  })
+```
+
+#### Member Actions Component
+
+Added credentials dialog with:
+- Email field (read-only with copy button)
+- Password field (read-only with copy button)
+- "Copy All" button for both credentials
+- "Done" button to close dialog
+
+### Permission Rules
+
+| Actor | Can Reset Password For |
+|-------|------------------------|
+| Owner | All members except self |
+| Admin | Members and Managers (not Owners) |
+| Manager | No password reset access |
+| Member | No password reset access |
+
+---
+
+## Part 4: Multiple Owners
+
+### Problem
+
+Workspaces could only have a single owner. Organizations often need multiple people with full administrative access.
+
+### Solution
+
+Implemented a "Primary Owner + Additional Owners" model:
+- The original workspace creator remains the **primary owner** (stored in `workspaces.ownerId`)
+- Additional users can be promoted to the **owner role** with full permissions
+- Primary owner retains exclusive workspace deletion rights
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `trpc/routers/members.ts` | Updated `update` mutation to accept "owner" role with validation |
+| `components/members/member-actions.tsx` | Added "Owner" option in Edit Role dropdown (visible to owners only) |
+| `components/members/members-columns.tsx` | Distinguish primary owner from additional owners |
+
+### Implementation Details
+
+#### Role Update Mutation (`trpc/routers/members.ts`)
+
+Updated to accept all four roles: `member`, `manager`, `admin`, `owner`
+
+```typescript
+update: protectedProcedure
+  .input(z.object({
+    role: z.enum(["member", "manager", "admin", "owner"]),
+    // ...
+  }))
+  .mutation(async ({ ctx, input }) => {
+    // New validations:
+    // 1. Only owners can promote to owner
+    // 2. Primary owner cannot be demoted
+    // 3. Only owners can demote other owners
+  })
+```
+
+#### Edit Role Dropdown
+
+The "Owner" option is only visible when the current user is an owner:
+
+```tsx
+{isOwner && (
+  <DropdownMenuItem
+    disabled={isRoleOwner || isUpdatingMember || isPrimaryOwner}
+    onClick={() => handleUpdateMember("owner")}
+  >
+    Owner
+    {isRoleOwner && <Icons.check />}
+  </DropdownMenuItem>
+)}
+```
+
+### Permission Rules
+
+| Action | Who Can Do It |
+|--------|---------------|
+| Promote to Owner | Current owners only |
+| Demote an Owner | Current owners only |
+| Demote Primary Owner | Not allowed (must transfer ownership) |
+| Delete Workspace | Primary owner only |
+
+### Owner Types
+
+| Type | Description | Can Delete Workspace |
+|------|-------------|---------------------|
+| Primary Owner | Original workspace creator (`workspaces.ownerId`) | Yes |
+| Additional Owner | User with "owner" role | No |
+
+Both owner types have full `["*"]` permissions for all other actions.
+
+---
+
 ## Notes
 
 - Password change uses Better Auth client directly (no tRPC needed)
 - Invitation auto-accept happens server-side in callback page
 - Token expiration (7 days) is still respected
 - Invitation tracking preserved (status changes from pending → accepted)
+- Owner password reset shows same credentials dialog as invitation flow
+- Multiple owners share full permissions except workspace deletion

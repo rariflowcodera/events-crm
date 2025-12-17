@@ -491,9 +491,10 @@ export function EmailTemplateForm({
             name: doc.name,
             url: doc.url,
           })) || [],
-          // Store data needed for refresh
+          // Store data needed for refresh and navigation
           _meta: {
             eventId,
+            templateId,
             structuredContent,
             masterTemplateId: masterTemplateId || null,
             isStructuredMode: true,
@@ -528,6 +529,11 @@ export function EmailTemplateForm({
           name: doc.name,
           url: doc.url,
         })) || [],
+        // Store templateId for back navigation
+        _meta: {
+          templateId,
+          isStructuredMode: false,
+        },
       }
 
       sessionStorage.setItem("emailPreviewData", JSON.stringify(previewData))

@@ -17,6 +17,8 @@ interface Event {
   venue: string | null
   startDate: Date | null
   endDate: Date | null
+  startTime: string | null
+  endTime: string | null
   status: "draft" | "planning" | "invitations_sent" | "rsvp_open" | "rsvp_closed" | "in_progress" | "completed" | "cancelled"
   createdAt: Date
   creator: {

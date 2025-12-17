@@ -14,7 +14,7 @@ import { Icons } from "@/components/global/icons"
 import { toast } from "sonner"
 import type { NavigationSettings } from "@/server/db/schemas/workspace"
 
-const roles = ["owner", "admin", "manager", "member"] as const
+const roles = ["owner", "admin", "manager", "event_staff", "member"] as const
 
 const eventNavItems = [
   { key: "overview", labelKey: "nav.overview" },
@@ -29,8 +29,8 @@ const eventNavItems = [
 
 // Default visibility for each navigation item by role
 const defaultVisibility: Record<string, string[]> = {
-  overview: ["owner", "admin", "manager", "member"],
-  guests: ["owner", "admin", "manager", "member"],
+  overview: ["owner", "admin", "manager", "event_staff", "member"],
+  guests: ["owner", "admin", "manager", "event_staff", "member"],
   categories: ["owner", "admin", "manager"],
   forms: ["owner", "admin", "manager"],
   branding: ["owner", "admin", "manager"],
@@ -153,8 +153,8 @@ function NavigationSettingsSuspense({ slug }: { slug: string }) {
                 <tr className="border-b">
                   <th className="pb-3 text-left font-medium">Navigation Item</th>
                   {roles.map((role) => (
-                    <th key={role} className="pb-3 text-center font-medium capitalize">
-                      {role}
+                    <th key={role} className="pb-3 text-center font-medium">
+                      {t(`views.roles.${role}`)}
                     </th>
                   ))}
                 </tr>

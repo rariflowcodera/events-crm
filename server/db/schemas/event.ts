@@ -91,6 +91,8 @@ export type RsvpFormSettings = {
   declineOptionLabel?: BilingualText
   maybeOptionLabel?: BilingualText
   showMaybeOption?: boolean // Default: true
+  useVisualResponseStyle?: boolean // Default: false - show icon boxes instead of radio buttons
+  contactMessage?: BilingualText // Support/contact info displayed at bottom of RSVP pages
 }
 
 /** Complete RSVP form configuration */
@@ -162,6 +164,7 @@ export const events = pgTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
 
     name: text("name").notNull(),
+    nameAr: text("name_ar"), // Arabic event name (optional)
     slug: text("slug").notNull(),
     description: text("description"),
 
@@ -179,6 +182,11 @@ export const events = pgTable(
     startDate: timestamp("start_date", { mode: "date" }),
     endDate: timestamp("end_date", { mode: "date" }),
     timezone: text("timezone").default("Asia/Riyadh"),
+
+    // Time fields for single-day events (format: "HH:MM" in 24-hour)
+    startTime: text("start_time"),
+    endTime: text("end_time"),
+    isSingleDay: boolean("is_single_day").default(false),
 
     rsvpDeadline: timestamp("rsvp_deadline", { mode: "date" }),
     rsvpFormConfig: json("rsvp_form_config").$type<RsvpFormConfig>(),

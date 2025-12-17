@@ -1,20 +1,21 @@
-# 28: Guest Check-in Feature
+# 28: Guest Attendance Feature
 
 ## Status: Complete
 
 ## Overview
 
-Add guest check-in functionality for on-the-day event operations. Staff can quickly mark guests as checked-in via a toggle in the guest table, with tracking of when and by whom.
+Add guest attendance functionality for on-the-day event operations. Staff can quickly mark guests as attended via a toggle in the guest table, with tracking of when and by whom. When attendance is marked, the guest status is automatically updated.
 
 ## User Requirements
 
-- Track exact check-in timestamp
-- Track which staff member performed the check-in
-- Check-in only (no check-out)
-- Keep status separate from check-in (RSVP status unchanged)
+- Track exact attendance timestamp
+- Track which staff member marked attendance
+- Mark attendance only (no unattend as a separate status)
+- **Auto-status**: When marking attendance, guest status automatically changes to "attended"
+- **Undo behavior**: When undoing attendance, status reverts to "confirmed"
 - Toggle available for: confirmed, maybe, reminded, viewed, invited
 - Large toggle button in table for quick operation
-- Create default "Check-in" view for on-the-day operations
+- Create default "Attendance" view for on-the-day operations
 
 ---
 
@@ -25,9 +26,9 @@ Add guest check-in functionality for on-the-day event operations. Staff can quic
 Add fields after line 105 (activity tracking section):
 
 ```typescript
-// Check-in tracking
-checkedInAt: timestamp("checked_in_at", { mode: "date" }),
-checkedInBy: text("checked_in_by").references(() => users.id, {
+// Attendance tracking
+attendedAt: timestamp("attended_at", { mode: "date" }),
+attendedBy: text("attended_by").references(() => users.id, {
   onDelete: "set null",
 }),
 ```
@@ -37,15 +38,15 @@ Add import for users table and relation:
 import { users } from "./user"
 
 // In guestsRelations:
-checkedInByUser: one(users, {
-  fields: [guests.checkedInBy],
+attendedByUser: one(users, {
+  fields: [guests.attendedBy],
   references: [users.id],
 }),
 ```
 
-Add index for check-in queries:
+Add index for attendance queries:
 ```typescript
-index("guest_checked_in_idx").on(table.eventId, table.checkedInAt),
+index("guest_attended_idx").on(table.eventId, table.attendedAt),
 ```
 
 ### Migration
@@ -60,49 +61,49 @@ Run `pnpm run db:generate` then `pnpm run db:migrate`
 
 Add to `GuestColumnId` type:
 ```typescript
-| "checkedIn"      // Toggle column
-| "checkedInAt"    // Timestamp
-| "checkedInBy"    // Staff name
+| "attended"      // Toggle column
+| "attendedAt"    // Timestamp
+| "attendedBy"    // Staff name
 ```
 
 Add to `GUEST_COLUMNS` array (after activity group):
 ```typescript
-// Check-in
+// Attendance
 {
-  id: "checkedIn",
-  label: "Check-in",
-  labelAr: "تسجيل الحضور",
+  id: "attended",
+  label: "Attended",
+  labelAr: "حضر",
   defaultVisible: false,
   defaultWidth: 90,
   sortable: true,
   filterable: true,
-  group: "checkin",
+  group: "attendance",
 },
 {
-  id: "checkedInAt",
-  label: "Checked In At",
-  labelAr: "وقت التسجيل",
+  id: "attendedAt",
+  label: "Attended At",
+  labelAr: "وقت الحضور",
   defaultVisible: false,
   defaultWidth: 140,
   sortable: true,
   filterable: false,
-  group: "checkin",
+  group: "attendance",
 },
 {
-  id: "checkedInBy",
-  label: "Checked In By",
-  labelAr: "تم التسجيل بواسطة",
+  id: "attendedBy",
+  label: "Logged By",
+  labelAr: "سجّل بواسطة",
   defaultVisible: false,
   defaultWidth: 140,
   sortable: false,
   filterable: false,
-  group: "checkin",
+  group: "attendance",
 },
 ```
 
 Add group label to `COLUMN_GROUP_LABELS`:
 ```typescript
-checkin: { en: "Check-in", ar: "تسجيل الحضور" },
+attendance: { en: "Attendance", ar: "الحضور" },
 ```
 
 ---
@@ -111,12 +112,12 @@ checkin: { en: "Check-in", ar: "تسجيل الحضور" },
 
 ### File: `trpc/routers/guests.ts`
 
-**Add `checkIn` mutation:**
+**Add `markAttendance` mutation with auto-status:**
 ```typescript
-checkIn: protectedProcedure
+markAttendance: protectedProcedure
   .input(z.object({
     guestId: z.string().uuid(),
-    checkIn: z.boolean(),
+    attended: z.boolean(),
   }))
   .mutation(async ({ ctx, input }) => {
     const guest = await db.query.guests.findFirst({
@@ -137,7 +138,7 @@ checkIn: protectedProcedure
     if (!canManage) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "You do not have permission to check in guests",
+        message: "You do not have permission to mark attendance",
       })
     }
 
@@ -145,15 +146,16 @@ checkIn: protectedProcedure
     if (!allowedStatuses.includes(guest.status)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: `Cannot check in guest with status "${guest.status}"`,
+        message: `Cannot mark attendance for guest with status "${guest.status}"`,
       })
     }
 
     const [updated] = await db
       .update(guests)
       .set({
-        checkedInAt: input.checkIn ? new Date() : null,
-        checkedInBy: input.checkIn ? ctx.user.id : null,
+        attendedAt: input.attended ? new Date() : null,
+        attendedBy: input.attended ? ctx.user.id : null,
+        status: input.attended ? "attended" : "confirmed",  // AUTO-STATUS UPDATE
         updatedAt: new Date(),
       })
       .where(eq(guests.id, input.guestId))
@@ -163,13 +165,13 @@ checkIn: protectedProcedure
   }),
 ```
 
-**Add `bulkCheckIn` mutation:**
+**Add `bulkMarkAttendance` mutation:**
 ```typescript
-bulkCheckIn: protectedProcedure
+bulkMarkAttendance: protectedProcedure
   .input(z.object({
     eventId: z.string().uuid(),
     guestIds: z.array(z.string().uuid()).min(1).max(100),
-    checkIn: z.boolean(),
+    attended: z.boolean(),
   }))
   .mutation(async ({ ctx, input }) => {
     const event = await db.query.events.findFirst({
@@ -189,7 +191,7 @@ bulkCheckIn: protectedProcedure
     if (!canManage) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "You do not have permission to check in guests",
+        message: "You do not have permission to mark attendance",
       })
     }
 
@@ -198,8 +200,9 @@ bulkCheckIn: protectedProcedure
     const updated = await db
       .update(guests)
       .set({
-        checkedInAt: input.checkIn ? new Date() : null,
-        checkedInBy: input.checkIn ? ctx.user.id : null,
+        attendedAt: input.attended ? new Date() : null,
+        attendedBy: input.attended ? ctx.user.id : null,
+        status: input.attended ? "attended" : "confirmed",  // AUTO-STATUS UPDATE
         updatedAt: new Date(),
       })
       .where(
@@ -215,29 +218,29 @@ bulkCheckIn: protectedProcedure
   }),
 ```
 
-**Update `getStats`** to include check-in counts:
+**Update `getStats`** to include attendance counts:
 ```typescript
 // Add to the return object:
-const checkInStats = await db
+const attendanceStats = await db
   .select({
-    checkedIn: sql<number>`count(*) FILTER (WHERE ${guests.checkedInAt} IS NOT NULL)::int`,
-    notCheckedIn: sql<number>`count(*) FILTER (WHERE ${guests.checkedInAt} IS NULL AND ${guests.status} IN ('confirmed', 'maybe', 'reminded', 'viewed', 'invited'))::int`,
+    attended: sql<number>`count(*) FILTER (WHERE ${guests.attendedAt} IS NOT NULL)::int`,
+    notAttended: sql<number>`count(*) FILTER (WHERE ${guests.attendedAt} IS NULL AND ${guests.status} IN ('confirmed', 'maybe', 'reminded', 'viewed', 'invited'))::int`,
   })
   .from(guests)
   .where(eq(guests.eventId, input.eventId))
 
 return {
   ...existingStats,
-  checkIn: checkInStats[0],
+  attendance: attendanceStats[0],
 }
 ```
 
-**Update `getMany`** to support sorting by check-in columns in the `getOrderBy` switch.
+**Update `getMany`** to support sorting by attendance columns in the `getOrderBy` switch.
 
 ### File: `trpc/hooks/guests-hooks.ts`
 
 ```typescript
-export const useCheckInGuest = ({
+export const useMarkAttendance = ({
   onSuccess,
   onError,
 }: {
@@ -246,11 +249,11 @@ export const useCheckInGuest = ({
 } = {}) => {
   const utils = trpc.useUtils()
 
-  const { mutate, isPending } = trpc.guests.checkIn.useMutation({
+  const { mutate, isPending } = trpc.guests.markAttendance.useMutation({
     onSuccess: (data) => {
-      const message = data.checkedInAt
-        ? "Guest checked in successfully"
-        : "Check-in undone"
+      const message = data.attendedAt
+        ? "Guest attendance marked successfully"
+        : "Attendance undone"
       toast.success(message)
       utils.guests.getOne.invalidate({ guestId: data.id })
       utils.guests.getMany.invalidate({ eventId: data.eventId })
@@ -266,7 +269,7 @@ export const useCheckInGuest = ({
   return { mutate, isPending }
 }
 
-export const useBulkCheckInGuests = ({
+export const useBulkMarkAttendance = ({
   onSuccess,
   onError,
 }: {
@@ -275,9 +278,9 @@ export const useBulkCheckInGuests = ({
 } = {}) => {
   const utils = trpc.useUtils()
 
-  const { mutate, isPending } = trpc.guests.bulkCheckIn.useMutation({
+  const { mutate, isPending } = trpc.guests.bulkMarkAttendance.useMutation({
     onSuccess: (data) => {
-      toast.success(`${data.updatedCount} guest(s) checked in`)
+      toast.success(`${data.updatedCount} guest(s) attendance marked`)
       utils.guests.getMany.invalidate()
       utils.guests.getStats.invalidate()
       onSuccess?.(data)
@@ -296,7 +299,7 @@ export const useBulkCheckInGuests = ({
 
 ## Phase 4: Toggle Component
 
-### New File: `components/guests/check-in-toggle.tsx`
+### New File: `components/guests/attendance-toggle.tsx`
 
 ```typescript
 "use client"
@@ -305,7 +308,7 @@ import { useState } from "react"
 import { Check, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { useCheckInGuest } from "@/trpc/hooks/guests-hooks"
+import { useMarkAttendance } from "@/trpc/hooks/guests-hooks"
 import {
   Tooltip,
   TooltipContent,
@@ -325,9 +328,9 @@ type GuestStatus =
   | "attended"
   | "no_show"
 
-interface CheckInToggleProps {
+interface AttendanceToggleProps {
   guestId: string
-  isCheckedIn: boolean
+  isAttended: boolean
   status: GuestStatus
   guestName?: string
   size?: "sm" | "lg"
@@ -341,23 +344,23 @@ const ALLOWED_STATUSES: GuestStatus[] = [
   "invited",
 ]
 
-export function CheckInToggle({
+export function AttendanceToggle({
   guestId,
-  isCheckedIn,
+  isAttended,
   status,
   guestName,
   size = "sm",
-}: CheckInToggleProps) {
-  const [optimisticCheckedIn, setOptimisticCheckedIn] = useState(isCheckedIn)
-  const { mutate, isPending } = useCheckInGuest({
+}: AttendanceToggleProps) {
+  const [optimisticAttended, setOptimisticAttended] = useState(isAttended)
+  const { mutate, isPending } = useMarkAttendance({
     onError: () => {
-      setOptimisticCheckedIn(isCheckedIn)
+      setOptimisticAttended(isAttended)
     },
   })
 
-  const canCheckIn = ALLOWED_STATUSES.includes(status)
+  const canMarkAttendance = ALLOWED_STATUSES.includes(status)
 
-  if (!canCheckIn) {
+  if (!canMarkAttendance) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
@@ -366,16 +369,16 @@ export function CheckInToggle({
           </div>
         </TooltipTrigger>
         <TooltipContent>
-          Cannot check in: {status}
+          Cannot mark attendance: {status}
         </TooltipContent>
       </Tooltip>
     )
   }
 
   const handleToggle = () => {
-    const newValue = !optimisticCheckedIn
-    setOptimisticCheckedIn(newValue)
-    mutate({ guestId, checkIn: newValue })
+    const newValue = !optimisticAttended
+    setOptimisticAttended(newValue)
+    mutate({ guestId, attended: newValue })
   }
 
   const buttonSize = size === "lg" ? "h-12 w-12" : "h-8 w-8"
@@ -385,11 +388,11 @@ export function CheckInToggle({
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
-          variant={optimisticCheckedIn ? "default" : "outline"}
+          variant={optimisticAttended ? "default" : "outline"}
           size="icon"
           className={cn(
             buttonSize,
-            optimisticCheckedIn && "bg-green-600 hover:bg-green-700",
+            optimisticAttended && "bg-green-600 hover:bg-green-700",
             "transition-all"
           )}
           onClick={(e) => {
@@ -400,7 +403,7 @@ export function CheckInToggle({
         >
           {isPending ? (
             <Loader2 className={cn(iconSize, "animate-spin")} />
-          ) : optimisticCheckedIn ? (
+          ) : optimisticAttended ? (
             <Check className={iconSize} />
           ) : (
             <X className={cn(iconSize, "text-muted-foreground")} />
@@ -408,9 +411,9 @@ export function CheckInToggle({
         </Button>
       </TooltipTrigger>
       <TooltipContent>
-        {optimisticCheckedIn
-          ? `${guestName || "Guest"} is checked in. Click to undo.`
-          : `Check in ${guestName || "guest"}`
+        {optimisticAttended
+          ? `${guestName || "Guest"} attended. Click to undo.`
+          : `Mark ${guestName || "guest"} as attended`
         }
       </TooltipContent>
     </Tooltip>
@@ -428,41 +431,41 @@ Add column definitions:
 
 ```typescript
 {
-  id: "checkedIn",
-  accessorFn: (row) => !!row.checkedInAt,
+  id: "attended",
+  accessorFn: (row) => !!row.attendedAt,
   header: ({ column }) => (
-    <FilterableHeader column={column} title="Check-in" />
+    <FilterableHeader column={column} title="Attended" />
   ),
   cell: ({ row }) => (
     <div onClick={(e) => e.stopPropagation()}>
-      <CheckInToggle
+      <AttendanceToggle
         guestId={row.original.id}
-        isCheckedIn={!!row.original.checkedInAt}
+        isAttended={!!row.original.attendedAt}
         status={row.original.status}
         guestName={`${row.original.firstName} ${row.original.lastName}`}
       />
     </div>
   ),
-  size: getColumnWidth("checkedIn"),
+  size: getColumnWidth("attended"),
 },
 {
-  id: "checkedInAt",
-  accessorKey: "checkedInAt",
+  id: "attendedAt",
+  accessorKey: "attendedAt",
   header: ({ column }) => (
-    <FilterableHeader column={column} title="Checked In At" />
+    <FilterableHeader column={column} title="Attended At" />
   ),
   cell: ({ getValue }) => {
     const date = getValue() as Date | null
     return date ? format(date, "MMM d, h:mm a") : "-"
   },
-  size: getColumnWidth("checkedInAt"),
+  size: getColumnWidth("attendedAt"),
 },
 {
-  id: "checkedInBy",
-  accessorFn: (row) => row.checkedInByUser?.name || row.checkedInByUser?.email,
-  header: "Checked In By",
+  id: "attendedBy",
+  accessorFn: (row) => row.attendedByUser?.name || row.attendedByUser?.email,
+  header: "Logged By",
   cell: ({ getValue }) => (getValue() as string) || "-",
-  size: getColumnWidth("checkedInBy"),
+  size: getColumnWidth("attendedBy"),
 },
 ```
 
@@ -470,13 +473,13 @@ Add column definitions:
 
 ## Phase 6: Default View
 
-Create a system "Check-in" view when events are created.
+Create a system "Attendance" view when events are created.
 
 ### View Configuration:
 ```typescript
 {
-  name: "Check-in",
-  description: "On-site check-in view for event day operations",
+  name: "Attendance",
+  description: "On-site attendance view for event day operations",
   color: "orange",  // "On-site" semantic meaning
   isPinned: true,
   isSystem: true,
@@ -484,12 +487,12 @@ Create a system "Check-in" view when events are created.
   config: {
     columns: [
       { id: "select", visible: true, width: 48 },
-      { id: "checkedIn", visible: true, width: 90 },  // First for quick access
+      { id: "attended", visible: true, width: 90 },  // First for quick access
       { id: "fullName", visible: true, width: 180 },
       { id: "category", visible: true, width: 100 },
       { id: "status", visible: true, width: 110 },
       { id: "entity", visible: true, width: 150 },
-      { id: "checkedInAt", visible: true, width: 140 },
+      { id: "attendedAt", visible: true, width: 140 },
       { id: "actions", visible: true, width: 50 },
       // All other columns hidden
     ],
@@ -512,18 +515,16 @@ Add to event creation mutation in `trpc/routers/events.ts` to create this view a
 
 ```json
 {
-  "guests": {
-    "checkIn": {
-      "title": "Check-in",
-      "checkedIn": "Checked In",
-      "notCheckedIn": "Not Checked In",
-      "checkInGuest": "Check in guest",
-      "undoCheckIn": "Undo check-in",
-      "checkedInAt": "Checked in at",
-      "checkedInBy": "Checked in by",
-      "bulkCheckIn": "Check in selected",
-      "bulkUndoCheckIn": "Undo check-in for selected"
-    }
+  "attendance": {
+    "title": "Attendance",
+    "attended": "Attended",
+    "notAttended": "Not Attended",
+    "markAttendance": "Mark attendance",
+    "undoAttendance": "Undo attendance",
+    "attendedAt": "Attended at",
+    "attendedBy": "Logged By",
+    "bulkMarkAttendance": "Mark attendance for selected",
+    "bulkUndoAttendance": "Undo attendance for selected"
   }
 }
 ```
@@ -532,18 +533,16 @@ Add to event creation mutation in `trpc/routers/events.ts` to create this view a
 
 ```json
 {
-  "guests": {
-    "checkIn": {
-      "title": "تسجيل الحضور",
-      "checkedIn": "تم التسجيل",
-      "notCheckedIn": "لم يتم التسجيل",
-      "checkInGuest": "تسجيل حضور الضيف",
-      "undoCheckIn": "إلغاء التسجيل",
-      "checkedInAt": "وقت التسجيل",
-      "checkedInBy": "تم التسجيل بواسطة",
-      "bulkCheckIn": "تسجيل حضور المحددين",
-      "bulkUndoCheckIn": "إلغاء تسجيل المحددين"
-    }
+  "attendance": {
+    "title": "الحضور",
+    "attended": "حضر",
+    "notAttended": "لم يحضر",
+    "markAttendance": "تسجيل الحضور",
+    "undoAttendance": "إلغاء الحضور",
+    "attendedAt": "وقت الحضور",
+    "attendedBy": "سجّل بواسطة",
+    "bulkMarkAttendance": "تسجيل حضور المحددين",
+    "bulkUndoAttendance": "إلغاء حضور المحددين"
   }
 }
 ```
@@ -554,15 +553,15 @@ Add to event creation mutation in `trpc/routers/events.ts` to create this view a
 
 | File | Changes |
 |------|---------|
-| `server/db/schemas/guest.ts` | Add checkedInAt, checkedInBy fields + relation + index |
-| `lib/guest-columns.ts` | Add 3 column definitions + checkin group |
-| `trpc/routers/guests.ts` | Add checkIn, bulkCheckIn mutations; update getStats |
-| `trpc/hooks/guests-hooks.ts` | Add useCheckInGuest, useBulkCheckInGuests |
-| `components/guests/check-in-toggle.tsx` | **NEW** - Toggle component |
+| `server/db/schemas/guest.ts` | Add attendedAt, attendedBy fields + relation + index |
+| `lib/guest-columns.ts` | Add 3 column definitions + attendance group |
+| `trpc/routers/guests.ts` | Add markAttendance, bulkMarkAttendance mutations with auto-status; update getStats |
+| `trpc/hooks/guests-hooks.ts` | Add useMarkAttendance, useBulkMarkAttendance |
+| `components/guests/attendance-toggle.tsx` | **NEW** - Toggle component |
 | `components/guests/guests-data-table.tsx` | Add column renderers |
 | `messages/en.json` | Add translations |
 | `messages/ar.json` | Add Arabic translations |
-| `trpc/routers/events.ts` | Create default Check-in view on event create |
+| `trpc/routers/events.ts` | Create default Attendance view on event create |
 
 ---
 
@@ -571,7 +570,7 @@ Add to event creation mutation in `trpc/routers/events.ts` to create this view a
 1. Schema + migration
 2. tRPC mutations + hooks
 3. Column definitions
-4. CheckInToggle component
+4. AttendanceToggle component
 5. Table column renderers
 6. Default view creation
 7. i18n strings
@@ -579,9 +578,47 @@ Add to event creation mutation in `trpc/routers/events.ts` to create this view a
 
 ---
 
+## Auto-Status Behavior
+
+The attendance feature automatically updates the guest status:
+
+| Action | Status Change |
+|--------|---------------|
+| Mark attendance (toggle ON) | Status becomes `"attended"` |
+| Undo attendance (toggle OFF) | Status reverts to `"confirmed"` |
+
+This ensures the status column always reflects the attendance state without requiring manual status updates.
+
+---
+
 ## Edge Cases
 
-- **Undoing check-in**: Sets checkedInAt and checkedInBy to null
-- **Event date restrictions**: Not enforced in MVP (staff may need pre/post check capability)
+- **Undoing attendance**: Sets attendedAt and attendedBy to null, reverts status to "confirmed"
+- **Event date restrictions**: Not enforced in MVP (staff may need pre/post attendance capability)
 - **Permission**: Uses existing MANAGE_GUESTS permission
 - **Offline support**: Out of scope for initial implementation
+- **Previous status preservation**: Not implemented - undo always sets to "confirmed" for simplicity
+
+---
+
+## Migration Notes
+
+If upgrading from the original "check-in" implementation:
+
+| Old Name | New Name |
+|----------|----------|
+| `checked_in_at` (DB column) | `attended_at` |
+| `checked_in_by` (DB column) | `attended_by` |
+| `checkedIn` (column ID) | `attended` |
+| `checkedInAt` (column ID) | `attendedAt` |
+| `checkedInBy` (column ID) | `attendedBy` |
+| `checkIn` (mutation) | `markAttendance` |
+| `bulkCheckIn` (mutation) | `bulkMarkAttendance` |
+| `useCheckInGuest` (hook) | `useMarkAttendance` |
+| `useBulkCheckInGuests` (hook) | `useBulkMarkAttendance` |
+| `CheckInToggle` (component) | `AttendanceToggle` |
+| `check-in-toggle.tsx` (file) | `attendance-toggle.tsx` |
+| `checkin` (column group) | `attendance` |
+| "Check-in" (default view) | "Attendance" |
+
+Note: Existing custom views with old column IDs will need to be manually updated by users to use the new column IDs.

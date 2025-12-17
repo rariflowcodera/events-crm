@@ -11,6 +11,8 @@ import {
   useGetOrCreateAllGuestsView,
   useSetDefaultGuestListView,
 } from "@/trpc/hooks/guest-list-views-hooks"
+import { usePermissions } from "@/hooks/use-permissions"
+import { PERMISSIONS } from "@/lib/permissions"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyPlaceholder } from "@/components/global/empty-placeholder"
 import { GuestsDataTable } from "@/components/guests/guests-data-table"
@@ -18,12 +20,14 @@ import { GuestsToolbar } from "@/components/guests/guests-toolbar"
 import { BulkDeleteDialog } from "@/components/guests/bulk-delete-dialog"
 import { BulkSendEmailDialog } from "@/components/guests/bulk-send-email-dialog"
 import { SendEmailDialog } from "@/components/guests/send-email-dialog"
+import { EditViewDialog, ManageViewsDialog } from "@/components/guests/view-manager"
 import type { EmailTemplateType } from "@/lib/schemas"
 import { getCountryName } from "@/lib/data/countries"
 import { createRoute } from "@/lib/routes"
 import { exportGuestsToExcel } from "@/lib/export-guests"
 import {
   DEFAULT_VIEW_CONFIG,
+  syncViewConfigColumns,
   type GuestListViewConfig,
   type GuestListViewColumnConfig,
   type GuestListViewFilterConfig,
@@ -56,6 +60,10 @@ interface EventGuestsTabProps {
 export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: EventGuestsTabProps) {
   const t = useTranslations("guest")
 
+  // Check if user can view guest details
+  const { can } = usePermissions(workspaceSlug)
+  const canViewDetails = can(PERMISSIONS.VIEW_GUEST_DETAILS)
+
   // State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -66,6 +74,8 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
   // View management state
   const [currentViewId, setCurrentViewId] = useState<string | null>(null)
   const [savedViewConfig, setSavedViewConfig] = useState<GuestListViewConfig | null>(null)
+  const [showEditViewDialog, setShowEditViewDialog] = useState(false)
+  const [showManageViewsDialog, setShowManageViewsDialog] = useState(false)
 
   // Fetch available views
   const { data: views } = useGuestListViews(event.id)
@@ -88,6 +98,12 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
     return JSON.stringify(viewConfig) !== JSON.stringify(savedViewConfig)
   }, [viewConfig, savedViewConfig])
 
+  // Compute current view from views data
+  const currentView = useMemo(() => {
+    if (!currentViewId || !views) return null
+    return views.find((v) => v.id === currentViewId) ?? null
+  }, [currentViewId, views])
+
   // Load default view on mount
   useEffect(() => {
     // Wait until we know if there's a default view
@@ -99,16 +115,18 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
     const loadDefaultView = async () => {
       if (defaultView) {
         // Use existing default view
+        const syncedConfig = syncViewConfigColumns(defaultView.config as GuestListViewConfig)
         setCurrentViewId(defaultView.id)
-        setViewConfig(defaultView.config as GuestListViewConfig)
-        setSavedViewConfig(defaultView.config as GuestListViewConfig)
+        setViewConfig(syncedConfig)
+        setSavedViewConfig(syncedConfig)
       } else {
         // No default view exists, create "All Guests" system view
         try {
           const allGuestsView = await getOrCreateAllGuests({ eventId: event.id })
+          const syncedConfig = syncViewConfigColumns(allGuestsView.config as GuestListViewConfig)
           setCurrentViewId(allGuestsView.id)
-          setViewConfig(allGuestsView.config as GuestListViewConfig)
-          setSavedViewConfig(allGuestsView.config as GuestListViewConfig)
+          setViewConfig(syncedConfig)
+          setSavedViewConfig(syncedConfig)
         } catch {
           // Fallback to hardcoded default if creation fails
           setViewConfig(DEFAULT_VIEW_CONFIG)
@@ -125,9 +143,10 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
       // Get or create "All Guests" system view
       try {
         const allGuestsView = await getOrCreateAllGuests({ eventId: event.id })
+        const syncedConfig = syncViewConfigColumns(allGuestsView.config as GuestListViewConfig)
         setCurrentViewId(allGuestsView.id)
-        setViewConfig(allGuestsView.config as GuestListViewConfig)
-        setSavedViewConfig(allGuestsView.config as GuestListViewConfig)
+        setViewConfig(syncedConfig)
+        setSavedViewConfig(syncedConfig)
       } catch {
         // Fallback to hardcoded default
         setCurrentViewId(null)
@@ -138,9 +157,10 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
       // Find the selected view and apply its config
       const selectedView = views?.find((v) => v.id === viewId)
       if (selectedView) {
+        const syncedConfig = syncViewConfigColumns(selectedView.config as GuestListViewConfig)
         setCurrentViewId(viewId)
-        setViewConfig(selectedView.config as GuestListViewConfig)
-        setSavedViewConfig(selectedView.config as GuestListViewConfig)
+        setViewConfig(syncedConfig)
+        setSavedViewConfig(syncedConfig)
       }
     }
   }, [views, getOrCreateAllGuests, event.id])
@@ -163,6 +183,36 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
       }
     )
   }, [currentViewId, viewConfig, updateView])
+
+  // Edit view handler
+  const handleEditView = useCallback(() => {
+    setShowEditViewDialog(true)
+  }, [])
+
+  // Manage views handler
+  const handleManageViews = useCallback(() => {
+    setShowManageViewsDialog(true)
+  }, [])
+
+  // Handle view deletion - reset to All Guests if current view was deleted
+  const handleViewDeleted = useCallback(async (deletedViewId: string) => {
+    if (currentViewId === deletedViewId) {
+      // Current view was deleted, switch to All Guests
+      try {
+        const allGuestsView = await getOrCreateAllGuests({ eventId: event.id })
+        const syncedConfig = syncViewConfigColumns(allGuestsView.config as GuestListViewConfig)
+        setCurrentViewId(allGuestsView.id)
+        setViewConfig(syncedConfig)
+        setSavedViewConfig(syncedConfig)
+      } catch {
+        // Fallback to hardcoded default
+        setCurrentViewId(null)
+        setViewConfig(DEFAULT_VIEW_CONFIG)
+        setSavedViewConfig(null)
+      }
+    }
+    setShowEditViewDialog(false)
+  }, [currentViewId, event.id, getOrCreateAllGuests])
 
   // Navigation hrefs
   const addGuestHref = createRoute("guest-new", { slug: workspaceSlug, eventSlug: event.slug }).href
@@ -326,10 +376,13 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
         viewConfig={viewConfig}
         onColumnsChange={handleColumnsChange}
         currentViewId={currentViewId}
+        currentViewIsSystem={currentView?.isSystem}
         hasUnsavedChanges={hasUnsavedChanges}
         onViewSelect={handleViewSelect}
         onSaveView={handleSaveView}
         onSetDefault={handleSetDefault}
+        onEditView={handleEditView}
+        onManageViews={handleManageViews}
         defaultViewId={defaultView?.id}
         totalGuests={totalGuests}
         filteredCount={hasActiveFilters ? guests.length : undefined}
@@ -352,6 +405,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
             onViewConfigChange={handleViewConfigChange}
             totalGuests={totalGuests}
             fillHeight={fullHeight}
+            canViewDetails={canViewDetails}
           />
         </div>
       ) : (
@@ -396,6 +450,31 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
         eventId={event.id}
         guestIds={Array.from(selectedIds)}
         onSuccess={() => setSelectedIds(new Set())}
+      />
+
+      {/* Edit View Dialog */}
+      {currentView && (
+        <EditViewDialog
+          open={showEditViewDialog}
+          onOpenChange={setShowEditViewDialog}
+          view={{
+            id: currentView.id,
+            name: currentView.name,
+            color: currentView.color as any,
+            visibleToRoles: currentView.visibleToRoles ?? [],
+            isPinned: currentView.isPinned,
+            isSystem: currentView.isSystem,
+          }}
+          onDeleted={() => handleViewDeleted(currentView.id)}
+        />
+      )}
+
+      {/* Manage Views Dialog */}
+      <ManageViewsDialog
+        open={showManageViewsDialog}
+        onOpenChange={setShowManageViewsDialog}
+        eventId={event.id}
+        onViewDeleted={handleViewDeleted}
       />
     </div>
   )

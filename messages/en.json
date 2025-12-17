@@ -104,8 +104,16 @@
       "venue": "Venue",
       "venueAddress": "Venue Address",
       "venuePlaceholder": "Search for a venue...",
+      "singleDayEvent": "Single Day Event",
+      "singleDayDescription": "Enable to set specific start and end times for a single day",
+      "enableArabicName": "Enable Arabic Name",
+      "enableArabicNameDescription": "Add an Arabic version of the event name for bilingual communications",
+      "nameAr": "Arabic Event Name",
+      "date": "Date",
       "startDate": "Start Date",
       "endDate": "End Date",
+      "startTime": "Start Time",
+      "endTime": "End Time",
       "rsvpDeadline": "RSVP Deadline",
       "maxGuests": "Maximum Guests"
     },
@@ -117,6 +125,7 @@
       "totalInvited": "Total Invited",
       "responseRate": "Response Rate",
       "attended": "Attended",
+      "notAttended": "Not Attended",
       "countdown": "Event Countdown",
       "today": "Today",
       "completed": "Completed",
@@ -136,8 +145,41 @@
       "mapComingSoon": "Map view coming soon",
       "mapComingSoonTooltip": "Google Maps integration is planned for a future update",
       "viewOnMap": "View on Map",
+      "noCoordinates": "No map coordinates available",
       "guestsResponded": "guests have responded",
       "guests": "guests"
+    }
+  },
+  "events": {
+    "duplicate": {
+      "title": "Duplicate Event",
+      "description": "Create a copy of this event with all its configuration",
+      "name": "Event Name",
+      "namePlaceholder": "Enter event name",
+      "includeLabel": "Include in duplication:",
+      "options": {
+        "categories": "Guest Categories",
+        "categoriesDesc": "Category definitions and service allocations",
+        "emailTemplates": "Email Templates",
+        "emailTemplatesDesc": "All event email templates",
+        "guestListViews": "Guest List Views",
+        "guestListViewsDesc": "Saved view configurations",
+        "eventForms": "Event Forms",
+        "eventFormsDesc": "Custom registration and feedback forms",
+        "documents": "Documents",
+        "documentsDesc": "Event documents for email templates",
+        "itineraries": "Itineraries",
+        "itinerariesDesc": "Itinerary templates and schedule items",
+        "inventoryTypes": "Inventory Types",
+        "inventoryTypesDesc": "Hotel, transport, and other inventory structure",
+        "workflows": "Workflows",
+        "workflowsDesc": "Automated email and status change workflows"
+      },
+      "submit": "Duplicate Event",
+      "submitting": "Duplicating...",
+      "cancel": "Cancel",
+      "success": "Event duplicated successfully",
+      "error": "Failed to duplicate event"
     }
   },
   "categories": {
@@ -209,16 +251,16 @@
       "sendEmail": "Send Email",
       "delete": "Delete"
     },
-    "checkIn": {
-      "title": "Check-in",
-      "checkedIn": "Checked In",
-      "notCheckedIn": "Not Checked In",
-      "checkInGuest": "Check in guest",
-      "undoCheckIn": "Undo check-in",
-      "checkedInAt": "Checked in at",
-      "checkedInBy": "Checked in by",
-      "bulkCheckIn": "Check in selected",
-      "bulkUndoCheckIn": "Undo check-in for selected"
+    "attendance": {
+      "title": "Attendance",
+      "attended": "Attended",
+      "notAttended": "Not Attended",
+      "markAttendance": "Mark attendance",
+      "undoAttendance": "Undo attendance",
+      "attendedAt": "Attended at",
+      "attendedBy": "Logged By",
+      "bulkMarkAttendance": "Mark attendance for selected",
+      "bulkUndoAttendance": "Undo attendance for selected"
     }
   },
   "rsvp": {
@@ -648,10 +690,14 @@
     "maybeMessage": "Maybe Message",
     "submitButtonText": "Submit Button Text",
     "submitButtonTextDescription": "Text displayed on the submit button",
+    "contactMessage": "Contact Message",
+    "contactMessageDescription": "Support message displayed at the bottom of every RSVP page (e.g., contact email for assistance)",
     "rsvpQuestionSection": "RSVP Question",
     "rsvpQuestionSectionDescription": "Customize the RSVP question and response options",
     "showMaybeOption": "Show Maybe Option",
     "showMaybeOptionDescription": "Allow guests to respond with 'Maybe'",
+    "useVisualResponseStyle": "Visual Response Style",
+    "useVisualResponseStyleDescription": "Display RSVP options as icon boxes instead of radio buttons",
     "rsvpQuestionLabel": "Question Label",
     "rsvpQuestionLabelDescription": "Label for the RSVP question (e.g., 'RSVP', 'Will you attend?')",
     "confirmOptionLabel": "Confirm Option Label",
@@ -843,8 +889,21 @@
     "pinToSidebar": "Pin to sidebar",
     "pinToSidebarDescription": "Show this view in the sidebar menu for quick access",
     "saving": "Saving...",
+    "updating": "Updating...",
+    "deleting": "Deleting...",
     "selectView": "Select a view",
     "noViews": "No saved views",
+    "editView": "Edit View",
+    "editViewDescription": "Update the view settings.",
+    "deleteView": "Delete View",
+    "deleteViewConfirm": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+    "manageViewsTitle": "Manage Views",
+    "manageViewsDescription": "Edit or delete your saved views.",
+    "noCustomViews": "No custom views yet.",
+    "noCustomViewsDescription": "Create a view from the guests tab to save your column and filter preferences.",
+    "systemView": "System",
+    "actions": "Actions",
+    "pinned": "Pinned",
     "colors": {
       "gray": "Default",
       "blue": "Operational",
@@ -857,6 +916,7 @@
       "owner": "Owner",
       "admin": "Admin",
       "manager": "Manager",
+      "event_staff": "Event Staff",
       "member": "Member"
     },
     "columnGroups": {

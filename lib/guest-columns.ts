@@ -17,6 +17,7 @@ export type { ViewColor, GuestListViewConfig, GuestListViewColumnConfig, GuestLi
 
 export type GuestColumnId =
   | "select" // Checkbox column
+  | "profileImage" // Guest photo avatar
   | "fullName" // Combined first + last name
   | "firstName"
   | "lastName"
@@ -43,9 +44,9 @@ export type GuestColumnId =
   | "lastRsvpPageVisitAt"
   | "createdAt"
   | "emails" // Email status indicator
-  | "checkedIn" // Check-in toggle
-  | "checkedInAt" // Check-in timestamp
-  | "checkedInBy" // Who checked them in
+  | "attended" // Attendance toggle
+  | "attendedAt" // Attendance timestamp
+  | "attendedBy" // Who marked attendance
   | "actions" // Row actions
 
 // ============================================================================
@@ -63,7 +64,7 @@ export interface GuestColumnDefinition {
   sortable: boolean
   filterable: boolean
   fixed?: "left" | "right" // For pinned columns
-  group: "selection" | "personal" | "professional" | "contact" | "rsvp" | "requirements" | "meta" | "activity" | "checkin" | "actions"
+  group: "selection" | "personal" | "professional" | "contact" | "rsvp" | "requirements" | "meta" | "activity" | "attendance" | "actions"
 }
 
 // ============================================================================
@@ -85,6 +86,18 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
   },
 
   // Personal
+  {
+    id: "profileImage",
+    label: "Photo",
+    labelAr: "الصورة",
+    defaultVisible: true,
+    defaultWidth: 48,
+    minWidth: 48,
+    maxWidth: 64,
+    sortable: false,
+    filterable: false,
+    group: "personal",
+  },
   {
     id: "fullName",
     label: "Name",
@@ -362,36 +375,36 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     group: "activity",
   },
 
-  // Check-in
+  // Attendance
   {
-    id: "checkedIn",
-    label: "Check-in",
-    labelAr: "تسجيل الحضور",
+    id: "attended",
+    label: "Attended",
+    labelAr: "حضر",
     defaultVisible: false,
     defaultWidth: 90,
     sortable: true,
     filterable: true,
-    group: "checkin",
+    group: "attendance",
   },
   {
-    id: "checkedInAt",
-    label: "Checked In At",
-    labelAr: "وقت التسجيل",
+    id: "attendedAt",
+    label: "Attended At",
+    labelAr: "وقت الحضور",
     defaultVisible: false,
     defaultWidth: 140,
     sortable: true,
     filterable: false,
-    group: "checkin",
+    group: "attendance",
   },
   {
-    id: "checkedInBy",
-    label: "Checked In By",
-    labelAr: "تم التسجيل بواسطة",
+    id: "attendedBy",
+    label: "Logged By",
+    labelAr: "سجّل بواسطة",
     defaultVisible: false,
     defaultWidth: 140,
     sortable: false,
     filterable: false,
-    group: "checkin",
+    group: "attendance",
   },
 
   // Actions
@@ -452,6 +465,51 @@ export function getColumnGroups(): Record<string, GuestColumnDefinition[]> {
   return groups
 }
 
+/**
+ * Ensures a view config has all columns from GUEST_COLUMNS.
+ * - Adds missing columns (new columns added to schema)
+ * - Preserves existing column visibility/width settings
+ * - Removes columns that no longer exist in GUEST_COLUMNS
+ */
+export function syncViewConfigColumns(
+  config: GuestListViewConfig
+): GuestListViewConfig {
+  const existingColumnIds = new Set(config.columns.map((c) => c.id))
+  const validColumnIds = new Set(GUEST_COLUMNS.map((c) => c.id))
+
+  // Keep existing columns that still exist in GUEST_COLUMNS
+  const existingColumns = config.columns.filter((c) =>
+    validColumnIds.has(c.id as GuestColumnId)
+  )
+
+  // Find new columns not in the config
+  const newColumns: GuestListViewColumnConfig[] = GUEST_COLUMNS
+    .filter((col) => !existingColumnIds.has(col.id))
+    .map((col) => ({
+      id: col.id,
+      visible: col.defaultVisible,
+      width: col.defaultWidth,
+    }))
+
+  // Insert new columns at their correct positions based on GUEST_COLUMNS order
+  const mergedColumns: GuestListViewColumnConfig[] = []
+  const existingMap = new Map(existingColumns.map((c) => [c.id, c]))
+  const newMap = new Map(newColumns.map((c) => [c.id, c]))
+
+  for (const colDef of GUEST_COLUMNS) {
+    if (existingMap.has(colDef.id)) {
+      mergedColumns.push(existingMap.get(colDef.id)!)
+    } else if (newMap.has(colDef.id)) {
+      mergedColumns.push(newMap.get(colDef.id)!)
+    }
+  }
+
+  return {
+    ...config,
+    columns: mergedColumns,
+  }
+}
+
 export const COLUMN_GROUP_LABELS: Record<string, { en: string; ar: string }> = {
   selection: { en: "Selection", ar: "التحديد" },
   personal: { en: "Personal", ar: "شخصي" },
@@ -461,6 +519,6 @@ export const COLUMN_GROUP_LABELS: Record<string, { en: string; ar: string }> = {
   requirements: { en: "Requirements", ar: "المتطلبات" },
   meta: { en: "Metadata", ar: "البيانات" },
   activity: { en: "Activity", ar: "النشاط" },
-  checkin: { en: "Check-in", ar: "تسجيل الحضور" },
+  attendance: { en: "Attendance", ar: "الحضور" },
   actions: { en: "Actions", ar: "الإجراءات" },
 }

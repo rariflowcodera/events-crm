@@ -16,12 +16,13 @@ type GuestDetailPageProps = {
   }>
   searchParams: Promise<{
     edit?: string
+    fromView?: string
   }>
 }
 
 export default async function GuestDetailPage({ params, searchParams }: GuestDetailPageProps) {
   const { slug, eventSlug, guestId } = await params
-  const { edit } = await searchParams
+  const { edit, fromView } = await searchParams
   const isEditMode = edit === "true"
 
   // Prefetch guest and event data (categories are fetched client-side after we have eventId)
@@ -35,6 +36,7 @@ export default async function GuestDetailPage({ params, searchParams }: GuestDet
         eventSlug={eventSlug}
         guestId={guestId}
         initialEditMode={isEditMode}
+        fromView={fromView}
       />
     </HydrateClient>
   )

@@ -245,7 +245,7 @@ export const useBulkCreateGuests = ({
   return { mutate, isPending }
 }
 
-export const useCheckInGuest = ({
+export const useMarkAttendance = ({
   onSuccess,
   onError,
 }: {
@@ -254,11 +254,11 @@ export const useCheckInGuest = ({
 } = {}) => {
   const utils = trpc.useUtils()
 
-  const { mutate, isPending } = trpc.guests.checkIn.useMutation({
+  const { mutate, isPending } = trpc.guests.markAttendance.useMutation({
     onSuccess: (data) => {
-      const message = data.checkedInAt
-        ? "Guest checked in successfully"
-        : "Check-in undone"
+      const message = data.attendedAt
+        ? "Guest attendance marked successfully"
+        : "Attendance undone"
       toast.success(message)
       utils.guests.getOne.invalidate({ guestId: data.id })
       utils.guests.getMany.invalidate({ eventId: data.eventId })
@@ -274,7 +274,7 @@ export const useCheckInGuest = ({
   return { mutate, isPending }
 }
 
-export const useBulkCheckInGuests = ({
+export const useBulkMarkAttendance = ({
   onSuccess,
   onError,
 }: {
@@ -283,9 +283,9 @@ export const useBulkCheckInGuests = ({
 } = {}) => {
   const utils = trpc.useUtils()
 
-  const { mutate, isPending } = trpc.guests.bulkCheckIn.useMutation({
+  const { mutate, isPending } = trpc.guests.bulkMarkAttendance.useMutation({
     onSuccess: (data) => {
-      toast.success(`${data.updatedCount} guest(s) checked in`)
+      toast.success(`${data.updatedCount} guest(s) attendance marked`)
       utils.guests.getMany.invalidate()
       utils.guests.getStats.invalidate()
       onSuccess?.(data)

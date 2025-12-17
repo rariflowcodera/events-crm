@@ -32,6 +32,7 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Switch } from "@/components/ui/switch"
+import { TimePicker } from "@/components/ui/time-picker"
 import { Icons } from "@/components/global/icons"
 import { PlaceAutocompleteInput, type PlaceResult } from "@/components/forms/place-autocomplete-input"
 import { LocationPreview } from "@/components/events/location-preview"
@@ -46,6 +47,7 @@ type EventStatus = "draft" | "planning" | "invitations_sent" | "rsvp_open" | "rs
 interface Event {
   id: string
   name: string
+  nameAr: string | null
   slug: string
   description: string | null
   eventType: string | null
@@ -59,6 +61,9 @@ interface Event {
   country: string | null
   startDate: Date | null
   endDate: Date | null
+  startTime: string | null
+  endTime: string | null
+  isSingleDay: boolean | null
   rsvpDeadline: Date | null
   maxGuests: number | null
   status: EventStatus
@@ -86,6 +91,8 @@ interface EventSettingsTabProps {
 
 const eventSettingsSchema = z.object({
   name: z.string().min(1, "Event name is required").max(100),
+  showArabicName: z.boolean().default(false),
+  nameAr: z.string().max(100).nullable().optional(),
   description: z.string().optional(),
   eventType: z.string().optional(),
   venue: z.string().optional(),
@@ -96,8 +103,11 @@ const eventSettingsSchema = z.object({
   placeId: z.string().nullable().optional(),
   city: z.string().nullable().optional(),
   country: z.string().nullable().optional(),
+  isSingleDay: z.boolean().default(false),
   startDate: z.date().nullable().optional(),
   endDate: z.date().nullable().optional(),
+  startTime: z.string().nullable().optional(),
+  endTime: z.string().nullable().optional(),
   rsvpDeadline: z.date().nullable().optional(),
   maxGuests: z.number().int().positive().nullable().optional(),
   status: z.enum([
@@ -117,6 +127,15 @@ const eventSettingsSchema = z.object({
     sendReminders: z.boolean().optional(),
     autoAcknowledgementEmails: z.boolean().optional(),
   }).optional(),
+}).refine((data) => {
+  // If single day with both times, validate end time > start time
+  if (data.isSingleDay && data.startTime && data.endTime) {
+    return data.endTime > data.startTime
+  }
+  return true
+}, {
+  message: "End time must be after start time",
+  path: ["endTime"],
 })
 
 type EventSettingsFormValues = z.infer<typeof eventSettingsSchema>
@@ -142,6 +161,8 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
     resolver: zodResolver(eventSettingsSchema),
     defaultValues: {
       name: event.name,
+      showArabicName: !!event.nameAr,
+      nameAr: event.nameAr || "",
       description: event.description || "",
       eventType: event.eventType || "",
       venue: event.venue || "",
@@ -151,8 +172,11 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
       placeId: event.placeId || null,
       city: event.city || null,
       country: event.country || null,
+      isSingleDay: event.isSingleDay ?? false,
       startDate: event.startDate ? new Date(event.startDate) : null,
       endDate: event.endDate ? new Date(event.endDate) : null,
+      startTime: event.startTime || null,
+      endTime: event.endTime || null,
       rsvpDeadline: event.rsvpDeadline ? new Date(event.rsvpDeadline) : null,
       maxGuests: event.maxGuests,
       status: event.status,
@@ -166,6 +190,9 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
     },
   })
 
+  const watchIsSingleDay = form.watch("isSingleDay")
+  const watchShowArabicName = form.watch("showArabicName")
+
   const { mutate, isPending } = useUpdateEvent({
     onSuccess: () => {
       router.refresh()
@@ -176,6 +203,12 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
     mutate({
       eventId: event.id,
       ...values,
+      // Set nameAr only if toggle is on, otherwise clear it
+      nameAr: values.showArabicName && values.nameAr ? values.nameAr : null,
+      // For single-day events, set endDate = startDate
+      endDate: values.isSingleDay ? values.startDate : values.endDate,
+      startTime: values.isSingleDay ? values.startTime : null,
+      endTime: values.isSingleDay ? values.endTime : null,
     })
   }
 
@@ -216,6 +249,52 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                 </FormItem>
               )}
             />
+
+            {/* Arabic Name Toggle */}
+            <FormField
+              control={form.control}
+              name="showArabicName"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">{t("fields.enableArabicName")}</FormLabel>
+                    <FormDescription>
+                      {t("fields.enableArabicNameDescription")}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isDisabled}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {/* Arabic Event Name - Only when toggle is on */}
+            {watchShowArabicName && (
+              <FormField
+                control={form.control}
+                name="nameAr"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("fields.nameAr")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="الحفل السنوي 2024"
+                        disabled={isDisabled}
+                        dir="rtl"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
@@ -337,13 +416,38 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
             <CardDescription>When is your event happening?</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Single Day Event Toggle */}
+            <FormField
+              control={form.control}
+              name="isSingleDay"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">{t("fields.singleDayEvent")}</FormLabel>
+                    <FormDescription>
+                      {t("fields.singleDayDescription")}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isDisabled}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {/* Date Fields */}
             <div className="grid gap-4 sm:grid-cols-2">
+              {/* Start Date - Always visible */}
               <FormField
                 control={form.control}
                 name="startDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>{t("fields.startDate")}</FormLabel>
+                    <FormLabel>{watchIsSingleDay ? t("fields.date") : t("fields.startDate")}</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -378,46 +482,91 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>{t("fields.endDate")}</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                            disabled={isDisabled}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <Icons.calendar className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value ?? undefined}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* End Date - Only for multi-day events */}
+              {!watchIsSingleDay && (
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>{t("fields.endDate")}</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                              disabled={isDisabled}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <Icons.calendar className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value ?? undefined}
+                            onSelect={field.onChange}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
+
+            {/* Time pickers - Only for single-day events */}
+            {watchIsSingleDay && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="startTime"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>{t("fields.startTime")}</FormLabel>
+                      <FormControl>
+                        <TimePicker
+                          value={field.value ?? undefined}
+                          onChange={field.onChange}
+                          disabled={isDisabled}
+                          placeholder="Select start time"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="endTime"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>{t("fields.endTime")}</FormLabel>
+                      <FormControl>
+                        <TimePicker
+                          value={field.value ?? undefined}
+                          onChange={field.onChange}
+                          disabled={isDisabled}
+                          placeholder="Select end time"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             <FormField
               control={form.control}

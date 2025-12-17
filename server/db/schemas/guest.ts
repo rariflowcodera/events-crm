@@ -105,9 +105,9 @@ export const guests = pgTable(
     lastEmailOpenedAt: timestamp("last_email_opened_at", { mode: "date" }),
     lastRsvpPageVisitAt: timestamp("last_rsvp_page_visit_at", { mode: "date" }),
 
-    // Check-in tracking
-    checkedInAt: timestamp("checked_in_at", { mode: "date" }),
-    checkedInBy: text("checked_in_by").references(() => users.id, {
+    // Attendance tracking
+    attendedAt: timestamp("attended_at", { mode: "date" }),
+    attendedBy: text("attended_by").references(() => users.id, {
       onDelete: "set null",
     }),
 
@@ -122,7 +122,7 @@ export const guests = pgTable(
     index("guest_status_idx").on(table.eventId, table.status),
     index("guest_rsvp_token_idx").on(table.rsvpToken),
     index("guest_email_idx").on(table.eventId, table.email),
-    index("guest_checked_in_idx").on(table.eventId, table.checkedInAt),
+    index("guest_attended_idx").on(table.eventId, table.attendedAt),
   ]
 )
 
@@ -135,8 +135,8 @@ export const guestsRelations = relations(guests, ({ one }) => ({
     fields: [guests.categoryId],
     references: [guestCategories.id],
   }),
-  checkedInByUser: one(users, {
-    fields: [guests.checkedInBy],
+  attendedByUser: one(users, {
+    fields: [guests.attendedBy],
     references: [users.id],
   }),
 }))

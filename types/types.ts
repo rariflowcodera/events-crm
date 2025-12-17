@@ -23,6 +23,7 @@ export const RoleTypes = {
   OWNER: "owner",
   ADMIN: "admin",
   MANAGER: "manager",
+  EVENT_STAFF: "event_staff",
   MEMBER: "member",
 } as const
 

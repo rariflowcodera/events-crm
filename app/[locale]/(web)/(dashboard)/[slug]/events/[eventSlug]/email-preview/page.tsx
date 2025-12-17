@@ -109,11 +109,12 @@ type EmailPreviewData = {
   text: string
   lang: "en" | "ar"
   documents?: DocumentData[]
-  // Metadata for refresh functionality
+  // Metadata for refresh functionality and navigation
   _meta?: {
-    eventId: string
-    structuredContent: unknown
-    masterTemplateId: string | null
+    eventId?: string
+    templateId?: string | null
+    structuredContent?: unknown
+    masterTemplateId?: string | null
     isStructuredMode: boolean
   }
 }
@@ -285,7 +286,11 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
     )
   }
 
-  const backUrl = `/${slug}/events/${eventSlug}?tab=emails`
+  // Navigate back to the specific template if we have a templateId, otherwise go to emails tab
+  const templateId = templateData?._meta?.templateId
+  const backUrl = templateId
+    ? `/${slug}/events/${eventSlug}/templates/${templateId}`
+    : `/${slug}/events/${eventSlug}?tab=emails`
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">

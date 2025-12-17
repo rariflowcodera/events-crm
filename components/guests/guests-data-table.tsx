@@ -30,8 +30,10 @@ import { GuestStatusBadge } from "@/components/guests/guest-status-badge"
 import { GuestCategoryBadge } from "@/components/guests/guest-category-badge"
 import { GuestRowActions } from "@/components/guests/guest-row-actions"
 import { GuestEmailStatusIndicator } from "@/components/guests/guest-email-history"
-import { CheckInToggle } from "@/components/guests/check-in-toggle"
+import { AttendanceToggle } from "@/components/guests/attendance-toggle"
 import { FilterableHeader } from "@/components/guests/column-filters"
+import { GuestAvatarCell } from "@/components/guests/guest-avatar-cell"
+import { ImageLightbox } from "@/components/guests/image-lightbox"
 
 // ============================================================================
 // Types
@@ -57,7 +59,7 @@ interface GuestCategory {
   color: string | null
 }
 
-interface CheckedInByUser {
+interface AttendedByUser {
   id: string
   name: string
   email: string
@@ -70,6 +72,7 @@ interface Guest {
   preferredName: string | null
   title: string | null
   salutation: string | null
+  profileImage: string | null
   email: string | null
   phone: string | null
   whatsapp: string | null
@@ -88,9 +91,9 @@ interface Guest {
   lastEmailSentAt: Date | null
   lastEmailOpenedAt: Date | null
   lastRsvpPageVisitAt: Date | null
-  checkedInAt: Date | null
-  checkedInBy: string | null
-  checkedInByUser?: CheckedInByUser | null
+  attendedAt: Date | null
+  attendedBy: string | null
+  attendedByUser?: AttendedByUser | null
   category: GuestCategory
   createdAt: Date
 }
@@ -112,6 +115,7 @@ interface GuestsDataTableProps {
   onViewConfigChange?: (config: GuestListViewConfig) => void
   totalGuests?: number
   fillHeight?: boolean
+  canViewDetails?: boolean
 }
 
 // ============================================================================
@@ -165,10 +169,17 @@ export function GuestsDataTable({
   onViewConfigChange,
   totalGuests,
   fillHeight = false,
+  canViewDetails = true,
 }: GuestsDataTableProps) {
   const router = useRouter()
   const parentRef = useRef<HTMLDivElement>(null)
   const tableContainerRef = useRef<HTMLDivElement>(null)
+
+  // Lightbox state for viewing full-size profile images
+  const [lightboxImage, setLightboxImage] = useState<{
+    src: string
+    name: string
+  } | null>(null)
 
   // Derive TanStack Table state from viewConfig
   const columnVisibility = useMemo<VisibilityState>(() => {
@@ -302,6 +313,29 @@ export function GuestsDataTable({
           />
         ),
         size: getColumnWidth("select"),
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
+        id: "profileImage",
+        accessorKey: "profileImage",
+        header: "",
+        cell: ({ row }) => (
+          <GuestAvatarCell
+            profileImage={row.original.profileImage}
+            firstName={row.original.firstName}
+            lastName={row.original.lastName}
+            onClick={() => {
+              if (row.original.profileImage) {
+                setLightboxImage({
+                  src: row.original.profileImage,
+                  name: `${row.original.firstName} ${row.original.lastName}`,
+                })
+              }
+            }}
+          />
+        ),
+        size: getColumnWidth("profileImage"),
         enableSorting: false,
         enableHiding: false,
       },
@@ -591,41 +625,41 @@ export function GuestsDataTable({
         enableSorting: false,
       },
       {
-        id: "checkedIn",
-        accessorFn: (row) => !!row.checkedInAt,
+        id: "attended",
+        accessorFn: (row) => !!row.attendedAt,
         header: ({ column }) => (
-          <FilterableHeader column={column} title="Check-in" />
+          <FilterableHeader column={column} title="Attended" />
         ),
         cell: ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
-            <CheckInToggle
+            <AttendanceToggle
               guestId={row.original.id}
-              isCheckedIn={!!row.original.checkedInAt}
+              isAttended={!!row.original.attendedAt}
               status={row.original.status}
               guestName={`${row.original.firstName} ${row.original.lastName}`}
             />
           </div>
         ),
-        size: getColumnWidth("checkedIn"),
+        size: getColumnWidth("attended"),
       },
       {
-        id: "checkedInAt",
-        accessorKey: "checkedInAt",
+        id: "attendedAt",
+        accessorKey: "attendedAt",
         header: ({ column }) => (
-          <FilterableHeader column={column} title="Checked In At" />
+          <FilterableHeader column={column} title="Attended At" />
         ),
         cell: ({ getValue }) => {
           const date = getValue() as Date | null
           return date ? format(date, "MMM d, h:mm a") : ""
         },
-        size: getColumnWidth("checkedInAt"),
+        size: getColumnWidth("attendedAt"),
       },
       {
-        id: "checkedInBy",
-        accessorFn: (row) => row.checkedInByUser?.name || row.checkedInByUser?.email,
-        header: "Checked In By",
+        id: "attendedBy",
+        accessorFn: (row) => row.attendedByUser?.name || row.attendedByUser?.email,
+        header: "Logged By",
         cell: ({ getValue }) => (getValue() as string) || "",
-        size: getColumnWidth("checkedInBy"),
+        size: getColumnWidth("attendedBy"),
         enableSorting: false,
       },
       {
@@ -691,12 +725,14 @@ export function GuestsDataTable({
     MAX_VISIBLE_ROWS * ROW_HEIGHT
   )
 
-  // Row click handler
+  // Row click handler (only navigates if user can view details)
   const handleRowClick = useCallback(
     (row: Row<Guest>) => {
-      router.push(getGuestDetailHref(row.original.id))
+      if (canViewDetails) {
+        router.push(getGuestDetailHref(row.original.id))
+      }
     },
-    [router, getGuestDetailHref]
+    [router, getGuestDetailHref, canViewDetails]
   )
 
   // Get columns in display order: select (sticky), then all other columns with actions after fullName
@@ -819,7 +855,10 @@ export function GuestsDataTable({
                 <div
                   key={row.id}
                   data-state={row.getIsSelected() ? "selected" : undefined}
-                  className="flex items-center cursor-pointer border-b hover:bg-muted/50 data-[state=selected]:bg-muted"
+                  className={cn(
+                    "flex items-center border-b hover:bg-muted/50 data-[state=selected]:bg-muted",
+                    canViewDetails && "cursor-pointer"
+                  )}
                   style={{
                     position: "absolute",
                     top: 0,
@@ -828,7 +867,7 @@ export function GuestsDataTable({
                     height: ROW_HEIGHT,
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
-                  onClick={() => handleRowClick(row)}
+                  onClick={canViewDetails ? () => handleRowClick(row) : undefined}
                 >
                   {/* Sticky select cell */}
                   {selectCell && (
@@ -882,6 +921,14 @@ export function GuestsDataTable({
           <span>{rows.length} guest{rows.length !== 1 ? "s" : ""}</span>
         )}
       </div>
+
+      {/* Image lightbox for viewing full-size profile photos */}
+      <ImageLightbox
+        open={!!lightboxImage}
+        onOpenChange={(open) => !open && setLightboxImage(null)}
+        imageSrc={lightboxImage?.src}
+        guestName={lightboxImage?.name}
+      />
     </div>
   )
 }

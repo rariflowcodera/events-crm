@@ -3,13 +3,14 @@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 
-const ROLES = ["owner", "admin", "manager", "member"] as const
+const ROLES = ["owner", "admin", "manager", "event_staff", "member"] as const
 type Role = (typeof ROLES)[number]
 
 const ROLE_LABELS: Record<Role, string> = {
   owner: "Owner",
   admin: "Admin",
   manager: "Manager",
+  event_staff: "Event Staff",
   member: "Member",
 }
 
@@ -18,7 +19,7 @@ interface ViewRoleSelectorProps {
   onChange: (roles: string[]) => void
 }
 
-const DEFAULT_ROLES = ["owner", "admin", "manager", "member"]
+const DEFAULT_ROLES = ["owner", "admin", "manager", "event_staff", "member"]
 
 export function ViewRoleSelector({ value = DEFAULT_ROLES, onChange }: ViewRoleSelectorProps) {
   const handleChange = (role: Role, checked: boolean) => {

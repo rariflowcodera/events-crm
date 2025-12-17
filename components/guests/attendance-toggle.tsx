@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Check, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { useCheckInGuest } from "@/trpc/hooks/guests-hooks"
+import { useMarkAttendance } from "@/trpc/hooks/guests-hooks"
 import {
   Tooltip,
   TooltipContent,
@@ -24,9 +24,9 @@ type GuestStatus =
   | "attended"
   | "no_show"
 
-interface CheckInToggleProps {
+interface AttendanceToggleProps {
   guestId: string
-  isCheckedIn: boolean
+  isAttended: boolean
   status: GuestStatus
   guestName?: string
   size?: "sm" | "lg"
@@ -34,47 +34,35 @@ interface CheckInToggleProps {
 
 const ALLOWED_STATUSES: GuestStatus[] = [
   "confirmed",
-  "maybe",
-  "reminded",
-  "viewed",
-  "invited",
+  "attended",
 ]
 
-export function CheckInToggle({
+export function AttendanceToggle({
   guestId,
-  isCheckedIn,
+  isAttended,
   status,
   guestName,
   size = "sm",
-}: CheckInToggleProps) {
-  const [optimisticCheckedIn, setOptimisticCheckedIn] = useState(isCheckedIn)
-  const { mutate, isPending } = useCheckInGuest({
+}: AttendanceToggleProps) {
+  const [optimisticAttended, setOptimisticAttended] = useState(isAttended)
+  const { mutate, isPending } = useMarkAttendance({
     onError: () => {
       // Revert optimistic update on error
-      setOptimisticCheckedIn(isCheckedIn)
+      setOptimisticAttended(isAttended)
     },
   })
 
-  const canCheckIn = ALLOWED_STATUSES.includes(status)
+  const canMarkAttendance = ALLOWED_STATUSES.includes(status)
 
   // Don't render toggle for disallowed statuses
-  if (!canCheckIn) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center justify-center">
-            <span className="text-muted-foreground text-xs">-</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>Cannot check in: {status}</TooltipContent>
-      </Tooltip>
-    )
+  if (!canMarkAttendance) {
+    return null
   }
 
   const handleToggle = () => {
-    const newValue = !optimisticCheckedIn
-    setOptimisticCheckedIn(newValue) // Optimistic update
-    mutate({ guestId, checkIn: newValue })
+    const newValue = !optimisticAttended
+    setOptimisticAttended(newValue) // Optimistic update
+    mutate({ guestId, attended: newValue })
   }
 
   const buttonSize = size === "lg" ? "h-12 w-12" : "h-8 w-8"
@@ -84,11 +72,11 @@ export function CheckInToggle({
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
-          variant={optimisticCheckedIn ? "default" : "outline"}
+          variant={optimisticAttended ? "default" : "outline"}
           size="icon"
           className={cn(
             buttonSize,
-            optimisticCheckedIn && "bg-green-600 hover:bg-green-700",
+            optimisticAttended && "bg-green-600 hover:bg-green-700",
             "transition-all"
           )}
           onClick={(e) => {
@@ -99,7 +87,7 @@ export function CheckInToggle({
         >
           {isPending ? (
             <Loader2 className={cn(iconSize, "animate-spin")} />
-          ) : optimisticCheckedIn ? (
+          ) : optimisticAttended ? (
             <Check className={iconSize} />
           ) : (
             <X className={cn(iconSize, "text-muted-foreground")} />
@@ -107,9 +95,9 @@ export function CheckInToggle({
         </Button>
       </TooltipTrigger>
       <TooltipContent>
-        {optimisticCheckedIn
-          ? `${guestName || "Guest"} is checked in. Click to undo.`
-          : `Check in ${guestName || "guest"}`}
+        {optimisticAttended
+          ? `${guestName || "Guest"} attended. Click to undo.`
+          : `Mark ${guestName || "guest"} as attended`}
       </TooltipContent>
     </Tooltip>
   )

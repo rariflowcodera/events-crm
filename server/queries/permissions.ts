@@ -119,7 +119,11 @@ export const PERMISSIONS = {
   IMPORT_GUESTS: "import:guests",
   MANAGE_GUESTS: "manage:guests",
   VIEW_GUESTS: "view:guests",
+  VIEW_GUEST_DETAILS: "view:guest_details",
   DELETE_GUESTS: "delete:guests",
+
+  // Attendance
+  MARK_ATTENDANCE: "mark:attendance",
 
   // RSVP management
   VIEW_RSVPS: "view:rsvps",
@@ -166,7 +170,11 @@ const defaultPermissions: DefaultPermissionsType[] = [
   { name: PERMISSIONS.IMPORT_GUESTS, description: "Can import guests from Excel/CSV" },
   { name: PERMISSIONS.MANAGE_GUESTS, description: "Can manage guest records" },
   { name: PERMISSIONS.VIEW_GUESTS, description: "Can view guest list" },
+  { name: PERMISSIONS.VIEW_GUEST_DETAILS, description: "Can view individual guest profiles" },
   { name: PERMISSIONS.DELETE_GUESTS, description: "Can delete guests" },
+
+  // Attendance
+  { name: PERMISSIONS.MARK_ATTENDANCE, description: "Can mark guest attendance" },
 
   // RSVP management
   { name: PERMISSIONS.VIEW_RSVPS, description: "Can view RSVP responses" },
@@ -207,7 +215,10 @@ const defaultRoles: DefaultRolesType[] = [
       "import:guests",
       "manage:guests",
       "view:guests",
+      "view:guest_details",
       "delete:guests",
+      // Attendance
+      "mark:attendance",
       // RSVP management
       "view:rsvps",
       "manage:rsvps",
@@ -227,8 +238,10 @@ const defaultRoles: DefaultRolesType[] = [
       "view:event",
       "manage:event",
       "view:guests",
+      "view:guest_details",
       "manage:guests",
       "import:guests",
+      "mark:attendance",
       "view:rsvps",
       "manage:rsvps",
       "send:emails",
@@ -237,9 +250,19 @@ const defaultRoles: DefaultRolesType[] = [
     ],
   },
   {
+    name: "event_staff",
+    description: "Event staff with attendance marking access",
+    permissions: [
+      "view:event",
+      "view:guests",
+      "view:rsvps",
+      "mark:attendance",
+    ],
+  },
+  {
     name: "member",
     description: "Regular member with view-only access",
-    permissions: ["view:members", "view:event", "view:guests", "view:rsvps", "view:reports"],
+    permissions: ["view:members", "view:event", "view:guests", "view:guest_details", "view:rsvps", "view:reports"],
   },
 ]
 

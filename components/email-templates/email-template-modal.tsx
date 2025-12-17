@@ -62,7 +62,9 @@ export function EmailTemplateModal({
               workspaceId={workspaceId}
               workspaceSlug={workspaceSlug}
               eventSlug={eventSlug}
-              onSuccess={() => onOpenChange(false)}
+              onSuccess={() => {
+                // Stay in the modal after saving - toast notification confirms success
+              }}
               onCancel={() => onOpenChange(false)}
             />
           </div>

@@ -204,3 +204,52 @@ export const useRemoveEventCustomDomain = ({
 
   return { mutate, isPending }
 }
+
+// ============================================================================
+// Event Duplication Hooks
+// ============================================================================
+
+export type DuplicateEventResult = {
+  event: {
+    id: string
+    slug: string
+    name: string
+  }
+  stats: {
+    categoriesCopied: number
+    emailTemplatesCopied: number
+    guestListViewsCopied: number
+    eventFormsCopied: number
+    documentsCopied: number
+    itineraryTemplatesCopied: number
+    itineraryItemsCopied: number
+    inventoryTypesCopied: number
+    workflowsCopied: number
+    workflowStepsCopied: number
+    masterTemplatesCopied: number
+  }
+}
+
+export const useDuplicateEvent = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (data: DuplicateEventResult) => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, mutateAsync, isPending } = trpc.events.duplicate.useMutation({
+    onSuccess: (data) => {
+      toast.success("Event duplicated successfully")
+      utils.events.getMany.invalidate()
+      onSuccess?.(data as DuplicateEventResult)
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, mutateAsync, isPending }
+}

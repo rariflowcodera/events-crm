@@ -1,8 +1,8 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { format } from "date-fns"
 
+import { formatEventDateTime } from "@/lib/date-utils"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -17,6 +17,8 @@ interface Event {
   venue: string | null
   startDate: Date | null
   endDate: Date | null
+  startTime: string | null
+  endTime: string | null
   status: "draft" | "planning" | "invitations_sent" | "rsvp_open" | "rsvp_closed" | "in_progress" | "completed" | "cancelled"
   createdAt: Date
   creator: {
@@ -66,10 +68,12 @@ export function EventCard({ event }: EventCardProps) {
           <div className="text-muted-foreground flex items-center gap-2 text-sm">
             <Icons.calendar className="h-4 w-4" />
             <span>
-              {format(new Date(event.startDate), "MMM d, yyyy")}
-              {event.endDate && event.endDate !== event.startDate && (
-                <> - {format(new Date(event.endDate), "MMM d, yyyy")}</>
-              )}
+              {formatEventDateTime({
+                startDate: new Date(event.startDate),
+                endDate: event.endDate ? new Date(event.endDate) : null,
+                startTime: event.startTime,
+                endTime: event.endTime,
+              })}
             </span>
           </div>
         )}

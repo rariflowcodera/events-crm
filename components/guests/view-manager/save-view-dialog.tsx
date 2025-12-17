@@ -34,7 +34,7 @@ const formSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   color: z.enum(["gray", "blue", "green", "orange", "purple", "red"]),
   visibleToRoles: z
-    .array(z.enum(["owner", "admin", "manager", "member"]))
+    .array(z.enum(["owner", "admin", "manager", "event_staff", "member"]))
     .min(1, "At least one role must be selected"),
   isPinned: z.boolean(),
 })
@@ -66,7 +66,7 @@ export function SaveViewDialog({
     defaultValues: {
       name: "",
       color: "gray",
-      visibleToRoles: ["owner", "admin", "manager", "member"],
+      visibleToRoles: ["owner", "admin", "manager", "event_staff", "member"],
       isPinned: true,
     },
   })

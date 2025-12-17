@@ -462,6 +462,22 @@ export function RsvpFormBuilder({
                   />
                 </div>
 
+                {/* Visual Response Style Toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>{t("useVisualResponseStyle")}</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {t("useVisualResponseStyleDescription")}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={config.settings.useVisualResponseStyle ?? false}
+                    onCheckedChange={(checked) =>
+                      handleUpdateSettings({ useVisualResponseStyle: checked })
+                    }
+                  />
+                </div>
+
                 {/* RSVP Question Label */}
                 <BilingualInput
                   label={t("rsvpQuestionLabel")}
@@ -553,6 +569,22 @@ export function RsvpFormBuilder({
                     submitButtonText: value as BilingualText,
                   })
                 }
+              />
+
+              <Separator />
+
+              {/* Contact Message */}
+              <BilingualInput
+                label={t("contactMessage")}
+                description={t("contactMessageDescription")}
+                value={config.settings.contactMessage || { en: "", ar: "" }}
+                onChange={(value) =>
+                  handleUpdateSettings({
+                    contactMessage: value.en ? (value as BilingualText) : undefined,
+                  })
+                }
+                multiline
+                rows={2}
               />
             </CardContent>
           </Card>

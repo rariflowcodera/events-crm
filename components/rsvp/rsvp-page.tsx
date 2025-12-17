@@ -23,10 +23,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { formatEventDateTime } from "@/lib/date-utils"
 import { getBackgroundStyles, type BackgroundImageMode } from "@/components/branding/background-image-upload"
 import { getAccentStyles } from "@/components/branding/card-accent-settings"
 
 import { DynamicFormRenderer } from "./dynamic-form-renderer"
+import { VisualResponseSelector } from "./visual-response-selector"
 import type { RsvpFormConfig, BilingualText } from "@/lib/rsvp/types"
 
 // Schema for the main form (response status + legacy fallback fields)
@@ -96,6 +98,9 @@ interface GuestData {
     venueAddress?: string
     startDate?: string
     endDate?: string
+    startTime?: string
+    endTime?: string
+    isSingleDay?: boolean
     timezone?: string
     rsvpDeadline?: string
     rsvpFormConfig?: RsvpFormConfig
@@ -412,7 +417,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
               <img
                 src={brandLogo}
                 alt={event.organization?.name || event.name}
-                className="mx-auto mb-4 h-16 object-contain"
+                className="mx-auto mb-4 h-40 object-contain"
               />
             )}
             <h2 className="text-xl sm:text-2xl font-bold">
@@ -484,7 +489,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
               <img
                 src={brandLogo}
                 alt={guestData.event.organization?.name || guestData.event.name}
-                className="mx-auto mb-4 h-12 object-contain"
+                className="mx-auto mb-4 h-40 object-contain"
               />
             )}
             <h2 className="text-xl sm:text-2xl font-bold">{t("submitted")}</h2>
@@ -517,6 +522,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
   const totalSteps = isMultiStep ? 1 + sectionCount : 1
   const isLastStep = currentStep === totalSteps - 1
   const showSubmitButton = watchResponseStatus === "declined" || isLastStep || !isMultiStep
+  const useVisualStyle = event.rsvpFormConfig?.settings?.useVisualResponseStyle ?? false
 
   // Get submit button text from config or use default
   const submitButtonText = event.rsvpFormConfig?.settings?.submitButtonText
@@ -587,7 +593,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
             <img
               src={brandLogo}
               alt={event.organization?.name || event.name}
-              className="mx-auto mb-4 h-16 object-contain"
+              className="mx-auto mb-4 h-40 object-contain"
             />
           )}
           <CardTitle className="text-xl sm:text-2xl">{headline || event.name}</CardTitle>
@@ -605,11 +611,12 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
             {event.startDate && (
               <p>
                 <strong>{isRtl ? "التاريخ:" : "Date:"}</strong>{" "}
-                {new Date(event.startDate).toLocaleDateString(displayLocale, {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
+                {formatEventDateTime({
+                  startDate: new Date(event.startDate),
+                  endDate: event.endDate ? new Date(event.endDate) : null,
+                  startTime: event.startTime,
+                  endTime: event.endTime,
+                  isSingleDay: event.isSingleDay,
                 })}
               </p>
             )}
@@ -651,37 +658,59 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                       ? getLocalizedText(formConfig.settings.maybeOptionLabel, displayLocale)
                       : t("maybe")
                     const showMaybeOption = formConfig?.settings?.showMaybeOption ?? true
+                    const useVisualStyle = formConfig?.settings?.useVisualResponseStyle ?? false
+
+                    // Handler for visual selection with auto-advance
+                    const handleVisualSelection = (value: string) => {
+                      field.onChange(value)
+                      // Auto-advance: if multi-step and not declined, go to next step
+                      if (isMultiStep && value !== "declined") {
+                        setCurrentStep(1)
+                      }
+                    }
 
                     return (
                       <FormItem>
                         <FormLabel>{questionLabel}</FormLabel>
                         <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-2"
-                          >
-                            <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
-                              <FormControl>
-                                <RadioGroupItem value="confirmed" />
-                              </FormControl>
-                              <FormLabel className="font-normal">{confirmLabel}</FormLabel>
-                            </FormItem>
-                            <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
-                              <FormControl>
-                                <RadioGroupItem value="declined" />
-                              </FormControl>
-                              <FormLabel className="font-normal">{declineLabel}</FormLabel>
-                            </FormItem>
-                            {showMaybeOption && (
+                          {useVisualStyle ? (
+                            <VisualResponseSelector
+                              value={field.value}
+                              onChange={handleVisualSelection}
+                              confirmLabel={confirmLabel}
+                              declineLabel={declineLabel}
+                              maybeLabel={maybeLabel}
+                              showMaybeOption={showMaybeOption}
+                              isRtl={isRtl}
+                            />
+                          ) : (
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex flex-col space-y-2"
+                            >
                               <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
                                 <FormControl>
-                                  <RadioGroupItem value="maybe" />
+                                  <RadioGroupItem value="confirmed" />
                                 </FormControl>
-                                <FormLabel className="font-normal">{maybeLabel}</FormLabel>
+                                <FormLabel className="font-normal">{confirmLabel}</FormLabel>
                               </FormItem>
-                            )}
-                          </RadioGroup>
+                              <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
+                                <FormControl>
+                                  <RadioGroupItem value="declined" />
+                                </FormControl>
+                                <FormLabel className="font-normal">{declineLabel}</FormLabel>
+                              </FormItem>
+                              {showMaybeOption && (
+                                <FormItem className={cn("flex items-center space-y-0", isRtl ? "space-x-reverse space-x-3" : "space-x-3")}>
+                                  <FormControl>
+                                    <RadioGroupItem value="maybe" />
+                                  </FormControl>
+                                  <FormLabel className="font-normal">{maybeLabel}</FormLabel>
+                                </FormItem>
+                              )}
+                            </RadioGroup>
+                          )}
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -801,7 +830,8 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
 
               </div>
 
-              {/* Navigation buttons */}
+              {/* Navigation buttons - hide on step 0 when visual style is enabled (selection drives navigation) */}
+              {!(currentStep === 0 && useVisualStyle && !showSubmitButton) && (
               <div className={cn("flex gap-2 mt-auto pt-4 pb-6 sm:pt-6 sm:pb-0", currentStep > 0 ? "justify-between" : "")}>
                 {/* Back button */}
                 {currentStep > 0 && (
@@ -846,8 +876,16 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                   </Button>
                 )}
               </div>
+              )}
             </form>
           </Form>
+
+          {/* Contact/Support message */}
+          {event.rsvpFormConfig?.settings?.contactMessage && (
+            <p className="text-center text-xs text-muted-foreground mt-6 pt-4 border-t">
+              {getLocalizedText(event.rsvpFormConfig.settings.contactMessage, displayLocale)}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

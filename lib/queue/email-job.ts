@@ -34,6 +34,7 @@ interface Guest {
 interface Event {
   id: string
   name: string
+  nameAr: string | null
   slug: string
   venue: string | null
   venueAddress: string | null

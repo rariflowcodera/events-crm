@@ -109,9 +109,11 @@ export function membersColumns({ currentUserId }: { currentUserId: string }): Co
         const member = row.original
         const isCurrentUser = currentUserId ? member.id === currentUserId : false
 
-        const isOwner = member.ownerId === member.id
+        // Primary owner is the user who created the workspace (stored in workspace.ownerId)
+        const isPrimaryOwner = member.ownerId === member.id
 
-        if (isCurrentUser || isOwner) {
+        // Don't show actions for current user or primary owner
+        if (isCurrentUser || isPrimaryOwner) {
           return null
         }
 
@@ -122,6 +124,7 @@ export function membersColumns({ currentUserId }: { currentUserId: string }): Co
               userId={member.id}
               workspaceId={member.workspaceId}
               role={member.role}
+              isPrimaryOwner={isPrimaryOwner}
             />
           </div>
         )

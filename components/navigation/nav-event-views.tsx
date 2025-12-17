@@ -3,14 +3,16 @@
 import { Suspense, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { ChevronRight, LayoutGrid } from "lucide-react"
+import { ChevronRight, LayoutGrid, Settings2 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { ErrorBoundary } from "react-error-boundary"
 
 import { VIEW_COLORS, type ViewColor } from "@/server/db/schemas"
+import { PERMISSIONS } from "@/lib/permissions"
 import { usePermissions } from "@/hooks/use-permissions"
 import { usePinnedGuestListViews } from "@/trpc/hooks/guest-list-views-hooks"
 import { useEventBySlug } from "@/trpc/hooks/events-hooks"
+import { ManageViewsDialog } from "@/components/guests/view-manager"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   SidebarMenu,
@@ -42,7 +44,9 @@ function NavEventViewsSuspense({ workspaceSlug, eventSlug }: NavEventViewsProps)
   const searchParams = useSearchParams()
   const currentViewId = searchParams.get("view")
   const [isOpen, setIsOpen] = useState(true)
-  const { role } = usePermissions(workspaceSlug)
+  const [showManageViewsDialog, setShowManageViewsDialog] = useState(false)
+  const { role, can } = usePermissions(workspaceSlug)
+  const canManageEvent = can(PERMISSIONS.MANAGE_EVENT)
 
   // Fetch event to get its ID
   const { data: event, isLoading: eventLoading } = useEventBySlug(workspaceSlug, eventSlug)
@@ -56,8 +60,8 @@ function NavEventViewsSuspense({ workspaceSlug, eventSlug }: NavEventViewsProps)
     return view.visibleToRoles?.includes(role) ?? false
   }) ?? []
 
-  // Don't render if there are no pinned views
-  if (!eventLoading && !viewsLoading && filteredViews.length === 0) {
+  // Don't render if there are no pinned views AND user can't manage views
+  if (!eventLoading && !viewsLoading && filteredViews.length === 0 && !canManageEvent) {
     return null
   }
 
@@ -109,12 +113,34 @@ function NavEventViewsSuspense({ workspaceSlug, eventSlug }: NavEventViewsProps)
                       </SidebarMenuSubItem>
                     )
                   })}
+
+                  {/* Manage Views link - only for admins/owners */}
+                  {canManageEvent && event && (
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton
+                        onClick={() => setShowManageViewsDialog(true)}
+                        className="text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        <Settings2 className="size-3.5" />
+                        <span>{t("views.manageViews")}</span>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  )}
                 </>
               )}
             </SidebarMenuSub>
           </CollapsibleContent>
         </SidebarMenuItem>
       </Collapsible>
+
+      {/* Manage Views Dialog */}
+      {event && (
+        <ManageViewsDialog
+          open={showManageViewsDialog}
+          onOpenChange={setShowManageViewsDialog}
+          eventId={event.id}
+        />
+      )}
     </SidebarMenu>
   )
 }

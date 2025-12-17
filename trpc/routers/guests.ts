@@ -168,9 +168,9 @@ export const guestsRouter = createTRPCRouter({
             return sortFn(guests.lastEmailOpenedAt)
           case "lastRsvpPageVisitAt":
             return sortFn(guests.lastRsvpPageVisitAt)
-          case "checkedIn":
-          case "checkedInAt":
-            return sortFn(guests.checkedInAt)
+          case "attended":
+          case "attendedAt":
+            return sortFn(guests.attendedAt)
           default:
             return null
         }
@@ -191,7 +191,7 @@ export const guestsRouter = createTRPCRouter({
           category: {
             columns: { id: true, name: true, code: true, color: true },
           },
-          checkedInByUser: {
+          attendedByUser: {
             columns: { id: true, name: true, email: true },
           },
         },
@@ -232,13 +232,13 @@ export const guestsRouter = createTRPCRouter({
       const canView = await hasPermission({
         userId: ctx.user.id,
         workspaceId: guest.event.workspaceId,
-        permissionName: PERMISSIONS.VIEW_GUESTS,
+        permissionName: PERMISSIONS.VIEW_GUEST_DETAILS,
       })
 
       if (!canView) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "You do not have permission to view guests",
+          message: "You do not have permission to view guest details",
         })
       }
 
@@ -551,11 +551,11 @@ export const guestsRouter = createTRPCRouter({
         .from(guests)
         .where(eq(guests.eventId, input.eventId))
 
-      // Check-in stats
-      const [checkInStats] = await db
+      // Attendance stats
+      const [attendanceStats] = await db
         .select({
-          checkedIn: sql<number>`count(*) FILTER (WHERE ${guests.checkedInAt} IS NOT NULL)::int`,
-          notCheckedIn: sql<number>`count(*) FILTER (WHERE ${guests.checkedInAt} IS NULL AND ${guests.status} IN ('confirmed', 'maybe', 'reminded', 'viewed', 'invited'))::int`,
+          attended: sql<number>`count(*) FILTER (WHERE ${guests.attendedAt} IS NOT NULL)::int`,
+          notAttended: sql<number>`count(*) FILTER (WHERE ${guests.attendedAt} IS NULL AND ${guests.status} IN ('confirmed', 'maybe', 'reminded', 'viewed', 'invited'))::int`,
         })
         .from(guests)
         .where(eq(guests.eventId, input.eventId))
@@ -564,9 +564,9 @@ export const guestsRouter = createTRPCRouter({
         byStatus: statusStats,
         byCategory: categoryStats,
         total,
-        checkIn: {
-          checkedIn: checkInStats.checkedIn,
-          notCheckedIn: checkInStats.notCheckedIn,
+        attendance: {
+          attended: attendanceStats.attended,
+          notAttended: attendanceStats.notAttended,
         },
       }
     }),
@@ -778,12 +778,12 @@ export const guestsRouter = createTRPCRouter({
       return { updatedCount: updated.length }
     }),
 
-  // Check in a single guest
-  checkIn: protectedProcedure
+  // Mark attendance for a single guest
+  markAttendance: protectedProcedure
     .input(
       z.object({
         guestId: z.string().uuid(),
-        checkIn: z.boolean(),
+        attended: z.boolean(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -796,33 +796,34 @@ export const guestsRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Guest not found" })
       }
 
-      const canManage = await hasPermission({
+      const canMarkAttendance = await hasPermission({
         userId: ctx.user.id,
         workspaceId: guest.event.workspaceId,
-        permissionName: PERMISSIONS.MANAGE_GUESTS,
+        permissionName: PERMISSIONS.MARK_ATTENDANCE,
       })
 
-      if (!canManage) {
+      if (!canMarkAttendance) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "You do not have permission to check in guests",
+          message: "You do not have permission to mark attendance",
         })
       }
 
-      // Only allow check-in for certain statuses
-      const allowedStatuses = ["confirmed", "maybe", "reminded", "viewed", "invited"]
+      // Only allow marking attendance for confirmed guests or undoing attended guests
+      const allowedStatuses = ["confirmed", "attended"]
       if (!allowedStatuses.includes(guest.status)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Cannot check in guest with status "${guest.status}"`,
+          message: `Cannot mark attendance for guest with status "${guest.status}"`,
         })
       }
 
       const [updated] = await db
         .update(guests)
         .set({
-          checkedInAt: input.checkIn ? new Date() : null,
-          checkedInBy: input.checkIn ? ctx.user.id : null,
+          attendedAt: input.attended ? new Date() : null,
+          attendedBy: input.attended ? ctx.user.id : null,
+          status: input.attended ? "attended" : "confirmed",
           updatedAt: new Date(),
         })
         .where(eq(guests.id, input.guestId))
@@ -831,13 +832,13 @@ export const guestsRouter = createTRPCRouter({
       return updated
     }),
 
-  // Bulk check in guests
-  bulkCheckIn: protectedProcedure
+  // Bulk mark attendance for guests
+  bulkMarkAttendance: protectedProcedure
     .input(
       z.object({
         eventId: z.string().uuid(),
         guestIds: z.array(z.string().uuid()).min(1).max(100),
-        checkIn: z.boolean(),
+        attended: z.boolean(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -849,27 +850,28 @@ export const guestsRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
       }
 
-      const canManage = await hasPermission({
+      const canMarkAttendance = await hasPermission({
         userId: ctx.user.id,
         workspaceId: event.workspaceId,
-        permissionName: PERMISSIONS.MANAGE_GUESTS,
+        permissionName: PERMISSIONS.MARK_ATTENDANCE,
       })
 
-      if (!canManage) {
+      if (!canMarkAttendance) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "You do not have permission to check in guests",
+          message: "You do not have permission to mark attendance",
         })
       }
 
-      // Only update guests with allowed statuses
-      const allowedStatuses = ["confirmed", "maybe", "reminded", "viewed", "invited"]
+      // Only update guests with confirmed or attended statuses
+      const allowedStatuses = ["confirmed", "attended"]
 
       const updated = await db
         .update(guests)
         .set({
-          checkedInAt: input.checkIn ? new Date() : null,
-          checkedInBy: input.checkIn ? ctx.user.id : null,
+          attendedAt: input.attended ? new Date() : null,
+          attendedBy: input.attended ? ctx.user.id : null,
+          status: input.attended ? "attended" : "confirmed",
           updatedAt: new Date(),
         })
         .where(

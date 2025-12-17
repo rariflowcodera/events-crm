@@ -4,19 +4,21 @@ import { useRouter } from "next/navigation"
 import { useCallback } from "react"
 
 /**
- * Hook for smart back navigation with fallback URL support.
- * Uses browser history when available, otherwise navigates to fallback.
+ * Hook for back navigation with explicit destination support.
+ * When a fallback URL is provided, always navigates there for consistent UX.
+ * Uses browser history only when no fallback is specified.
  */
 export function useBackNavigation(fallbackUrl?: string) {
   const router = useRouter()
 
   const goBack = useCallback(() => {
-    // Check if we have meaningful history to go back to
-    // history.length > 2 because: 1 = initial page, 2 = current page
-    if (typeof window !== "undefined" && window.history.length > 2) {
-      router.back()
-    } else if (fallbackUrl) {
+    // If a fallback URL is provided, always use it for consistent navigation
+    // This ensures clicking "back" on a detail page always goes to the list
+    if (fallbackUrl) {
       router.push(fallbackUrl)
+    } else if (typeof window !== "undefined" && window.history.length > 2) {
+      // No explicit destination - use browser history
+      router.back()
     } else {
       // Default fallback - go to home
       router.push("/")

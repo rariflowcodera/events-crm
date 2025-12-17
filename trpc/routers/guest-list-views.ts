@@ -46,7 +46,7 @@ const viewColorSchema = z.enum(
   Object.keys(VIEW_COLORS) as [ViewColor, ...ViewColor[]]
 )
 
-const roleSchema = z.enum(["owner", "admin", "manager", "member"])
+const roleSchema = z.enum(["owner", "admin", "manager", "event_staff", "member"])
 
 // ============================================================================
 // Router

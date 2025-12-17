@@ -48,7 +48,7 @@ export function TemplateDetailPageClient({
   const backHref = createRoute("event-detail", { slug: workspaceSlug, eventSlug }).href + "?tab=emails"
 
   const handleSuccess = () => {
-    router.push(backHref)
+    // Stay on the page after saving - toast notification confirms success
   }
 
   const handleCancel = () => {

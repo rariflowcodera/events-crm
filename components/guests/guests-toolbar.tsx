@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Filter, X, Check, Search } from "lucide-react"
+import { Filter, X, Check, Search, Settings2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -86,10 +86,13 @@ interface GuestsToolbarProps {
   onColumnsChange?: (columns: GuestListViewColumnConfig[]) => void
   // New view management props
   currentViewId?: string | null
+  currentViewIsSystem?: boolean
   hasUnsavedChanges?: boolean
   onViewSelect?: (viewId: string | null) => void
   onSaveView?: () => void
   onSetDefault?: () => void
+  onEditView?: () => void
+  onManageViews?: () => void
   defaultViewId?: string
   // Optional: guest count display
   totalGuests?: number
@@ -131,10 +134,13 @@ export function GuestsToolbar({
   viewConfig,
   onColumnsChange,
   currentViewId,
+  currentViewIsSystem,
   hasUnsavedChanges = false,
   onViewSelect,
   onSaveView,
   onSetDefault,
+  onEditView,
+  onManageViews,
   defaultViewId,
   totalGuests,
   filteredCount,
@@ -149,6 +155,7 @@ export function GuestsToolbar({
   const canImportGuests = can(PERMISSIONS.IMPORT_GUESTS)
   const canDeleteGuests = can(PERMISSIONS.DELETE_GUESTS)
   const canSendEmails = can(PERMISSIONS.SEND_EMAILS)
+  const canManageEvent = can(PERMISSIONS.MANAGE_EVENT)
 
   // Count active filters
   const activeFilterCount = useMemo(() => {
@@ -195,9 +202,22 @@ export function GuestsToolbar({
                 onViewSelect={onViewSelect}
                 onSaveView={onSaveView}
                 onCreateView={() => setShowSaveViewDialog(true)}
+                onManageViews={canManageEvent ? onManageViews : undefined}
                 onSetDefault={onSetDefault}
                 defaultViewId={defaultViewId}
               />
+            )}
+
+            {/* Edit view button - only when a custom view is selected */}
+            {currentViewId && canManageEvent && !currentViewIsSystem && onEditView && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onEditView}
+                title="Edit View"
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
             )}
 
             {/* Filter toggle button */}

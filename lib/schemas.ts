@@ -360,7 +360,7 @@ export const invitationSchema = z.object({
   workspaceId: z.string().uuid({ message: "Invalid workspace ID" }),
   invitedBy: z.string().min(1, { message: "Invited by is required" }),
   invitedByProfileImage: z.string().nullable().optional(), // Allow null values
-  role: z.enum(["member", "manager", "admin"]),
+  role: z.enum(["member", "event_staff", "manager", "admin"]),
 })
 
 export const idSchema = ({ uuidMessage }: { uuidMessage?: string }) =>
@@ -730,6 +730,9 @@ export const rsvpFormSettingsSchema = z.object({
   declineOptionLabel: bilingualTextSchema.optional(),
   maybeOptionLabel: bilingualTextSchema.optional(),
   showMaybeOption: z.boolean().optional(),
+  useVisualResponseStyle: z.boolean().optional(),
+  // Contact/support message
+  contactMessage: bilingualTextSchema.optional(),
 })
 
 export type RsvpFormSettingsInput = z.infer<typeof rsvpFormSettingsSchema>

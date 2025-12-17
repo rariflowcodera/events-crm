@@ -603,6 +603,13 @@ export const rsvpFormsRouter = createTRPCRouter({
           declineMessage: bilingualTextSchema.optional(),
           maybeMessage: bilingualTextSchema.optional(),
           submitButtonText: bilingualTextSchema.optional(),
+          rsvpQuestionLabel: bilingualTextSchema.optional(),
+          confirmOptionLabel: bilingualTextSchema.optional(),
+          declineOptionLabel: bilingualTextSchema.optional(),
+          maybeOptionLabel: bilingualTextSchema.optional(),
+          showMaybeOption: z.boolean().optional(),
+          useVisualResponseStyle: z.boolean().optional(),
+          contactMessage: bilingualTextSchema.optional(),
         }),
       })
     )
