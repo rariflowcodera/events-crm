@@ -376,7 +376,7 @@ export const bulkEmailRouter = createTRPCRouter({
       return {
         id: job.id,
         status: job.status,
-        templateName: job.template.name,
+        templateName: job.template?.name ?? null,
         emailType: job.emailType,
         totalEmails: job.totalEmails,
         sentCount: job.sentCount,
@@ -419,7 +419,7 @@ export const bulkEmailRouter = createTRPCRouter({
       return jobs.map((job) => ({
         id: job.id,
         status: job.status,
-        templateName: job.template.name,
+        templateName: job.template?.name ?? null,
         emailType: job.emailType,
         totalEmails: job.totalEmails,
         sentCount: job.sentCount,
