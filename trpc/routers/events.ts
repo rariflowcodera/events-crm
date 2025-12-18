@@ -21,7 +21,7 @@ import { DEFAULT_EMAIL_TEMPLATES } from "@/lib/email/default-templates"
 import { GUEST_COLUMNS, type GuestListViewConfig } from "@/lib/guest-columns"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import { TRPCError } from "@trpc/server"
-import { and, desc, eq, ne, getTableColumns, sql, isNotNull } from "drizzle-orm"
+import { and, desc, eq, getTableColumns, sql, isNotNull } from "drizzle-orm"
 import { z } from "zod"
 import { randomBytes } from "crypto"
 import dns from "dns/promises"
@@ -281,12 +281,26 @@ export const eventsRouter = createTRPCRouter({
         })
         .returning()
 
-      // Create default email templates for the new event
+      // Create default email templates for the new event (using structured content)
       const templateInserts = DEFAULT_EMAIL_TEMPLATES.map((template) => ({
         eventId: event.id,
         name: template.name,
         type: template.type,
-        content: template.content,
+        // Placeholder content for backwards compatibility
+        content: {
+          en: {
+            subject: template.structuredContent.en.subject,
+            htmlContent: "<p>This template uses structured content mode.</p>",
+          },
+          ar: template.structuredContent.ar
+            ? {
+                subject: template.structuredContent.ar.subject,
+                htmlContent: "<p>هذا القالب يستخدم وضع المحتوى المنظم.</p>",
+              }
+            : undefined,
+        },
+        // Structured content takes precedence during rendering
+        structuredContent: template.structuredContent,
         defaultLanguage: "en" as const,
         isDefault: true,
         isActive: true,
@@ -634,21 +648,6 @@ export const eventsRouter = createTRPCRouter({
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission to manage this event",
-        })
-      }
-
-      // Check if domain is already in use by another event
-      const existingEvent = await db.query.events.findFirst({
-        where: and(
-          eq(events.customDomain, normalizedDomain),
-          ne(events.id, eventId)
-        ),
-      })
-
-      if (existingEvent) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "This domain is already in use by another event",
         })
       }
 

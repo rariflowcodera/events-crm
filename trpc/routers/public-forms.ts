@@ -10,6 +10,7 @@ import { createTRPCRouter, baseProcedure } from "@/trpc/init"
 import { TRPCError } from "@trpc/server"
 import { and, eq } from "drizzle-orm"
 import { z } from "zod"
+import { resolveBranding } from "@/lib/branding/utils"
 
 import type { FormConfig } from "@/server/db/schemas/event-form"
 
@@ -36,14 +37,31 @@ export const publicFormsRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Form has expired" })
       }
 
-      // Get event info for branding
+      // Get event info for branding (with workspace for branding fallback)
       const event = await db.query.events.findFirst({
         where: eq(events.id, form.eventId),
+        with: {
+          workspace: {
+            columns: {
+              branding: true,
+              logo: true,
+            },
+          },
+        },
       })
 
       if (!event) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
       }
+
+      // Build workspace branding with legacy logo fallback
+      const workspaceBranding = {
+        ...event.workspace.branding,
+        logo: event.workspace.branding?.logo ?? event.workspace.logo ?? undefined,
+      }
+
+      // Resolve branding with workspace fallback
+      const resolvedBranding = resolveBranding(workspaceBranding, event.branding)
 
       return {
         id: form.id,
@@ -58,6 +76,7 @@ export const publicFormsRouter = createTRPCRouter({
           id: event.id,
           name: event.name,
           branding: event.branding,
+          resolvedBranding,
         },
       }
     }),

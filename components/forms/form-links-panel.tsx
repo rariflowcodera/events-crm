@@ -3,14 +3,13 @@
 import { useState, useRef } from "react"
 import { useTranslations } from "next-intl"
 import { QRCodeSVG } from "qrcode.react"
-import { Copy, Check, RefreshCw, Download, ExternalLink, QrCode } from "lucide-react"
+import { Copy, Check, Download, ExternalLink, QrCode } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import {
   Dialog,
   DialogContent,
@@ -26,7 +25,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Icons } from "@/components/global/icons"
-import { useRegenerateShortCode } from "@/trpc/hooks/event-forms-hooks"
 import { toast } from "sonner"
 
 interface FormLinksPanelProps {
@@ -47,12 +45,9 @@ export function FormLinksPanel({ form, workspaceSlug, eventSlug }: FormLinksPane
   const [qrDialogOpen, setQrDialogOpen] = useState(false)
   const qrRef = useRef<HTMLDivElement>(null)
 
-  const { mutate: regenerateShortCode, isPending: isRegenerating } = useRegenerateShortCode()
-
   // Generate URLs
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
   const directUrl = `${baseUrl}/f/${form.shortCode}`
-  const fullUrl = `${baseUrl}/${workspaceSlug}/events/${eventSlug}/forms/${form.slug}/submit`
 
   const handleCopy = async (text: string, field: string) => {
     try {
@@ -63,10 +58,6 @@ export function FormLinksPanel({ form, workspaceSlug, eventSlug }: FormLinksPane
     } catch {
       toast.error(t("forms.copyFailed"))
     }
-  }
-
-  const handleRegenerateCode = () => {
-    regenerateShortCode({ formId: form.id })
   }
 
   const handleDownloadQR = () => {
@@ -178,56 +169,6 @@ export function FormLinksPanel({ form, workspaceSlug, eventSlug }: FormLinksPane
           </div>
         </div>
 
-        {/* Short Code */}
-        <div className="space-y-2">
-          <Label>{t("forms.shortCode")}</Label>
-          <p className="text-xs text-muted-foreground">{t("forms.shortCodeDescription")}</p>
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 items-center rounded-md border bg-muted px-3 font-mono text-lg tracking-widest">
-              {form.shortCode}
-            </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleCopy(form.shortCode || "", "code")}
-                  >
-                    {copiedField === "code" ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("forms.copyCode")}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleRegenerateCode}
-                    disabled={isRegenerating}
-                  >
-                    {isRegenerating ? (
-                      <Icons.spinner className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("forms.regenerateCode")}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-
-        <Separator />
-
         {/* QR Code */}
         <div className="space-y-2">
           <Label>{t("forms.qrCode")}</Label>
@@ -278,39 +219,6 @@ export function FormLinksPanel({ form, workspaceSlug, eventSlug }: FormLinksPane
                 {t("forms.downloadQr")}
               </Button>
             </div>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Full URL (for reference) */}
-        <div className="space-y-2">
-          <Label className="text-muted-foreground">{t("forms.fullUrl")}</Label>
-          <p className="text-xs text-muted-foreground">{t("forms.fullUrlDescription")}</p>
-          <div className="flex items-center gap-2">
-            <Input
-              value={fullUrl}
-              readOnly
-              className="font-mono text-xs text-muted-foreground"
-            />
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleCopy(fullUrl, "full")}
-                  >
-                    {copiedField === "full" ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("forms.copyLink")}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
         </div>
       </CardContent>

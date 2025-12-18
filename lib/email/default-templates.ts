@@ -1,4 +1,4 @@
-import { BilingualEmailContent } from "@/server/db/schemas/email-template"
+import { BilingualStructuredContent } from "@/server/db/schemas/email-template"
 
 export type DefaultEmailTemplate = {
   name: string
@@ -8,133 +8,177 @@ export type DefaultEmailTemplate = {
     | "confirmation"
     | "declined_acknowledgment"
     | "maybe_acknowledgment"
-  content: BilingualEmailContent
+  structuredContent: BilingualStructuredContent
 }
 
 export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
   {
     name: "Default Invitation",
     type: "invitation",
-    content: {
+    structuredContent: {
       en: {
         subject: "You're Invited to {{event.name}}",
-        htmlContent: `<p>Dear {{guest.salutation}} {{guest.fullName}},</p>
-<p>You are cordially invited to attend {{event.name}}.</p>
-<p><strong>Event Details:</strong></p>
-<ul>
-  <li>Date: {{event.startDate}}</li>
-  <li>Venue: {{event.venue}}</li>
-  <li>Address: {{event.venueAddress}}</li>
-</ul>
-<p>Please confirm your attendance by {{event.rsvpDeadline}}.</p>
-<p><a href="{{rsvp.link}}">Respond to Invitation</a></p>`,
+        greeting: "Dear {{guest.salutation}} {{guest.fullName}},",
+        heading: "You're Cordially Invited",
+        subheading: "{{event.name}}",
+        bodyParagraphs: [
+          "You are cordially invited to attend {{event.name}}.",
+          "Date: {{event.startDate}}\nVenue: {{event.venue}}\nAddress: {{event.venueAddress}}",
+          "Please confirm your attendance by {{event.rsvpDeadline}}.",
+        ],
+        cta: {
+          text: "Respond to Invitation",
+          url: "{{rsvp.link}}",
+        },
       },
       ar: {
         subject: "دعوة لحضور {{event.name}}",
-        htmlContent: `<p>{{guest.salutation}} {{guest.fullName}} العزيز/ة،</p>
-<p>يسعدنا دعوتكم لحضور {{event.name}}.</p>
-<p><strong>تفاصيل الفعالية:</strong></p>
-<ul>
-  <li>التاريخ: {{event.startDate}}</li>
-  <li>المكان: {{event.venue}}</li>
-  <li>العنوان: {{event.venueAddress}}</li>
-</ul>
-<p>يرجى تأكيد حضوركم قبل {{event.rsvpDeadline}}.</p>
-<p><a href="{{rsvp.link}}">الرد على الدعوة</a></p>`,
+        greeting: "{{guest.salutation}} {{guest.fullName}} العزيز/ة،",
+        heading: "دعوة لحضور",
+        subheading: "{{event.name}}",
+        bodyParagraphs: [
+          "يسعدنا دعوتكم لحضور {{event.name}}.",
+          "التاريخ: {{event.startDate}}\nالمكان: {{event.venue}}\nالعنوان: {{event.venueAddress}}",
+          "يرجى تأكيد حضوركم قبل {{event.rsvpDeadline}}.",
+        ],
+        cta: {
+          text: "الرد على الدعوة",
+          url: "{{rsvp.link}}",
+        },
       },
     },
   },
   {
     name: "Default Reminder",
     type: "reminder",
-    content: {
+    structuredContent: {
       en: {
         subject: "Reminder: Please respond to {{event.name}}",
-        htmlContent: `<p>Dear {{guest.salutation}} {{guest.fullName}},</p>
-<p>This is a friendly reminder to respond to your invitation for {{event.name}}.</p>
-<p>The RSVP deadline is {{event.rsvpDeadline}}.</p>
-<p><a href="{{rsvp.link}}">Respond Now</a></p>`,
+        greeting: "Dear {{guest.salutation}} {{guest.fullName}},",
+        heading: "Friendly Reminder",
+        bodyParagraphs: [
+          "This is a friendly reminder to respond to your invitation for {{event.name}}.",
+          "The RSVP deadline is {{event.rsvpDeadline}}.",
+        ],
+        cta: {
+          text: "Respond Now",
+          url: "{{rsvp.link}}",
+        },
       },
       ar: {
         subject: "تذكير: يرجى الرد على دعوة {{event.name}}",
-        htmlContent: `<p>{{guest.salutation}} {{guest.fullName}} العزيز/ة،</p>
-<p>هذا تذكير ودي للرد على دعوتكم لحضور {{event.name}}.</p>
-<p>آخر موعد للرد هو {{event.rsvpDeadline}}.</p>
-<p><a href="{{rsvp.link}}">الرد الآن</a></p>`,
+        greeting: "{{guest.salutation}} {{guest.fullName}} العزيز/ة،",
+        heading: "تذكير ودي",
+        bodyParagraphs: [
+          "هذا تذكير ودي للرد على دعوتكم لحضور {{event.name}}.",
+          "آخر موعد للرد هو {{event.rsvpDeadline}}.",
+        ],
+        cta: {
+          text: "الرد الآن",
+          url: "{{rsvp.link}}",
+        },
       },
     },
   },
   {
     name: "Confirmation Acknowledgement",
     type: "confirmation",
-    content: {
+    structuredContent: {
       en: {
         subject: "Thank you for confirming - {{event.name}}",
-        htmlContent: `<p>Dear {{guest.salutation}} {{guest.fullName}},</p>
-<p>Thank you for confirming your attendance at {{event.name}}.</p>
-<p><strong>Event Details:</strong></p>
-<ul>
-  <li>Date: {{event.startDate}}</li>
-  <li>Venue: {{event.venue}}</li>
-</ul>
-<p>We look forward to seeing you!</p>
-<p>If your plans change, you can update your response: <a href="{{rsvp.link}}">Update Response</a></p>`,
+        greeting: "Dear {{guest.salutation}} {{guest.fullName}},",
+        heading: "Thank You for Confirming",
+        bodyParagraphs: [
+          "Thank you for confirming your attendance at {{event.name}}.",
+          "Date: {{event.startDate}}\nVenue: {{event.venue}}",
+          "If your plans change, you can update your response using the link below.",
+        ],
+        cta: {
+          text: "Update Response",
+          url: "{{rsvp.link}}",
+        },
+        postCtaText: "We look forward to seeing you!",
       },
       ar: {
         subject: "شكراً لتأكيد حضوركم - {{event.name}}",
-        htmlContent: `<p>{{guest.salutation}} {{guest.fullName}} العزيز/ة،</p>
-<p>شكراً لتأكيد حضوركم في {{event.name}}.</p>
-<p><strong>تفاصيل الفعالية:</strong></p>
-<ul>
-  <li>التاريخ: {{event.startDate}}</li>
-  <li>المكان: {{event.venue}}</li>
-</ul>
-<p>نتطلع لرؤيتكم!</p>
-<p>إذا تغيرت خططكم، يمكنكم تحديث ردكم: <a href="{{rsvp.link}}">تحديث الرد</a></p>`,
+        greeting: "{{guest.salutation}} {{guest.fullName}} العزيز/ة،",
+        heading: "شكراً لتأكيد حضوركم",
+        bodyParagraphs: [
+          "شكراً لتأكيد حضوركم في {{event.name}}.",
+          "التاريخ: {{event.startDate}}\nالمكان: {{event.venue}}",
+          "إذا تغيرت خططكم، يمكنكم تحديث ردكم باستخدام الرابط أدناه.",
+        ],
+        cta: {
+          text: "تحديث الرد",
+          url: "{{rsvp.link}}",
+        },
+        postCtaText: "نتطلع لرؤيتكم!",
       },
     },
   },
   {
     name: "Decline Acknowledgement",
     type: "declined_acknowledgment",
-    content: {
+    structuredContent: {
       en: {
         subject: "We've received your response - {{event.name}}",
-        htmlContent: `<p>Dear {{guest.salutation}} {{guest.fullName}},</p>
-<p>We've received your response and understand you won't be able to attend {{event.name}}.</p>
-<p>If your plans change, you can update your response:</p>
-<p><a href="{{rsvp.link}}">Update My Response</a></p>
-<p>Thank you for letting us know.</p>`,
+        greeting: "Dear {{guest.salutation}} {{guest.fullName}},",
+        heading: "Response Received",
+        bodyParagraphs: [
+          "We've received your response and understand you won't be able to attend {{event.name}}.",
+          "If your plans change, you can update your response using the link below.",
+        ],
+        cta: {
+          text: "Update My Response",
+          url: "{{rsvp.link}}",
+        },
+        postCtaText: "Thank you for letting us know.",
       },
       ar: {
         subject: "تم استلام ردكم - {{event.name}}",
-        htmlContent: `<p>{{guest.salutation}} {{guest.fullName}} العزيز/ة،</p>
-<p>تم استلام ردكم ونتفهم عدم قدرتكم على حضور {{event.name}}.</p>
-<p>إذا تغيرت خططكم، يمكنكم تحديث ردكم:</p>
-<p><a href="{{rsvp.link}}">تحديث الرد</a></p>
-<p>شكراً لإعلامنا.</p>`,
+        greeting: "{{guest.salutation}} {{guest.fullName}} العزيز/ة،",
+        heading: "تم استلام ردكم",
+        bodyParagraphs: [
+          "تم استلام ردكم ونتفهم عدم قدرتكم على حضور {{event.name}}.",
+          "إذا تغيرت خططكم، يمكنكم تحديث ردكم باستخدام الرابط أدناه.",
+        ],
+        cta: {
+          text: "تحديث الرد",
+          url: "{{rsvp.link}}",
+        },
+        postCtaText: "شكراً لإعلامنا.",
       },
     },
   },
   {
     name: "Maybe Acknowledgement",
     type: "maybe_acknowledgment",
-    content: {
+    structuredContent: {
       en: {
         subject: "We've received your response - {{event.name}}",
-        htmlContent: `<p>Dear {{guest.salutation}} {{guest.fullName}},</p>
-<p>Thank you for your response regarding {{event.name}}. We understand you're not yet certain about your availability.</p>
-<p>Please update your response when you know for sure:</p>
-<p><a href="{{rsvp.link}}">Update My Response</a></p>
-<p>The RSVP deadline is {{event.rsvpDeadline}}.</p>`,
+        greeting: "Dear {{guest.salutation}} {{guest.fullName}},",
+        heading: "Response Received",
+        bodyParagraphs: [
+          "Thank you for your response regarding {{event.name}}. We understand you're not yet certain about your availability.",
+          "Please update your response when you know for sure. The RSVP deadline is {{event.rsvpDeadline}}.",
+        ],
+        cta: {
+          text: "Update My Response",
+          url: "{{rsvp.link}}",
+        },
       },
       ar: {
         subject: "تم استلام ردكم - {{event.name}}",
-        htmlContent: `<p>{{guest.salutation}} {{guest.fullName}} العزيز/ة،</p>
-<p>شكراً لردكم بخصوص {{event.name}}. نتفهم أنكم غير متأكدين من توفركم بعد.</p>
-<p>يرجى تحديث ردكم عندما تتأكدون:</p>
-<p><a href="{{rsvp.link}}">تحديث الرد</a></p>
-<p>آخر موعد للرد هو {{event.rsvpDeadline}}.</p>`,
+        greeting: "{{guest.salutation}} {{guest.fullName}} العزيز/ة،",
+        heading: "تم استلام ردكم",
+        bodyParagraphs: [
+          "شكراً لردكم بخصوص {{event.name}}. نتفهم أنكم غير متأكدين من توفركم بعد.",
+          "يرجى تحديث ردكم عندما تتأكدون. آخر موعد للرد هو {{event.rsvpDeadline}}.",
+        ],
+        cta: {
+          text: "تحديث الرد",
+          url: "{{rsvp.link}}",
+        },
       },
     },
   },

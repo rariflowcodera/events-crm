@@ -74,6 +74,45 @@ export async function getEventByCustomDomain(
 }
 
 /**
+ * Check if a custom domain is valid (verified by at least one event)
+ * Used when multiple events can share the same domain
+ */
+export async function isCustomDomainValid(domain: string): Promise<boolean> {
+  const normalizedDomain = domain.toLowerCase().trim()
+  const cacheKey = `${DOMAIN_CACHE_PREFIX}valid:${normalizedDomain}`
+
+  // Try cache first
+  try {
+    const cached = await redis.get(cacheKey)
+    if (cached !== null) {
+      return cached === "1"
+    }
+  } catch (error) {
+    console.error("Redis cache read error:", error)
+  }
+
+  // Query database - check if ANY event has this domain verified
+  const event = await db.query.events.findFirst({
+    where: and(
+      eq(events.customDomain, normalizedDomain),
+      eq(events.customDomainVerified, true)
+    ),
+    columns: { id: true },
+  })
+
+  const isValid = !!event
+
+  // Cache result
+  try {
+    await redis.setex(cacheKey, DOMAIN_CACHE_TTL, isValid ? "1" : "0")
+  } catch (error) {
+    console.error("Redis cache write error:", error)
+  }
+
+  return isValid
+}
+
+/**
  * Look up event by custom domain without requiring verification
  * Used during the verification process itself
  */
@@ -112,9 +151,10 @@ export async function getEventByCustomDomainUnverified(
 export async function invalidateDomainCache(domain: string): Promise<void> {
   const normalizedDomain = domain.toLowerCase().trim()
   const cacheKey = `${DOMAIN_CACHE_PREFIX}${normalizedDomain}`
+  const validityCacheKey = `${DOMAIN_CACHE_PREFIX}valid:${normalizedDomain}`
 
   try {
-    await redis.del(cacheKey)
+    await redis.del(cacheKey, validityCacheKey)
   } catch (error) {
     console.error("Redis cache invalidation error:", error)
   }

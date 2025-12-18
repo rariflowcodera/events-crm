@@ -1,9 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Check, X, Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 import { useMarkAttendance } from "@/trpc/hooks/guests-hooks"
 import {
   Tooltip,
@@ -29,20 +27,15 @@ interface AttendanceToggleProps {
   isAttended: boolean
   status: GuestStatus
   guestName?: string
-  size?: "sm" | "lg"
 }
 
-const ALLOWED_STATUSES: GuestStatus[] = [
-  "confirmed",
-  "attended",
-]
+const ALLOWED_STATUSES: GuestStatus[] = ["confirmed", "attended"]
 
 export function AttendanceToggle({
   guestId,
   isAttended,
   status,
   guestName,
-  size = "sm",
 }: AttendanceToggleProps) {
   const [optimisticAttended, setOptimisticAttended] = useState(isAttended)
   const { mutate, isPending } = useMarkAttendance({
@@ -59,40 +52,23 @@ export function AttendanceToggle({
     return null
   }
 
-  const handleToggle = () => {
-    const newValue = !optimisticAttended
-    setOptimisticAttended(newValue) // Optimistic update
-    mutate({ guestId, attended: newValue })
+  const handleToggle = (checked: boolean) => {
+    setOptimisticAttended(checked) // Optimistic update
+    mutate({ guestId, attended: checked })
   }
-
-  const buttonSize = size === "lg" ? "h-12 w-12" : "h-8 w-8"
-  const iconSize = size === "lg" ? "h-6 w-6" : "h-4 w-4"
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button
-          variant={optimisticAttended ? "default" : "outline"}
-          size="icon"
-          className={cn(
-            buttonSize,
-            optimisticAttended && "bg-green-600 hover:bg-green-700",
-            "transition-all"
-          )}
-          onClick={(e) => {
-            e.stopPropagation() // Prevent row navigation
-            handleToggle()
-          }}
+        <Switch
+          checked={optimisticAttended}
+          onCheckedChange={handleToggle}
           disabled={isPending}
-        >
-          {isPending ? (
-            <Loader2 className={cn(iconSize, "animate-spin")} />
-          ) : optimisticAttended ? (
-            <Check className={iconSize} />
-          ) : (
-            <X className={cn(iconSize, "text-muted-foreground")} />
-          )}
-        </Button>
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            backgroundColor: optimisticAttended ? "#16a34a" : "#f87171",
+          }}
+        />
       </TooltipTrigger>
       <TooltipContent>
         {optimisticAttended

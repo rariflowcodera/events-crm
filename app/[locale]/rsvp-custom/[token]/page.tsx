@@ -1,10 +1,10 @@
 import { notFound, redirect } from "next/navigation"
 import { headers } from "next/headers"
-import { eq, and } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { db } from "@/server/db/config/database"
 import { guests } from "@/server/db/schemas"
 import { RsvpPage as RsvpPageComponent } from "@/components/rsvp/rsvp-page"
-import { getEventByCustomDomain } from "@/lib/domain"
+import { isCustomDomainValid } from "@/lib/domain"
 
 interface RsvpCustomPageProps {
   params: Promise<{
@@ -25,25 +25,39 @@ export default async function RsvpCustomPage({ params }: RsvpCustomPageProps) {
     redirect(`/${locale}/rsvp/${token}`)
   }
 
-  // Validate domain and get event
-  const domainData = await getEventByCustomDomain(customDomain)
+  // Validate domain is verified by at least one event
+  const isDomainValid = await isCustomDomainValid(customDomain)
 
-  if (!domainData || !domainData.verified) {
-    // Domain not found or not verified
+  if (!isDomainValid) {
+    // Domain not found or not verified by any event
     notFound()
   }
 
-  // Verify token exists AND belongs to this specific event
+  // Look up guest by token, include their event to verify domain ownership
   const guest = await db.query.guests.findFirst({
-    where: and(
-      eq(guests.rsvpToken, token),
-      eq(guests.eventId, domainData.eventId)
-    ),
+    where: eq(guests.rsvpToken, token),
     columns: { id: true, rsvpTokenExpiresAt: true },
+    with: {
+      event: {
+        columns: {
+          customDomain: true,
+          customDomainVerified: true,
+        },
+      },
+    },
   })
 
   if (!guest) {
-    // Token doesn't exist or doesn't belong to this event
+    // Token doesn't exist
+    notFound()
+  }
+
+  // Verify guest's event uses this custom domain
+  if (
+    guest.event?.customDomain?.toLowerCase() !== customDomain.toLowerCase() ||
+    !guest.event?.customDomainVerified
+  ) {
+    // Guest's event doesn't use this domain
     notFound()
   }
 
@@ -75,10 +89,19 @@ export async function generateMetadata({ params }: RsvpCustomPageProps) {
     }
   }
 
-  const domainData = await getEventByCustomDomain(customDomain)
+  // Look up guest by token to get the actual event name
+  const guest = await db.query.guests.findFirst({
+    where: eq(guests.rsvpToken, token),
+    columns: { id: true },
+    with: {
+      event: {
+        columns: { name: true },
+      },
+    },
+  })
 
   return {
-    title: `RSVP - ${domainData?.eventName || "Event"}`,
+    title: `RSVP - ${guest?.event?.name || "Event"}`,
     description: "Confirm your attendance",
     robots: "noindex, nofollow",
   }

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useTranslations } from "next-intl"
-import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Loader2, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,10 +31,14 @@ import {
 } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
+import { getBackgroundStyles, type BackgroundImageMode } from "@/components/branding/background-image-upload"
+import { getAccentStyles } from "@/components/branding/card-accent-settings"
+import type { ResolvedBranding } from "@/lib/branding/utils"
 
 import { usePublicForm, useLookupGuest, useSubmitFormResponse } from "@/trpc/hooks/public-forms-hooks"
 import type { FormConfig, FormFieldConfig, FormSectionConfig } from "@/server/db/schemas/event-form"
 import type { BilingualText } from "@/server/db/schemas/event-form"
+import type { EventBranding } from "@/server/db/schemas"
 
 // Email lookup schema
 const emailSchema = z.object({
@@ -76,7 +80,10 @@ type GuestLookupResponse = {
 
 export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
   const t = useTranslations()
-  const isRtl = locale === "ar"
+
+  // Language toggle state - separate from URL locale
+  const [displayLocale, setDisplayLocale] = useState(locale)
+  const isRtl = displayLocale === "ar"
 
   // State
   const [step, setStep] = useState<"email" | "form" | "success">("email")
@@ -104,6 +111,11 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
     resolver: zodResolver(emailSchema),
     defaultValues: { email: "" },
   })
+
+  // Language toggle handler
+  const toggleLanguage = () => {
+    setDisplayLocale(prev => prev === "en" ? "ar" : "en")
+  }
 
   // Handle email lookup
   const handleEmailLookup = async (data: EmailFormData) => {
@@ -159,17 +171,55 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
 
   const { event, formConfig } = formData
   const config = formConfig as FormConfig
+  const resolvedBranding = event.resolvedBranding as ResolvedBranding | undefined
+  const eventBranding = event.branding as EventBranding | undefined
+
+  // Compute background styles
+  const backgroundStyles = resolvedBranding?.backgroundImage
+    ? {
+        backgroundImage: `url(${resolvedBranding.backgroundImage})`,
+        ...getBackgroundStyles((eventBranding?.backgroundImageMode as BackgroundImageMode) || "cover"),
+      }
+    : {}
+
+  // Compute card accent styles
+  const cardAccentStyles = getAccentStyles(eventBranding?.cardAccent)
+
+  // Compute button styles
+  const primaryButtonStyle = resolvedBranding?.primaryColor
+    ? { backgroundColor: resolvedBranding.primaryColor }
+    : {}
+
+  // Get logo (prefer resolved, fallback to event branding)
+  const logoUrl = resolvedBranding?.logo || eventBranding?.logo
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center p-4"
+      className="flex min-h-screen items-center justify-center p-2 sm:p-4 md:p-8"
       dir={isRtl ? "rtl" : "ltr"}
+      style={backgroundStyles}
     >
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
-          {event.branding?.logo && (
+      <Card
+        className="w-full max-w-2xl rounded-lg sm:rounded-xl overflow-hidden"
+        style={cardAccentStyles}
+      >
+        <CardHeader className="text-center relative">
+          {/* Language Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleLanguage}
+            className={cn(
+              "absolute top-3 sm:top-4 min-h-[44px] px-3",
+              isRtl ? "left-3 sm:left-4" : "right-3 sm:right-4"
+            )}
+          >
+            {displayLocale === "en" ? "العربية" : "English"}
+          </Button>
+
+          {logoUrl && (
             <img
-              src={event.branding.logo}
+              src={logoUrl}
               alt={event.name}
               className="mx-auto mb-4 h-16 object-contain"
             />
@@ -180,7 +230,7 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
           )}
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="px-4 sm:px-6 pb-6">
           {/* Email Step */}
           {step === "email" && (
             <EmailStep
@@ -188,7 +238,8 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
               onSubmit={handleEmailLookup}
               loading={lookingUp}
               error={error}
-              locale={locale}
+              locale={displayLocale}
+              primaryButtonStyle={primaryButtonStyle}
             />
           )}
 
@@ -198,7 +249,8 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
               config={config}
               guestData={guestData}
               shortCode={shortCode}
-              locale={locale}
+              locale={displayLocale}
+              resolvedBranding={resolvedBranding}
               onSubmit={async (responses) => {
                 await submitResponse({
                   shortCode,
@@ -210,6 +262,7 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
               onBack={() => setStep("email")}
               submitting={submitting}
               error={error}
+              primaryButtonStyle={primaryButtonStyle}
             />
           )}
 
@@ -217,7 +270,7 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
           {step === "success" && (
             <SuccessStep
               config={config}
-              locale={locale}
+              locale={displayLocale}
               isAmendment={guestData?.canAmend && guestData?.hasSubmitted}
             />
           )}
@@ -234,9 +287,10 @@ interface EmailStepProps {
   loading: boolean
   error: string | null
   locale: string
+  primaryButtonStyle: React.CSSProperties
 }
 
-function EmailStep({ form, onSubmit, loading, error, locale }: EmailStepProps) {
+function EmailStep({ form, onSubmit, loading, error, locale, primaryButtonStyle }: EmailStepProps) {
   const t = useTranslations()
   const isRtl = locale === "ar"
 
@@ -269,6 +323,7 @@ function EmailStep({ form, onSubmit, loading, error, locale }: EmailStepProps) {
                     placeholder={t("publicForms.emailPlaceholder")}
                     {...field}
                     dir="ltr"
+                    className="min-h-[44px]"
                   />
                 </FormControl>
                 <FormDescription>
@@ -279,7 +334,12 @@ function EmailStep({ form, onSubmit, loading, error, locale }: EmailStepProps) {
             )}
           />
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button
+            type="submit"
+            className="w-full min-h-[44px]"
+            disabled={loading}
+            style={primaryButtonStyle}
+          >
             {loading ? (
               <>
                 <Loader2 className={cn("h-4 w-4 animate-spin", isRtl ? "ml-2" : "mr-2")} />
@@ -301,42 +361,119 @@ interface FormStepProps {
   guestData: GuestLookupResponse
   shortCode: string
   locale: string
+  resolvedBranding?: ResolvedBranding
   onSubmit: (responses: Record<string, unknown>) => Promise<void>
   onBack: () => void
   submitting: boolean
   error: string | null
+  primaryButtonStyle: React.CSSProperties
 }
 
 function FormStep({
   config,
   guestData,
   locale,
+  resolvedBranding,
   onSubmit,
   onBack,
   submitting,
   error,
+  primaryButtonStyle,
 }: FormStepProps) {
   const t = useTranslations()
   const isRtl = locale === "ar"
 
-  // Build form schema from config
+  // Build form values state
   const [formValues, setFormValues] = useState<Record<string, unknown>>(
     guestData.previousResponse?.responses || {}
   )
 
+  // Multi-step navigation state
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
+
   const handleFieldChange = (fieldId: string, value: unknown) => {
     setFormValues((prev) => ({ ...prev, [fieldId]: value }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    await onSubmit(formValues)
+    // Clear validation errors when user makes changes
+    setValidationErrors([])
   }
 
   // Filter sections based on guest category
   const visibleSections = config.sections
     .filter((section) => section.enabled)
     .sort((a, b) => a.sortOrder - b.sortOrder)
+    // Filter out sections with no visible fields for this guest
+    .filter((section) => {
+      const visibleFields = section.fields.filter((field) => {
+        if (!field.visibleToCategories || field.visibleToCategories.length === 0) {
+          return true
+        }
+        return guestData.guest.categoryId && field.visibleToCategories.includes(guestData.guest.categoryId)
+      })
+      return visibleFields.length > 0
+    })
+
+  const totalSections = visibleSections.length
+  const currentSection = visibleSections[currentSectionIndex]
+  const isFirstSection = currentSectionIndex === 0
+  const isLastSection = currentSectionIndex === totalSections - 1
+  const showProgressIndicator = config.settings?.showProgressIndicator && totalSections > 1
+
+  // Get visible fields for current section
+  const getVisibleFieldsForSection = (section: FormSectionConfig) => {
+    return section.fields
+      .filter((field) => {
+        if (!field.visibleToCategories || field.visibleToCategories.length === 0) {
+          return true
+        }
+        return guestData.guest.categoryId && field.visibleToCategories.includes(guestData.guest.categoryId)
+      })
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+  }
+
+  // Validate current section before advancing
+  const validateCurrentSection = (): boolean => {
+    if (!currentSection) return true
+
+    const visibleFields = getVisibleFieldsForSection(currentSection)
+    const errors: string[] = []
+
+    for (const field of visibleFields) {
+      if (field.required) {
+        const value = formValues[field.id]
+        if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) {
+          const fieldLabel = getLocalizedText(field.label, locale)
+          errors.push(fieldLabel)
+        }
+      }
+    }
+
+    setValidationErrors(errors)
+    return errors.length === 0
+  }
+
+  const handleNext = () => {
+    if (validateCurrentSection()) {
+      setCurrentSectionIndex(prev => prev + 1)
+      setValidationErrors([])
+    }
+  }
+
+  const handleBack = () => {
+    if (isFirstSection) {
+      onBack()
+    } else {
+      setCurrentSectionIndex(prev => prev - 1)
+      setValidationErrors([])
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (validateCurrentSection()) {
+      await onSubmit(formValues)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -366,33 +503,86 @@ function FormStep({
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {visibleSections.map((section) => (
+      {validationErrors.length > 0 && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {t("publicForms.requiredFieldsMissing")}: {validationErrors.join(", ")}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Progress Indicator */}
+        {showProgressIndicator && (
+          <div className="flex items-center gap-3 mb-4">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white"
+              style={{ backgroundColor: resolvedBranding?.primaryColor || "hsl(var(--primary))" }}
+            >
+              {currentSectionIndex + 1}
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {t("publicForms.stepOf", { current: currentSectionIndex + 1, total: totalSections })}
+            </span>
+          </div>
+        )}
+
+        {/* Current Section */}
+        {currentSection && (
           <FormSectionRenderer
-            key={section.id}
-            section={section}
+            section={currentSection}
             locale={locale}
             values={formValues}
             guestCategoryId={guestData.guest.categoryId}
             onChange={handleFieldChange}
           />
-        ))}
+        )}
 
-        {/* Actions */}
-        <div className={cn("flex gap-2", isRtl ? "flex-row-reverse" : "flex-row")}>
-          <Button type="button" variant="outline" onClick={onBack}>
+        {/* Navigation Actions */}
+        <div className={cn(
+          "flex gap-3 pt-4",
+          isRtl ? "flex-row-reverse" : "flex-row"
+        )}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleBack}
+            className="min-h-[44px] flex items-center gap-2"
+          >
+            {!isRtl && <ChevronLeft className="h-4 w-4" />}
             {t("publicForms.back")}
+            {isRtl && <ChevronRight className="h-4 w-4" />}
           </Button>
-          <Button type="submit" className="flex-1" disabled={submitting}>
-            {submitting ? (
-              <>
-                <Loader2 className={cn("h-4 w-4 animate-spin", isRtl ? "ml-2" : "mr-2")} />
-                {t("common.loading")}
-              </>
-            ) : (
-              getLocalizedText(config.settings.submitButtonText, locale) || t("common.submit")
-            )}
-          </Button>
+
+          {isLastSection ? (
+            <Button
+              type="submit"
+              className="flex-1 min-h-[44px]"
+              disabled={submitting}
+              style={primaryButtonStyle}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className={cn("h-4 w-4 animate-spin", isRtl ? "ml-2" : "mr-2")} />
+                  {t("common.loading")}
+                </>
+              ) : (
+                getLocalizedText(config.settings?.submitButtonText, locale) || t("common.submit")
+              )}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={handleNext}
+              className="flex-1 min-h-[44px] flex items-center justify-center gap-2"
+              style={primaryButtonStyle}
+            >
+              {t("publicForms.next")}
+              {!isRtl && <ChevronRight className="h-4 w-4" />}
+              {isRtl && <ChevronLeft className="h-4 w-4" />}
+            </Button>
+          )}
         </div>
       </form>
     </div>
@@ -428,13 +618,13 @@ function FormSectionRenderer({
   if (visibleFields.length === 0) return null
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 sm:space-y-6">
       <div>
         <h3 className="text-lg font-medium">
           {getLocalizedText(section.title, locale)}
         </h3>
         {section.description && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-1">
             {getLocalizedText(section.description, locale)}
           </p>
         )}
@@ -482,6 +672,7 @@ function FormFieldRenderer({ field, locale, value, onChange }: FormFieldRenderer
             placeholder={placeholder}
             required={field.required}
             dir={field.type === "email" || field.type === "phone" ? "ltr" : undefined}
+            className="min-h-[44px]"
           />
         )
 
@@ -493,6 +684,7 @@ function FormFieldRenderer({ field, locale, value, onChange }: FormFieldRenderer
             onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}
             placeholder={placeholder}
             required={field.required}
+            className="min-h-[44px]"
           />
         )
 
@@ -514,6 +706,7 @@ function FormFieldRenderer({ field, locale, value, onChange }: FormFieldRenderer
             value={(value as string) || ""}
             onChange={(e) => onChange(e.target.value)}
             required={field.required}
+            className="min-h-[44px]"
           />
         )
 
@@ -524,7 +717,7 @@ function FormFieldRenderer({ field, locale, value, onChange }: FormFieldRenderer
             onValueChange={onChange}
             required={field.required}
           >
-            <SelectTrigger>
+            <SelectTrigger className="min-h-[44px]">
               <SelectValue placeholder={placeholder || "Select..."} />
             </SelectTrigger>
             <SelectContent>
@@ -548,7 +741,7 @@ function FormFieldRenderer({ field, locale, value, onChange }: FormFieldRenderer
               <div
                 key={option.value}
                 className={cn(
-                  "flex items-center space-y-0",
+                  "flex items-center space-y-0 min-h-[44px]",
                   isRtl ? "space-x-reverse space-x-2" : "space-x-2"
                 )}
               >
@@ -575,7 +768,7 @@ function FormFieldRenderer({ field, locale, value, onChange }: FormFieldRenderer
                 <div
                   key={option.value}
                   className={cn(
-                    "flex items-center space-y-0",
+                    "flex items-center space-y-0 min-h-[44px]",
                     isRtl ? "space-x-reverse space-x-2" : "space-x-2"
                   )}
                 >
@@ -604,7 +797,7 @@ function FormFieldRenderer({ field, locale, value, onChange }: FormFieldRenderer
           // Single checkbox (boolean)
           return (
             <div className={cn(
-              "flex items-center space-y-0",
+              "flex items-center space-y-0 min-h-[44px]",
               isRtl ? "space-x-reverse space-x-2" : "space-x-2"
             )}>
               <Checkbox
@@ -656,7 +849,7 @@ function SuccessStep({ config, locale, isAmendment }: SuccessStepProps) {
   const t = useTranslations()
 
   const confirmationMessage =
-    getLocalizedText(config.settings.confirmationMessage, locale) ||
+    getLocalizedText(config.settings?.confirmationMessage, locale) ||
     t("publicForms.defaultConfirmation")
 
   return (

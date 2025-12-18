@@ -628,7 +628,7 @@ export function GuestsDataTable({
         id: "attended",
         accessorFn: (row) => !!row.attendedAt,
         header: ({ column }) => (
-          <FilterableHeader column={column} title="Attended" />
+          <FilterableHeader column={column} title="Attendance" />
         ),
         cell: ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>

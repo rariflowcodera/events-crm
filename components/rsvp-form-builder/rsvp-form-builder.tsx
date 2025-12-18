@@ -25,6 +25,7 @@ import { usePermissions } from "@/hooks/use-permissions"
 import { PERMISSIONS } from "@/lib/permissions"
 
 import { BilingualInput } from "./bilingual-input"
+import { BilingualHtmlInput } from "./bilingual-html-input"
 import { SectionList } from "./section-list"
 import { FormPreview } from "./form-preview"
 import { TemplatePickerDialog } from "./template-picker-dialog"
@@ -44,7 +45,7 @@ import {
   useUpdateFormSettings,
   useInitializeDefaultForm,
 } from "@/trpc/hooks/rsvp-forms-hooks"
-import { createDefaultFormConfig } from "@/lib/rsvp"
+import { createDefaultFormConfig, getDefaultWelcomeMessage } from "@/lib/rsvp"
 import type {
   RsvpFormConfig,
   StandardFieldConfig,
@@ -401,6 +402,43 @@ export function RsvpFormBuilder({
               <CardDescription>{t("formSettingsDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Welcome Message */}
+              <BilingualHtmlInput
+                label={t("welcomeMessage")}
+                description={t("welcomeMessageDescription")}
+                value={config.settings.welcomeMessage || {
+                  en: getDefaultWelcomeMessage("en"),
+                  ar: getDefaultWelcomeMessage("ar"),
+                }}
+                onChange={(value) =>
+                  handleUpdateSettings({
+                    welcomeMessage: value.en ? (value as BilingualText) : undefined,
+                  })
+                }
+                rows={8}
+                showVariables
+              />
+
+              {/* Welcome Message Display Mode */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>{t("welcomeMessageDisplayMode")}</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t("welcomeMessageDisplayModeDescription")}
+                  </p>
+                </div>
+                <Switch
+                  checked={config.settings.welcomeMessageDisplayMode === "stacked"}
+                  onCheckedChange={(checked) =>
+                    handleUpdateSettings({
+                      welcomeMessageDisplayMode: checked ? "stacked" : "locale",
+                    })
+                  }
+                />
+              </div>
+
+              <Separator />
+
               {/* Allow Amendments */}
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">

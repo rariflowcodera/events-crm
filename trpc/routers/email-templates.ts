@@ -642,13 +642,27 @@ export const emailTemplatesRouter = createTRPCRouter({
         return { created: 0, skipped: DEFAULT_EMAIL_TEMPLATES.length }
       }
 
-      // Insert missing templates
+      // Insert missing templates (using structured content)
       await db.insert(emailTemplates).values(
         templatesToCreate.map((template) => ({
           eventId: input.eventId,
           name: template.name,
           type: template.type,
-          content: template.content,
+          // Placeholder content for backwards compatibility
+          content: {
+            en: {
+              subject: template.structuredContent.en.subject,
+              htmlContent: "<p>This template uses structured content mode.</p>",
+            },
+            ar: template.structuredContent.ar
+              ? {
+                  subject: template.structuredContent.ar.subject,
+                  htmlContent: "<p>هذا القالب يستخدم وضع المحتوى المنظم.</p>",
+                }
+              : undefined,
+          },
+          // Structured content takes precedence during rendering
+          structuredContent: template.structuredContent,
           defaultLanguage: "en" as const,
           isDefault: true,
           isActive: true,

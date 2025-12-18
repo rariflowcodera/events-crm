@@ -488,7 +488,7 @@ export const guestsRouter = createTRPCRouter({
         .where(
           and(
             eq(guests.eventId, input.eventId),
-            sql`${guests.id} = ANY(${input.guestIds})`
+            inArray(guests.id, input.guestIds)
           )
         )
         .returning({ id: guests.id })

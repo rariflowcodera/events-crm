@@ -24,12 +24,14 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { formatEventDateTime } from "@/lib/date-utils"
+import { linkify } from "@/lib/linkify"
 import { getBackgroundStyles, type BackgroundImageMode } from "@/components/branding/background-image-upload"
 import { getAccentStyles } from "@/components/branding/card-accent-settings"
 
 import { DynamicFormRenderer } from "./dynamic-form-renderer"
 import { VisualResponseSelector } from "./visual-response-selector"
 import type { RsvpFormConfig, BilingualText } from "@/lib/rsvp/types"
+import { replaceWelcomeMessageVariables, getDefaultWelcomeMessage } from "@/lib/rsvp/variable-utils"
 
 // Schema for the main form (response status + legacy fallback fields)
 const rsvpFormSchema = z.object({
@@ -503,10 +505,46 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
   const { guest, event, category } = guestData
   const guestFullName = `${guest.title ? guest.title + " " : ""}${guest.firstName} ${guest.lastName}`
 
-  // Get localized welcome message (uses displayLocale for language toggle)
-  const welcomeMessage =
-    category.rsvpPageConfig?.welcomeMessage?.[displayLocale] ||
-    category.rsvpPageConfig?.welcomeMessage?.en
+  // Welcome message display mode: "locale" (default) or "stacked" (show both EN and AR)
+  const welcomeMessageDisplayMode = event.rsvpFormConfig?.settings?.welcomeMessageDisplayMode || "locale"
+
+  // Variable replacement data (shared for both languages)
+  const variableData = {
+    guest: {
+      firstName: guest.firstName,
+      lastName: guest.lastName,
+      preferredName: guest.preferredName,
+      title: guest.title,
+      email: guest.email,
+    },
+    event: {
+      name: event.name,
+      venue: event.venue,
+      venueAddress: event.venueAddress,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      isSingleDay: event.isSingleDay,
+      rsvpDeadline: event.rsvpDeadline,
+    },
+  }
+
+  // Get welcome messages based on display mode
+  const getWelcomeMessageForLocale = (locale: "en" | "ar") => {
+    const raw =
+      event.rsvpFormConfig?.settings?.welcomeMessage?.[locale] ||
+      event.rsvpFormConfig?.settings?.welcomeMessage?.en ||
+      category.rsvpPageConfig?.welcomeMessage?.[locale] ||
+      category.rsvpPageConfig?.welcomeMessage?.en ||
+      getDefaultWelcomeMessage(locale)
+    return replaceWelcomeMessageVariables(raw, { ...variableData, locale })
+  }
+
+  // For single locale mode, use the display locale; for stacked, prepare both
+  const welcomeMessage = getWelcomeMessageForLocale(displayLocale)
+  const welcomeMessageEn = welcomeMessageDisplayMode === "stacked" ? getWelcomeMessageForLocale("en") : null
+  const welcomeMessageAr = welcomeMessageDisplayMode === "stacked" ? getWelcomeMessageForLocale("ar") : null
 
   const headline =
     category.rsvpPageConfig?.headline?.[displayLocale] ||
@@ -597,40 +635,32 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
             />
           )}
           <CardTitle className="text-xl sm:text-2xl">{headline || event.name}</CardTitle>
-          <CardDescription className="mt-2">
-            {welcomeMessage || `Dear ${guestFullName}, you are invited to ${event.name}`}
-          </CardDescription>
 
-          {/* Event details */}
-          <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-1 text-sm text-muted-foreground">
-            {event.venue && (
-              <p>
-                <strong>{isRtl ? "المكان:" : "Venue:"}</strong> {event.venue}
-              </p>
-            )}
-            {event.startDate && (
-              <p>
-                <strong>{isRtl ? "التاريخ:" : "Date:"}</strong>{" "}
-                {formatEventDateTime({
-                  startDate: new Date(event.startDate),
-                  endDate: event.endDate ? new Date(event.endDate) : null,
-                  startTime: event.startTime,
-                  endTime: event.endTime,
-                  isSingleDay: event.isSingleDay,
-                })}
-              </p>
-            )}
-            {event.rsvpDeadline && (
-              <p className="text-destructive">
-                <strong>{t("deadline")}:</strong>{" "}
-                {new Date(event.rsvpDeadline).toLocaleDateString(displayLocale, {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
-            )}
-          </div>
+          {/* Welcome message with HTML support and variable replacement */}
+          {welcomeMessageDisplayMode === "stacked" && welcomeMessageEn && welcomeMessageAr ? (
+            // Stacked mode: Show both EN and AR messages
+            <div className="mt-3 sm:mt-4 space-y-4">
+              {/* English message */}
+              <div
+                className="text-sm text-muted-foreground space-y-1.5 [&_p]:my-1 [&_strong]:font-semibold"
+                dir="ltr"
+                dangerouslySetInnerHTML={{ __html: welcomeMessageEn }}
+              />
+              {/* Arabic message */}
+              <div
+                className="text-sm text-muted-foreground space-y-1.5 [&_p]:my-1 [&_strong]:font-semibold"
+                dir="rtl"
+                dangerouslySetInnerHTML={{ __html: welcomeMessageAr }}
+              />
+            </div>
+          ) : (
+            // Single locale mode: Show message in user's selected language
+            <div
+              className="mt-3 sm:mt-4 text-sm text-muted-foreground space-y-1.5 [&_p]:my-1 [&_strong]:font-semibold"
+              dir={isRtl ? "rtl" : "ltr"}
+              dangerouslySetInnerHTML={{ __html: welcomeMessage }}
+            />
+          )}
         </CardHeader>
 
         <CardContent className="min-h-[250px] sm:min-h-[300px] flex flex-col px-5 pb-4 pt-0 sm:p-6 sm:pt-0">
@@ -883,7 +913,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
           {/* Contact/Support message */}
           {event.rsvpFormConfig?.settings?.contactMessage && (
             <p className="text-center text-xs text-muted-foreground mt-6 pt-4 border-t">
-              {getLocalizedText(event.rsvpFormConfig.settings.contactMessage, displayLocale)}
+              {linkify(getLocalizedText(event.rsvpFormConfig.settings.contactMessage, displayLocale))}
             </p>
           )}
         </CardContent>

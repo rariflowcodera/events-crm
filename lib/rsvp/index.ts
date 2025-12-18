@@ -20,3 +20,12 @@ export {
   createDefaultFormConfig,
   createMinimalFormConfig,
 } from "./standard-fields"
+
+// Variable Replacement Utilities
+export {
+  WELCOME_MESSAGE_VARIABLES,
+  getAllVariables,
+  replaceWelcomeMessageVariables,
+  getDefaultWelcomeMessage,
+  type WelcomeMessageData,
+} from "./variable-utils"

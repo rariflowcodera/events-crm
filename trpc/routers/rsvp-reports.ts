@@ -12,14 +12,7 @@ import { TRPCError } from "@trpc/server"
 import { and, count, eq, isNotNull, ne, sql } from "drizzle-orm"
 import { z } from "zod"
 
-import type {
-  DietaryStats,
-  AccessibilityStats,
-  DateStats,
-  HotelRequirement,
-  TransportRequirement,
-  RsvpSummary,
-} from "@/lib/rsvp/types"
+import type { RsvpSummary } from "@/lib/rsvp/types"
 
 export const rsvpReportsRouter = createTRPCRouter({
   // Get RSVP summary stats for an event
@@ -123,8 +116,8 @@ export const rsvpReportsRouter = createTRPCRouter({
       return summary
     }),
 
-  // Get dietary breakdown
-  getDietaryBreakdown: protectedProcedure
+  // Get RSVP response timeline for charts
+  getResponseTimeline: protectedProcedure
     .input(z.object({ eventId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const event = await db.query.events.findFirst({
@@ -135,232 +128,38 @@ export const rsvpReportsRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
       }
 
-      const canView = await hasPermission({
-        userId: ctx.user.id,
-        workspaceId: event.workspaceId,
-        permissionName: PERMISSIONS.VIEW_REPORTS,
+      // Check membership
+      const isMember = await db.query.workspaceMembers.findFirst({
+        where: and(
+          eq(workspaceMembers.workspaceId, event.workspaceId),
+          eq(workspaceMembers.userId, ctx.user.id)
+        ),
       })
 
-      if (!canView) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have permission to view reports",
-        })
+      if (!isMember) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not a member of this workspace" })
       }
 
-      const results = await db
+      // Group responses by date
+      const timeline = await db
         .select({
-          type: rsvpResponses.dietaryType,
-          count: count(),
+          date: sql<string>`DATE(${rsvpResponses.submittedAt})`.as("date"),
+          confirmed: sql<number>`COUNT(CASE WHEN ${rsvpResponses.responseStatus} = 'confirmed' THEN 1 END)`.mapWith(
+            Number
+          ),
+          declined: sql<number>`COUNT(CASE WHEN ${rsvpResponses.responseStatus} = 'declined' THEN 1 END)`.mapWith(
+            Number
+          ),
+          maybe: sql<number>`COUNT(CASE WHEN ${rsvpResponses.responseStatus} = 'maybe' THEN 1 END)`.mapWith(
+            Number
+          ),
         })
         .from(rsvpResponses)
         .where(eq(rsvpResponses.eventId, input.eventId))
-        .groupBy(rsvpResponses.dietaryType)
+        .groupBy(sql`DATE(${rsvpResponses.submittedAt})`)
+        .orderBy(sql`DATE(${rsvpResponses.submittedAt})`)
 
-      return results as DietaryStats[]
-    }),
-
-  // Get accessibility breakdown
-  getAccessibilityBreakdown: protectedProcedure
-    .input(z.object({ eventId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const event = await db.query.events.findFirst({
-        where: eq(events.id, input.eventId),
-      })
-
-      if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
-      }
-
-      const canView = await hasPermission({
-        userId: ctx.user.id,
-        workspaceId: event.workspaceId,
-        permissionName: PERMISSIONS.VIEW_REPORTS,
-      })
-
-      if (!canView) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have permission to view reports",
-        })
-      }
-
-      const results = await db
-        .select({
-          type: rsvpResponses.accessibilityType,
-          count: count(),
-        })
-        .from(rsvpResponses)
-        .where(eq(rsvpResponses.eventId, input.eventId))
-        .groupBy(rsvpResponses.accessibilityType)
-
-      return results as AccessibilityStats[]
-    }),
-
-  // Get arrival timeline
-  getArrivalTimeline: protectedProcedure
-    .input(z.object({ eventId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const event = await db.query.events.findFirst({
-        where: eq(events.id, input.eventId),
-      })
-
-      if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
-      }
-
-      const canView = await hasPermission({
-        userId: ctx.user.id,
-        workspaceId: event.workspaceId,
-        permissionName: PERMISSIONS.VIEW_REPORTS,
-      })
-
-      if (!canView) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have permission to view reports",
-        })
-      }
-
-      const results = await db
-        .select({
-          date: rsvpResponses.arrivalDate,
-          count: count(),
-        })
-        .from(rsvpResponses)
-        .where(and(eq(rsvpResponses.eventId, input.eventId), isNotNull(rsvpResponses.arrivalDate)))
-        .groupBy(rsvpResponses.arrivalDate)
-        .orderBy(rsvpResponses.arrivalDate)
-
-      return results as DateStats[]
-    }),
-
-  // Get departure timeline
-  getDepartureTimeline: protectedProcedure
-    .input(z.object({ eventId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const event = await db.query.events.findFirst({
-        where: eq(events.id, input.eventId),
-      })
-
-      if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
-      }
-
-      const canView = await hasPermission({
-        userId: ctx.user.id,
-        workspaceId: event.workspaceId,
-        permissionName: PERMISSIONS.VIEW_REPORTS,
-      })
-
-      if (!canView) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have permission to view reports",
-        })
-      }
-
-      const results = await db
-        .select({
-          date: rsvpResponses.departureDate,
-          count: count(),
-        })
-        .from(rsvpResponses)
-        .where(
-          and(eq(rsvpResponses.eventId, input.eventId), isNotNull(rsvpResponses.departureDate))
-        )
-        .groupBy(rsvpResponses.departureDate)
-        .orderBy(rsvpResponses.departureDate)
-
-      return results as DateStats[]
-    }),
-
-  // Get hotel requirements list
-  getHotelRequirements: protectedProcedure
-    .input(z.object({ eventId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const event = await db.query.events.findFirst({
-        where: eq(events.id, input.eventId),
-      })
-
-      if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
-      }
-
-      const canView = await hasPermission({
-        userId: ctx.user.id,
-        workspaceId: event.workspaceId,
-        permissionName: PERMISSIONS.VIEW_REPORTS,
-      })
-
-      if (!canView) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have permission to view reports",
-        })
-      }
-
-      const results = await db
-        .select({
-          guestId: guests.id,
-          guestName: sql<string>`COALESCE(${guests.firstName}, '') || ' ' || COALESCE(${guests.lastName}, '')`,
-          checkin: rsvpResponses.hotelCheckin,
-          checkout: rsvpResponses.hotelCheckout,
-          category: guestCategories.name,
-        })
-        .from(rsvpResponses)
-        .innerJoin(guests, eq(rsvpResponses.guestId, guests.id))
-        .leftJoin(guestCategories, eq(guests.categoryId, guestCategories.id))
-        .where(and(eq(rsvpResponses.eventId, input.eventId), eq(rsvpResponses.hotelRequired, true)))
-        .orderBy(rsvpResponses.hotelCheckin)
-
-      return results as HotelRequirement[]
-    }),
-
-  // Get transport requirements list
-  getTransportRequirements: protectedProcedure
-    .input(z.object({ eventId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const event = await db.query.events.findFirst({
-        where: eq(events.id, input.eventId),
-      })
-
-      if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
-      }
-
-      const canView = await hasPermission({
-        userId: ctx.user.id,
-        workspaceId: event.workspaceId,
-        permissionName: PERMISSIONS.VIEW_REPORTS,
-      })
-
-      if (!canView) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have permission to view reports",
-        })
-      }
-
-      const results = await db
-        .select({
-          guestId: guests.id,
-          guestName: sql<string>`COALESCE(${guests.firstName}, '') || ' ' || COALESCE(${guests.lastName}, '')`,
-          arrivalDate: rsvpResponses.arrivalDate,
-          arrivalFlight: rsvpResponses.arrivalFlight,
-          departureDate: rsvpResponses.departureDate,
-          departureFlight: rsvpResponses.departureFlight,
-          category: guestCategories.name,
-        })
-        .from(rsvpResponses)
-        .innerJoin(guests, eq(rsvpResponses.guestId, guests.id))
-        .leftJoin(guestCategories, eq(guests.categoryId, guestCategories.id))
-        .where(
-          and(eq(rsvpResponses.eventId, input.eventId), eq(rsvpResponses.transportRequired, true))
-        )
-        .orderBy(rsvpResponses.arrivalDate)
-
-      return results as TransportRequirement[]
+      return timeline
     }),
 
   // Get RSVP breakdown by category

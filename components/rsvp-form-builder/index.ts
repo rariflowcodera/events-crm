@@ -1,5 +1,6 @@
 export { RsvpFormBuilder } from "./rsvp-form-builder"
 export { BilingualInput, BilingualDisplay } from "./bilingual-input"
+export { BilingualHtmlInput } from "./bilingual-html-input"
 export { CategoryVisibilitySelect, CategoryBadges } from "./category-visibility-select"
 export { StandardFieldList, StandardFieldSection } from "./standard-field-list"
 export { CustomFieldEditor } from "./custom-field-editor"

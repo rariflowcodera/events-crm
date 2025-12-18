@@ -81,6 +81,9 @@ export type RsvpFormSection = {
 export type RsvpFormSettings = {
   allowAmendments: boolean
   showProgressIndicator: boolean
+  // Welcome message displayed at top of RSVP page (supports HTML and variables)
+  welcomeMessage?: BilingualText
+  welcomeMessageDisplayMode?: "locale" | "stacked" // "locale" = show user's language, "stacked" = show both EN and AR
   confirmationMessage?: BilingualText
   declineMessage?: BilingualText
   maybeMessage?: BilingualText
@@ -197,7 +200,7 @@ export const events = pgTable(
     branding: json("branding").$type<EventBranding>(),
 
     // Custom domain configuration for RSVP pages
-    customDomain: text("custom_domain").unique(),
+    customDomain: text("custom_domain"),
     customDomainVerified: boolean("custom_domain_verified").default(false),
     customDomainVerifiedAt: timestamp("custom_domain_verified_at", { mode: "date" }),
     customDomainVerificationToken: text("custom_domain_verification_token"),

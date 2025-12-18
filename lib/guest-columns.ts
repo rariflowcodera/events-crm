@@ -378,8 +378,8 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
   // Attendance
   {
     id: "attended",
-    label: "Attended",
-    labelAr: "حضر",
+    label: "Attendance",
+    labelAr: "الحضور",
     defaultVisible: false,
     defaultWidth: 90,
     sortable: true,

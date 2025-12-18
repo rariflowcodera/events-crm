@@ -720,6 +720,9 @@ export type RsvpFormSectionInput = z.infer<typeof rsvpFormSectionSchema>
 export const rsvpFormSettingsSchema = z.object({
   allowAmendments: z.boolean().default(true),
   showProgressIndicator: z.boolean().default(true),
+  // Welcome message (supports HTML and variables)
+  welcomeMessage: bilingualTextSchema.optional(),
+  welcomeMessageDisplayMode: z.enum(["locale", "stacked"]).optional(),
   confirmationMessage: bilingualTextSchema.optional(),
   declineMessage: bilingualTextSchema.optional(),
   maybeMessage: bilingualTextSchema.optional(),
