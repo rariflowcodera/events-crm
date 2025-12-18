@@ -24,8 +24,7 @@ export const bulkEmailJobs = pgTable(
       .references(() => events.id, { onDelete: "cascade" }),
 
     templateId: text("template_id")
-      .notNull()
-      .references(() => emailTemplates.id, { onDelete: "restrict" }),
+      .references(() => emailTemplates.id, { onDelete: "set null" }),
 
     // Email type: invitation, reminder, confirmation, etc.
     emailType: text("email_type").notNull(),

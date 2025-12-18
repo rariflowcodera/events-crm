@@ -1,6 +1,6 @@
 {
-  "id": "f9e8d7c6-b5a4-3210-fedc-ba9876543219",
-  "prevId": "024fedbe-cb60-4e04-b7cc-709ce6ceab8a",
+  "id": "e9e4e3bc-4926-483f-ad17-498a3dd76c59",
+  "prevId": "a0b1c2d3-e4f5-6789-abcd-ef0123456720",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1457,15 +1457,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "event_custom_domain_unique": {
-          "name": "event_custom_domain_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "custom_domain"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -3148,7 +3140,7 @@
           "name": "template_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "email_type": {
           "name": "email_type",
@@ -3298,7 +3290,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "bulk_email_job_created_by_user_id_fk": {
@@ -4480,8 +4472,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "attended_at": {
-          "name": "attended_at",
+        "checked_in_at": {
+          "name": "checked_in_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
