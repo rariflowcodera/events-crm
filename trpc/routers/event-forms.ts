@@ -5,6 +5,7 @@ import {
   formResponses,
   guests,
   guestCategories,
+  guestFormTokens,
   workspaceMembers,
 } from "@/server/db/schemas"
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
@@ -30,6 +31,11 @@ function generateShortCode(length = 8): string {
     result += chars.charAt(Math.floor(Math.random() * chars.length))
   }
   return result
+}
+
+// Helper to generate a unique form token
+function generateFormToken(): string {
+  return crypto.randomUUID()
 }
 
 // Helper to create a default empty form config
@@ -776,6 +782,164 @@ export const eventFormsRouter = createTRPCRouter({
           count: s.count,
         })),
         recentResponses: recentCount?.count ?? 0,
+      }
+    }),
+
+  // ============================================================================
+  // Token-Based Form Access (Stage 35)
+  // ============================================================================
+
+  // Get token-mode forms for an event (for dropdown selection)
+  getTokenModeForms: protectedProcedure
+    .input(z.object({ eventId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, input.eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      // Check membership
+      const isMember = await db.query.workspaceMembers.findFirst({
+        where: and(
+          eq(workspaceMembers.workspaceId, event.workspaceId),
+          eq(workspaceMembers.userId, ctx.user.id)
+        ),
+      })
+
+      if (!isMember) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not a member of this workspace" })
+      }
+
+      // Get only token-mode forms that are published
+      const forms = await db.query.eventForms.findMany({
+        where: and(
+          eq(eventForms.eventId, input.eventId),
+          eq(eventForms.accessType, "token"),
+          eq(eventForms.isPublished, true)
+        ),
+        orderBy: [desc(eventForms.createdAt)],
+      })
+
+      return forms.map((form) => ({
+        id: form.id,
+        name: form.name,
+        slug: form.slug,
+        description: form.description,
+        purpose: form.purpose,
+        expiresAt: form.expiresAt,
+      }))
+    }),
+
+  // Get or create a token for a guest + form pair
+  getGuestFormToken: protectedProcedure
+    .input(
+      z.object({
+        formId: z.string().uuid(),
+        guestId: z.string().uuid(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Get the form
+      const form = await db.query.eventForms.findFirst({
+        where: eq(eventForms.id, input.formId),
+      })
+
+      if (!form) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Form not found" })
+      }
+
+      // Verify form is token-mode
+      if (form.accessType !== "token") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This form does not use token-based access",
+        })
+      }
+
+      // Get the event
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, form.eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      // Check permission
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.SEND_EMAILS, // Reuse email permission for form link access
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to generate form links",
+        })
+      }
+
+      // Get the guest and verify they belong to this event
+      const guest = await db.query.guests.findFirst({
+        where: and(eq(guests.id, input.guestId), eq(guests.eventId, form.eventId)),
+      })
+
+      if (!guest) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Guest not found in this event" })
+      }
+
+      // Check if token already exists
+      const existingToken = await db.query.guestFormTokens.findFirst({
+        where: and(
+          eq(guestFormTokens.guestId, input.guestId),
+          eq(guestFormTokens.formId, input.formId)
+        ),
+      })
+
+      if (existingToken) {
+        return {
+          token: existingToken.token,
+          expiresAt: existingToken.expiresAt,
+          guest: {
+            id: guest.id,
+            firstName: guest.firstName,
+            lastName: guest.lastName,
+            email: guest.email,
+          },
+          form: {
+            id: form.id,
+            name: form.name,
+          },
+        }
+      }
+
+      // Create new token
+      const [newToken] = await db
+        .insert(guestFormTokens)
+        .values({
+          guestId: input.guestId,
+          formId: input.formId,
+          token: generateFormToken(),
+          expiresAt: form.expiresAt, // Inherit from form
+        })
+        .returning()
+
+      return {
+        token: newToken.token,
+        expiresAt: newToken.expiresAt,
+        guest: {
+          id: guest.id,
+          firstName: guest.firstName,
+          lastName: guest.lastName,
+          email: guest.email,
+        },
+        form: {
+          id: form.id,
+          name: form.name,
+        },
       }
     }),
 })

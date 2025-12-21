@@ -56,6 +56,7 @@ function cleanFormConfig(config: FormConfig): FormConfig {
       ...config.settings,
       confirmationMessage: cleanBilingualText(config.settings.confirmationMessage),
       submitButtonText: cleanBilingualText(config.settings.submitButtonText),
+      contactMessage: cleanBilingualText(config.settings.contactMessage),
     },
   }
 }
@@ -252,10 +253,23 @@ export function FormDetailPageClient({
           {/* Settings Tab */}
           <TabsContent value="settings" className="mt-4">
             <FormSettingsPanel
-              form={form}
+              form={{
+                id: form.id,
+                name: form.name,
+                accessType: (form.accessType as "email" | "token") || "email",
+                allowMultipleSubmissions: form.allowMultipleSubmissions,
+                allowAmendments: form.allowAmendments,
+                visibleToCategories: form.visibleToCategories,
+              }}
               config={config}
               categories={categoriesData || []}
               onConfigChange={handleConfigChange}
+              onAccessTypeChange={(accessType) => {
+                updateForm({
+                  formId: form.id,
+                  accessType,
+                })
+              }}
             />
           </TabsContent>
 
@@ -268,6 +282,7 @@ export function FormDetailPageClient({
                 slug: form.slug,
                 shortCode: form.shortCode,
                 isPublished: form.isPublished,
+                accessType: (form.accessType as "email" | "token") || "email",
               }}
               workspaceSlug={workspaceSlug}
               eventSlug={eventSlug}
@@ -337,6 +352,7 @@ interface FormSettingsPanelProps {
   form: {
     id: string
     name: string
+    accessType: "email" | "token"
     allowMultipleSubmissions: boolean
     allowAmendments: boolean
     visibleToCategories: string[] | null
@@ -344,9 +360,10 @@ interface FormSettingsPanelProps {
   config: FormConfig
   categories: { id: string; name: string; color: string | null }[]
   onConfigChange: (config: FormConfig) => void
+  onAccessTypeChange: (accessType: "email" | "token") => void
 }
 
-function FormSettingsPanel({ form, config, categories, onConfigChange }: FormSettingsPanelProps) {
+function FormSettingsPanel({ form, config, categories, onConfigChange, onAccessTypeChange }: FormSettingsPanelProps) {
   const t = useTranslations()
 
   const handleSettingsChange = (settings: Partial<FormConfig["settings"]>) => {
@@ -363,6 +380,44 @@ function FormSettingsPanel({ form, config, categories, onConfigChange }: FormSet
         <CardDescription>{t("rsvpFormBuilder.formSettingsDescription")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Access Type */}
+        <div className="space-y-3">
+          <Label>{t("forms.accessType")}</Label>
+          <p className="text-xs text-muted-foreground">
+            {t("forms.accessTypeDescription")}
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div
+              className={`cursor-pointer rounded-lg border p-3 transition-colors ${
+                form.accessType === "email"
+                  ? "border-primary bg-primary/5"
+                  : "hover:border-muted-foreground/50"
+              }`}
+              onClick={() => onAccessTypeChange("email")}
+            >
+              <div className="font-medium text-sm">{t("forms.accessTypeEmail")}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {t("forms.accessTypeEmailDescription")}
+              </div>
+            </div>
+            <div
+              className={`cursor-pointer rounded-lg border p-3 transition-colors ${
+                form.accessType === "token"
+                  ? "border-primary bg-primary/5"
+                  : "hover:border-muted-foreground/50"
+              }`}
+              onClick={() => onAccessTypeChange("token")}
+            >
+              <div className="font-medium text-sm">{t("forms.accessTypeToken")}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {t("forms.accessTypeTokenDescription")}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
         {/* Show Progress Indicator */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
@@ -457,6 +512,49 @@ function FormSettingsPanel({ form, config, categories, onConfigChange }: FormSet
                     },
                   })
                 }
+                dir="rtl"
+              />
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Contact Message */}
+        <div className="space-y-2">
+          <Label>{t("rsvpFormBuilder.contactMessage")}</Label>
+          <p className="text-xs text-muted-foreground">
+            {t("rsvpFormBuilder.contactMessageDescription")}
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs text-muted-foreground">English</Label>
+              <Textarea
+                value={config.settings.contactMessage?.en || ""}
+                onChange={(e) =>
+                  handleSettingsChange({
+                    contactMessage: {
+                      ...config.settings.contactMessage,
+                      en: e.target.value,
+                    },
+                  })
+                }
+                rows={2}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Arabic</Label>
+              <Textarea
+                value={config.settings.contactMessage?.ar || ""}
+                onChange={(e) =>
+                  handleSettingsChange({
+                    contactMessage: {
+                      en: config.settings.contactMessage?.en || "",
+                      ar: e.target.value,
+                    },
+                  })
+                }
+                rows={2}
                 dir="rtl"
               />
             </div>

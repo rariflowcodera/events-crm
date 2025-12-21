@@ -35,3 +35,31 @@ export const useSubmitFormResponse = ({
 
   return { mutate, mutateAsync, isPending }
 }
+
+// Token-based form access hooks
+export const usePublicFormByToken = (token: string) => {
+  return trpc.publicForms.getByToken.useQuery(
+    { token },
+    { enabled: !!token }
+  )
+}
+
+export const useSubmitFormResponseByToken = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (responseId: string) => void
+  onError?: (message: string) => void
+} = {}) => {
+  const { mutate, mutateAsync, isPending } =
+    trpc.publicForms.submitResponseByToken.useMutation({
+      onSuccess: (data) => {
+        onSuccess?.(data.responseId)
+      },
+      onError: (error) => {
+        onError?.(error.message)
+      },
+    })
+
+  return { mutate, mutateAsync, isPending }
+}

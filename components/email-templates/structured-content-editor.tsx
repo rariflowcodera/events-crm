@@ -28,6 +28,7 @@ import { Separator } from "@/components/ui/separator"
 import { VariableInserter } from "./variable-inserter"
 import { DocumentInserter } from "./document-inserter"
 import { MapInserter } from "./map-inserter"
+import { FormLinkInserter } from "./form-link-inserter"
 import { cn } from "@/lib/utils"
 
 // ============================================================================
@@ -246,6 +247,10 @@ export function StructuredContentEditor({
                           onInsert={(v) => insertVariable(`${namePrefix}.bodyParagraphs.${index}`, v)}
                         />
                         <DocumentInserter
+                          eventId={eventId}
+                          onInsert={(v) => insertVariable(`${namePrefix}.bodyParagraphs.${index}`, v)}
+                        />
+                        <FormLinkInserter
                           eventId={eventId}
                           onInsert={(v) => insertVariable(`${namePrefix}.bodyParagraphs.${index}`, v)}
                         />

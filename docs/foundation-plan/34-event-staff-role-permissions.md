@@ -200,6 +200,7 @@ Event Staff can see the guest list and mark attendance, but cannot:
 - Click on guest rows to view individual profiles
 - Access the guest detail page directly via URL
 - See sensitive guest information beyond what's visible in the table
+- Access the row actions menu (ellipsis/3-dots button) for sending RSVP links or other guest operations
 
 This ensures Event Staff focus only on attendance operations without accessing private guest data.
 
@@ -230,7 +231,7 @@ This will:
 | `lib/permissions.ts` | Add `MARK_ATTENDANCE` and `VIEW_GUEST_DETAILS` constants |
 | `server/queries/permissions.ts` | Add permission constants, defaults, and role mappings |
 | `trpc/routers/guests.ts` | Use `MARK_ATTENDANCE` in attendance mutations; Use `VIEW_GUEST_DETAILS` in `getOne` |
-| `components/guests/guests-data-table.tsx` | Add `canViewDetails` prop to disable row click |
+| `components/guests/guests-data-table.tsx` | Add `canViewDetails` prop to disable row click and hide actions menu |
 | `components/events/event-guests-tab.tsx` | Pass `canViewDetails` prop based on permission |
 | `app/.../guests/view/[viewId]/client.tsx` | Pass `canViewDetails` prop; Hide back button |
 | `app/.../guests/[guestId]/client.tsx` | Add permission guard for direct URL access |

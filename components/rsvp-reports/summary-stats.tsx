@@ -1,7 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { Users, CheckCircle2, XCircle, HelpCircle, Clock } from "lucide-react"
+import { Users, CheckCircle2, XCircle, Clock } from "lucide-react"
 import { PieChart, Pie, Cell, AreaChart, Area, XAxis, CartesianGrid } from "recharts"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -71,21 +71,19 @@ export function SummaryStats({ stats, timelineData, isLoading }: SummaryStatsPro
   const statusChartConfig = {
     confirmed: { label: t("confirmed"), color: "hsl(142 76% 36%)" },
     declined: { label: t("declined"), color: "hsl(0 84% 60%)" },
-    maybe: { label: t("maybe"), color: "hsl(45 93% 47%)" },
     pending: { label: t("pending"), color: "hsl(215 14% 64%)" },
   } satisfies ChartConfig
 
   const timelineChartConfig = {
     confirmed: { label: t("confirmed"), color: "hsl(142 76% 36%)" },
     declined: { label: t("declined"), color: "hsl(0 84% 60%)" },
-    maybe: { label: t("maybe"), color: "hsl(45 93% 47%)" },
   } satisfies ChartConfig
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader className="pb-2">
                 <div className="h-4 w-20 bg-muted rounded" />
@@ -124,7 +122,6 @@ export function SummaryStats({ stats, timelineData, isLoading }: SummaryStatsPro
   const pieData = [
     { name: "confirmed", value: stats.confirmed, fill: "var(--color-confirmed)" },
     { name: "declined", value: stats.declined, fill: "var(--color-declined)" },
-    { name: "maybe", value: stats.maybe, fill: "var(--color-maybe)" },
     { name: "pending", value: stats.pending, fill: "var(--color-pending)" },
   ].filter((item) => item.value > 0)
 
@@ -138,7 +135,7 @@ export function SummaryStats({ stats, timelineData, isLoading }: SummaryStatsPro
   return (
     <div className="space-y-6">
       {/* Primary Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title={t("totalInvited")}
           value={stats.total}
@@ -157,13 +154,6 @@ export function SummaryStats({ stats, timelineData, isLoading }: SummaryStatsPro
           icon={<XCircle className="h-4 w-4" />}
           variant="destructive"
           percentage={(stats.declined / total) * 100}
-        />
-        <StatCard
-          title={t("maybe")}
-          value={stats.maybe}
-          icon={<HelpCircle className="h-4 w-4" />}
-          variant="warning"
-          percentage={(stats.maybe / total) * 100}
         />
         <StatCard
           title={t("pending")}
@@ -247,14 +237,6 @@ export function SummaryStats({ stats, timelineData, isLoading }: SummaryStatsPro
                     fill="var(--color-declined)"
                     fillOpacity={0.4}
                     stroke="var(--color-declined)"
-                    stackId="1"
-                  />
-                  <Area
-                    dataKey="maybe"
-                    type="monotone"
-                    fill="var(--color-maybe)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-maybe)"
                     stackId="1"
                   />
                 </AreaChart>

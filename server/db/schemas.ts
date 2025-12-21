@@ -31,6 +31,7 @@ export * from "@/server/db/schemas/guest-list-view"
 // Custom Event Forms
 export * from "@/server/db/schemas/event-form"
 export * from "@/server/db/schemas/form-response"
+export * from "@/server/db/schemas/guest-form-token"
 
 // Future Phases (schema only)
 export * from "@/server/db/schemas/inventory"

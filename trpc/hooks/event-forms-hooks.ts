@@ -205,3 +205,37 @@ export const useRegenerateShortCode = ({
 
   return { mutate, isPending }
 }
+
+// Token-based form access hooks
+export const useTokenModeForms = (eventId: string) => {
+  return trpc.eventForms.getTokenModeForms.useQuery(
+    { eventId },
+    { enabled: !!eventId }
+  )
+}
+
+export const useGetGuestFormToken = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (data: {
+    token: string
+    expiresAt: Date | null
+    guest: { id: string; firstName: string; lastName: string; email: string | null }
+    form: { id: string; name: string }
+  }) => void
+  onError?: () => void
+} = {}) => {
+  const { mutate, mutateAsync, isPending, data } =
+    trpc.eventForms.getGuestFormToken.useMutation({
+      onSuccess: (data) => {
+        onSuccess?.(data)
+      },
+      onError: (error) => {
+        toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+        onError?.()
+      },
+    })
+
+  return { mutate, mutateAsync, isPending, data }
+}

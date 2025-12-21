@@ -206,6 +206,8 @@ const defaultRoles: DefaultRolesType[] = [
       "delete:members",
       "invite:members",
       "remove:members",
+      "manage:members",
+      "manage:roles",
       // Event management
       "create:event",
       "manage:event",

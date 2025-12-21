@@ -1,23 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { useTranslations } from "next-intl"
 import { Loader2, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -36,20 +24,13 @@ import { getBackgroundStyles, type BackgroundImageMode } from "@/components/bran
 import { getAccentStyles } from "@/components/branding/card-accent-settings"
 import type { ResolvedBranding } from "@/lib/branding/utils"
 
-import { usePublicForm, useLookupGuest, useSubmitFormResponse } from "@/trpc/hooks/public-forms-hooks"
+import { usePublicFormByToken, useSubmitFormResponseByToken } from "@/trpc/hooks/public-forms-hooks"
 import type { FormConfig, FormFieldConfig, FormSectionConfig } from "@/server/db/schemas/event-form"
 import type { BilingualText } from "@/server/db/schemas/event-form"
 import type { EventBranding } from "@/server/db/schemas"
 
-// Email lookup schema
-const emailSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-})
-
-type EmailFormData = z.infer<typeof emailSchema>
-
-interface PublicFormPageProps {
-  shortCode: string
+interface TokenFormPageProps {
+  token: string
   locale: string
 }
 
@@ -59,27 +40,7 @@ function getLocalizedText(text: BilingualText | undefined, locale: string): stri
   return (locale === "ar" ? text.ar : text.en) || text.en || ""
 }
 
-// Type for guest lookup response
-type GuestLookupResponse = {
-  guest: {
-    id: string
-    firstName: string
-    lastName: string
-    email: string | null
-    categoryId: string | null
-    categoryName: string | null
-  }
-  hasSubmitted: boolean
-  canSubmit: boolean
-  canAmend: boolean
-  previousResponse: {
-    id: string
-    responses: Record<string, unknown>
-    submittedAt: Date
-  } | null
-}
-
-export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
+export function TokenFormPage({ token, locale }: TokenFormPageProps) {
   const t = useTranslations()
 
   // Language toggle state - separate from URL locale
@@ -87,18 +48,14 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
   const isRtl = displayLocale === "ar"
 
   // State
-  const [step, setStep] = useState<"email" | "form" | "success">("email")
-  const [guestData, setGuestData] = useState<GuestLookupResponse | null>(null)
+  const [step, setStep] = useState<"form" | "success">("form")
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch form data
-  const { data: formData, isLoading: formLoading, error: formError } = usePublicForm(shortCode)
-
-  // Guest lookup mutation
-  const { mutateAsync: lookupGuest, isPending: lookingUp } = useLookupGuest()
+  // Fetch form and guest data via token
+  const { data, isLoading, error: fetchError } = usePublicFormByToken(token)
 
   // Form submission mutation
-  const { mutateAsync: submitResponse, isPending: submitting } = useSubmitFormResponse({
+  const { mutateAsync: submitResponse, isPending: submitting } = useSubmitFormResponseByToken({
     onSuccess: () => {
       setStep("success")
     },
@@ -107,41 +64,13 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
     },
   })
 
-  // Email form
-  const emailForm = useForm<EmailFormData>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: { email: "" },
-  })
-
   // Language toggle handler
   const toggleLanguage = () => {
     setDisplayLocale(prev => prev === "en" ? "ar" : "en")
   }
 
-  // Handle email lookup
-  const handleEmailLookup = async (data: EmailFormData) => {
-    setError(null)
-    try {
-      const result = await lookupGuest({
-        shortCode,
-        email: data.email,
-      })
-      setGuestData(result)
-
-      if (!result.canSubmit && !result.canAmend) {
-        setError(t("publicForms.alreadySubmitted"))
-        return
-      }
-
-      setStep("form")
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : t("publicForms.guestNotFound")
-      setError(errorMessage)
-    }
-  }
-
   // Loading state
-  if (formLoading) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="flex items-center gap-2">
@@ -153,7 +82,7 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
   }
 
   // Error state
-  if (formError || !formData) {
+  if (fetchError || !data) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -170,10 +99,28 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
     )
   }
 
-  const { event, formConfig } = formData
-  const config = formConfig as FormConfig
+  const { form: formData, guest, event, hasSubmitted, canSubmit, canAmend, previousResponse } = data
+  const config = formData.formConfig as FormConfig
   const resolvedBranding = event.resolvedBranding as ResolvedBranding | undefined
   const eventBranding = event.branding as EventBranding | undefined
+
+  // Check if guest can proceed
+  if (!canSubmit && !canAmend) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4" dir={isRtl ? "rtl" : "ltr"}>
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {t("publicForms.alreadySubmitted")}
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   // Compute background styles
   const backgroundStyles = resolvedBranding?.backgroundImage
@@ -193,6 +140,28 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
 
   // Get logo (prefer resolved, fallback to event branding)
   const logoUrl = resolvedBranding?.logo || eventBranding?.logo
+
+  // Build guest data for form step
+  const guestData = {
+    guest: {
+      id: guest.id,
+      firstName: guest.firstName,
+      lastName: guest.lastName,
+      email: guest.email,
+      categoryId: guest.categoryId,
+      categoryName: guest.categoryName,
+    },
+    hasSubmitted,
+    canSubmit,
+    canAmend,
+    previousResponse: previousResponse
+      ? {
+          id: previousResponse.id,
+          responses: previousResponse.responses as Record<string, unknown>,
+          submittedAt: previousResponse.submittedAt,
+        }
+      : null,
+  }
 
   return (
     <div
@@ -232,35 +201,21 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
         </CardHeader>
 
         <CardContent className="px-4 sm:px-6 pb-6">
-          {/* Email Step */}
-          {step === "email" && (
-            <EmailStep
-              form={emailForm}
-              onSubmit={handleEmailLookup}
-              loading={lookingUp}
-              error={error}
-              locale={displayLocale}
-              primaryButtonStyle={primaryButtonStyle}
-            />
-          )}
-
           {/* Form Step */}
-          {step === "form" && guestData && (
+          {step === "form" && (
             <FormStep
               config={config}
               guestData={guestData}
-              shortCode={shortCode}
+              token={token}
               locale={displayLocale}
               resolvedBranding={resolvedBranding}
               onSubmit={async (responses) => {
                 await submitResponse({
-                  shortCode,
-                  guestId: guestData.guest.id,
+                  token,
                   responses,
                   isAmendment: guestData.canAmend && guestData.hasSubmitted,
                 })
               }}
-              onBack={() => setStep("email")}
               submitting={submitting}
               error={error}
               primaryButtonStyle={primaryButtonStyle}
@@ -272,7 +227,7 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
             <SuccessStep
               config={config}
               locale={displayLocale}
-              isAmendment={guestData?.canAmend && guestData?.hasSubmitted}
+              isAmendment={guestData.canAmend && guestData.hasSubmitted}
             />
           )}
 
@@ -288,90 +243,34 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
   )
 }
 
-// Email Step Component
-interface EmailStepProps {
-  form: ReturnType<typeof useForm<EmailFormData>>
-  onSubmit: (data: EmailFormData) => Promise<void>
-  loading: boolean
-  error: string | null
-  locale: string
-  primaryButtonStyle: React.CSSProperties
-}
-
-function EmailStep({ form, onSubmit, loading, error, locale, primaryButtonStyle }: EmailStepProps) {
-  const t = useTranslations()
-  const isRtl = locale === "ar"
-
-  return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <p className="text-muted-foreground">
-          {t("publicForms.enterEmailToStart")}
-        </p>
-      </div>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("publicForms.emailLabel")}</FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    placeholder={t("publicForms.emailPlaceholder")}
-                    {...field}
-                    dir="ltr"
-                    className="min-h-[44px]"
-                  />
-                </FormControl>
-                <FormDescription>
-                  {t("publicForms.emailDescription")}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button
-            type="submit"
-            className="w-full min-h-[44px]"
-            disabled={loading}
-            style={primaryButtonStyle}
-          >
-            {loading ? (
-              <>
-                <Loader2 className={cn("h-4 w-4 animate-spin", isRtl ? "ml-2" : "mr-2")} />
-                {t("common.loading")}
-              </>
-            ) : (
-              t("publicForms.continue")
-            )}
-          </Button>
-        </form>
-      </Form>
-    </div>
-  )
+// Type for guest data
+type GuestData = {
+  guest: {
+    id: string
+    firstName: string
+    lastName: string
+    email: string | null
+    categoryId: string | null
+    categoryName: string | null
+  }
+  hasSubmitted: boolean
+  canSubmit: boolean
+  canAmend: boolean
+  previousResponse: {
+    id: string
+    responses: Record<string, unknown>
+    submittedAt: Date
+  } | null
 }
 
 // Form Step Component
 interface FormStepProps {
   config: FormConfig
-  guestData: GuestLookupResponse
-  shortCode: string
+  guestData: GuestData
+  token: string
   locale: string
   resolvedBranding?: ResolvedBranding
   onSubmit: (responses: Record<string, unknown>) => Promise<void>
-  onBack: () => void
   submitting: boolean
   error: string | null
   primaryButtonStyle: React.CSSProperties
@@ -383,7 +282,6 @@ function FormStep({
   locale,
   resolvedBranding,
   onSubmit,
-  onBack,
   submitting,
   error,
   primaryButtonStyle,
@@ -468,9 +366,7 @@ function FormStep({
   }
 
   const handleBack = () => {
-    if (isFirstSection) {
-      onBack()
-    } else {
+    if (!isFirstSection) {
       setCurrentSectionIndex(prev => prev - 1)
       setValidationErrors([])
     }
@@ -552,16 +448,18 @@ function FormStep({
           "flex gap-3 pt-4",
           isRtl ? "flex-row-reverse" : "flex-row"
         )}>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleBack}
-            className="min-h-[44px] flex items-center gap-2"
-          >
-            {!isRtl && <ChevronLeft className="h-4 w-4" />}
-            {t("publicForms.back")}
-            {isRtl && <ChevronRight className="h-4 w-4" />}
-          </Button>
+          {!isFirstSection && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              className="min-h-[44px] flex items-center gap-2"
+            >
+              {!isRtl && <ChevronLeft className="h-4 w-4" />}
+              {t("publicForms.back")}
+              {isRtl && <ChevronRight className="h-4 w-4" />}
+            </Button>
+          )}
 
           {isLastSection ? (
             <Button

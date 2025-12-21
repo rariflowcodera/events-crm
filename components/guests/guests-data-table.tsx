@@ -665,14 +665,15 @@ export function GuestsDataTable({
       {
         id: "actions",
         header: "",
-        cell: ({ row }) => (
-          <GuestRowActions
-            guest={row.original}
-            eventId={eventId}
-            event={event}
-            workspaceSlug={workspaceSlug}
-          />
-        ),
+        cell: ({ row }) =>
+          canViewDetails ? (
+            <GuestRowActions
+              guest={row.original}
+              eventId={eventId}
+              event={event}
+              workspaceSlug={workspaceSlug}
+            />
+          ) : null,
         size: getColumnWidth("actions"),
         enableSorting: false,
         enableHiding: false,
@@ -683,6 +684,7 @@ export function GuestsDataTable({
       event,
       workspaceSlug,
       getColumnWidth,
+      canViewDetails,
     ]
   )
 

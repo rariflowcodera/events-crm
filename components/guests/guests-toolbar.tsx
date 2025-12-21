@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Filter, X, Check, Search, Settings2 } from "lucide-react"
+import { Filter, X, Check, Search, Settings2, FileText } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -54,7 +54,7 @@ interface GuestCategory {
   sortOrder: number
 }
 
-type BulkAction = "delete" | "send_invitation" | "send_email"
+type BulkAction = "delete" | "send_invitation" | "send_email" | "get_form_link"
 
 interface CountryOption {
   code: string
@@ -287,6 +287,17 @@ export function GuestsToolbar({
                 >
                   <Icons.mail className="mr-1 h-4 w-4" />
                   <span className="hidden lg:inline">Email</span>
+                </Button>
+              )}
+              {selectedCount === 1 && canSendEmails && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7"
+                  onClick={() => onBulkAction("get_form_link")}
+                >
+                  <FileText className="mr-1 h-4 w-4" />
+                  <span className="hidden lg:inline">{t("formLink")}</span>
                 </Button>
               )}
               {canDeleteGuests && (

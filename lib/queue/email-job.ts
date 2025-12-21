@@ -96,6 +96,12 @@ interface BrandingContext {
   masterTemplate?: MasterTemplate | null
 }
 
+/** Form token for token-based form access */
+interface FormToken {
+  form: { id: string; name: string }
+  token: string
+}
+
 interface RenderResult {
   subject: string
   html: string
@@ -114,6 +120,7 @@ interface RenderResult {
  * @param language - Preferred language (en or ar)
  * @param documents - Event documents for document variable substitution
  * @param branding - Optional branding context for structured templates
+ * @param formTokens - Optional form tokens for form link variable substitution
  */
 export function renderEmailTemplate(
   template: Template,
@@ -121,7 +128,8 @@ export function renderEmailTemplate(
   event: Event,
   language: "en" | "ar" = "en",
   documents: EventDocument[] = [],
-  branding?: BrandingContext
+  branding?: BrandingContext,
+  formTokens: FormToken[] = []
 ): RenderResult {
   // Check if template has structured content - use new renderer
   if (template.structuredContent) {
@@ -130,7 +138,8 @@ export function renderEmailTemplate(
       guest,
       event,
       documents,
-      branding
+      branding,
+      formTokens
     )
   }
 
@@ -146,7 +155,8 @@ function renderStructuredEmailTemplate(
   guest: Guest,
   event: Event,
   documents: EventDocument[],
-  branding?: BrandingContext
+  branding?: BrandingContext,
+  formTokens: FormToken[] = []
 ): RenderResult {
   // Determine master template to use
   const masterTemplate = branding?.masterTemplate || {
@@ -172,6 +182,7 @@ function renderStructuredEmailTemplate(
     workspaceBranding: branding?.workspaceBranding,
     eventBranding: branding?.eventBranding,
     documents,
+    formTokens,
   })
 }
 

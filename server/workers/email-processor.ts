@@ -1,5 +1,5 @@
 import { Job } from "bullmq"
-import { eq, inArray, sql } from "drizzle-orm"
+import { and, eq, inArray, sql } from "drizzle-orm"
 import { db } from "@/server/db/config/database"
 import {
   bulkEmailJobs,
@@ -7,7 +7,9 @@ import {
   emailSuppressions,
   emailTemplates,
   eventDocuments,
+  eventForms,
   events,
+  guestFormTokens,
   guests,
   workspaces,
 } from "@/server/db/schemas"
@@ -126,7 +128,7 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
   console.log(`Processing single email job for guest ${guestId}`)
 
   // Fetch all required data in parallel
-  const [guest, template, eventWithWorkspace, documents] = await Promise.all([
+  const [guest, template, eventWithWorkspace, documents, tokenModeForms] = await Promise.all([
     db.query.guests.findFirst({
       where: eq(guests.id, guestId),
       with: {
@@ -146,6 +148,19 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
     }),
     db.query.eventDocuments.findMany({
       where: eq(eventDocuments.eventId, eventId),
+    }),
+    // Fetch token-mode forms for the event
+    db.query.eventForms.findMany({
+      where: and(
+        eq(eventForms.eventId, eventId),
+        eq(eventForms.accessType, "token"),
+        eq(eventForms.isPublished, true)
+      ),
+      columns: {
+        id: true,
+        name: true,
+        expiresAt: true,
+      },
     }),
   ])
 
@@ -223,6 +238,38 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
     }
   }
 
+  // Get or create tokens for each token-mode form
+  const formTokens = await Promise.all(
+    tokenModeForms.map(async (form) => {
+      // Check for existing token
+      let existingToken = await db.query.guestFormTokens.findFirst({
+        where: and(
+          eq(guestFormTokens.guestId, guestId),
+          eq(guestFormTokens.formId, form.id)
+        ),
+      })
+
+      if (!existingToken) {
+        // Create new token
+        const [newToken] = await db
+          .insert(guestFormTokens)
+          .values({
+            guestId,
+            formId: form.id,
+            token: crypto.randomUUID(),
+            expiresAt: form.expiresAt,
+          })
+          .returning()
+        existingToken = newToken
+      }
+
+      return {
+        form: { id: form.id, name: form.name },
+        token: existingToken.token,
+      }
+    })
+  )
+
   // Create email log entry (status: pending)
   const [emailLog] = await db
     .insert(emailLogs)
@@ -244,8 +291,8 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
       masterTemplate: null, // Uses default master template
     }
 
-    // Render template with variables (including document links and branding)
-    const rendered = renderEmailTemplate(template, guest, event, language, documents, branding)
+    // Render template with variables (including document links, form links, and branding)
+    const rendered = renderEmailTemplate(template, guest, event, language, documents, branding, formTokens)
 
     // Update email log with rendered subject
     await db

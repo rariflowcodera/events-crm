@@ -64,6 +64,11 @@ export interface EventDocument {
   categoryIds: string[] | null
 }
 
+export interface FormToken {
+  form: { id: string; name: string }
+  token: string
+}
+
 export interface TemplateWithStructuredContent {
   id: string
   name: string
@@ -88,6 +93,7 @@ export interface RenderOptions {
   workspaceBranding?: WorkspaceBranding | null
   eventBranding?: EventBranding | null
   documents?: EventDocument[]
+  formTokens?: FormToken[]
 }
 
 export interface RenderResult {
@@ -256,6 +262,7 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     workspaceBranding,
     eventBranding,
     documents = [],
+    formTokens = [],
   } = options
 
   // 1. Resolve branding
@@ -382,10 +389,15 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
   // 8. Handle document variables in the rendered HTML
   html = processDocumentVariables(html, documents, guest, event)
 
-  // 9. Generate plain text version
+  // 9. Handle form link variables in the rendered HTML
+  if (formTokens.length > 0) {
+    html = processFormLinkVariables(html, formTokens, event)
+  }
+
+  // 10. Generate plain text version
   const text = generatePlainText(processedEnContent, processedArContent)
 
-  // 10. Build from address
+  // 11. Build from address
   let from: string | undefined
   if (template.fromEmail) {
     from = template.fromName
@@ -457,6 +469,56 @@ function processDocumentVariables(
   result = result.replace(/\{\{documentUrl\.[a-f0-9-]+\}\}/g, "[Document unavailable]")
   result = result.replace(/\{\{document\.[a-f0-9-]+\|[^}]+\}\}/g, "[Document unavailable]")
   result = result.replace(/\{\{document\.[a-f0-9-]+\}\}/g, "[Document unavailable]")
+
+  return result
+}
+
+// ============================================================================
+// Form Link Variable Processing
+// ============================================================================
+
+/**
+ * Process form link variables in rendered HTML.
+ * Supports patterns:
+ * - {{formUrl.UUID}} - URL only
+ * - {{formLink.UUID|Custom Text}} - link with custom text
+ * - {{formLink.UUID}} - link with form name
+ */
+function processFormLinkVariables(
+  html: string,
+  formTokens: FormToken[],
+  event: Event
+): string {
+  // Determine base URL for form links
+  const baseUrl =
+    event.customDomain && event.customDomainVerified
+      ? `https://${event.customDomain}`
+      : process.env.NEXT_PUBLIC_APP_URL || ""
+
+  let result = html
+
+  for (const { form, token } of formTokens) {
+    const formUrl = `${baseUrl}/forms/t/${token}`
+
+    // Pattern 1: {{formUrl.UUID}} - URL only
+    const urlOnlyPattern = new RegExp(`\\{\\{formUrl\\.${form.id}\\}\\}`, "g")
+    result = result.replace(urlOnlyPattern, formUrl)
+
+    // Pattern 2: {{formLink.UUID|Custom Text}} - link with custom text
+    const customTextPattern = new RegExp(`\\{\\{formLink\\.${form.id}\\|([^}]+)\\}\\}`, "g")
+    result = result.replace(customTextPattern, (_, customText) => {
+      return `<a href="${formUrl}">${customText.trim()}</a>`
+    })
+
+    // Pattern 3: {{formLink.UUID}} - link with form name
+    const defaultPattern = new RegExp(`\\{\\{formLink\\.${form.id}\\}\\}`, "g")
+    result = result.replace(defaultPattern, `<a href="${formUrl}">${form.name}</a>`)
+  }
+
+  // Handle missing/unavailable form links (forms not in token mode or deleted)
+  result = result.replace(/\{\{formUrl\.[a-f0-9-]+\}\}/g, "[Form unavailable]")
+  result = result.replace(/\{\{formLink\.[a-f0-9-]+\|[^}]+\}\}/g, "[Form unavailable]")
+  result = result.replace(/\{\{formLink\.[a-f0-9-]+\}\}/g, "[Form unavailable]")
 
   return result
 }

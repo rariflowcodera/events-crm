@@ -61,6 +61,7 @@ export type FormSettings = {
   showProgressIndicator: boolean
   confirmationMessage?: BilingualText
   submitButtonText?: BilingualText
+  contactMessage?: BilingualText
 }
 
 /** Complete form configuration */

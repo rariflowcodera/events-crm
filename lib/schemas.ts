@@ -919,6 +919,7 @@ export const formSettingsSchema = z.object({
   showProgressIndicator: z.boolean().default(true),
   confirmationMessage: bilingualTextSchema.optional(),
   submitButtonText: bilingualTextSchema.optional(),
+  contactMessage: bilingualTextSchema.optional(),
 })
 
 export type FormSettingsInput = z.infer<typeof formSettingsSchema>

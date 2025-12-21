@@ -21,6 +21,7 @@ import { BulkDeleteDialog } from "@/components/guests/bulk-delete-dialog"
 import { BulkSendEmailDialog } from "@/components/guests/bulk-send-email-dialog"
 import { SendEmailDialog } from "@/components/guests/send-email-dialog"
 import { EditViewDialog, ManageViewsDialog } from "@/components/guests/view-manager"
+import { GetFormLinkDialog } from "@/components/guests/get-form-link-dialog"
 import type { EmailTemplateType } from "@/lib/schemas"
 import { getCountryName } from "@/lib/data/countries"
 import { createRoute } from "@/lib/routes"
@@ -69,6 +70,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [bulkEmailType, setBulkEmailType] = useState<EmailTemplateType | null>(null)
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false)
+  const [isFormLinkDialogOpen, setIsFormLinkDialogOpen] = useState(false)
   const [viewConfig, setViewConfig] = useState<GuestListViewConfig>(DEFAULT_VIEW_CONFIG)
 
   // View management state
@@ -265,13 +267,15 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
   }, [])
 
   // Bulk action handlers
-  const handleBulkAction = useCallback((action: "delete" | "send_invitation" | "send_email") => {
+  const handleBulkAction = useCallback((action: "delete" | "send_invitation" | "send_email" | "get_form_link") => {
     if (action === "delete") {
       setIsDeleteDialogOpen(true)
     } else if (action === "send_invitation") {
       setBulkEmailType("invitation")
     } else if (action === "send_email") {
       setIsSendEmailDialogOpen(true)
+    } else if (action === "get_form_link") {
+      setIsFormLinkDialogOpen(true)
     }
   }, [])
 
@@ -451,6 +455,22 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
         guestIds={Array.from(selectedIds)}
         onSuccess={() => setSelectedIds(new Set())}
       />
+
+      {/* Get Form Link Dialog */}
+      {isFormLinkDialogOpen && selectedIds.size === 1 && (() => {
+        const selectedGuestId = Array.from(selectedIds)[0]
+        const selectedGuest = guests.find((g) => g.id === selectedGuestId)
+        if (!selectedGuest) return null
+        return (
+          <GetFormLinkDialog
+            open={isFormLinkDialogOpen}
+            onOpenChange={setIsFormLinkDialogOpen}
+            eventId={event.id}
+            guestId={selectedGuestId}
+            guestName={`${selectedGuest.firstName} ${selectedGuest.lastName}`}
+          />
+        )
+      })()}
 
       {/* Edit View Dialog */}
       {currentView && (

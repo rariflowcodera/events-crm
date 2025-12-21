@@ -34,6 +34,7 @@ interface FormLinksPanelProps {
     slug: string
     shortCode: string | null
     isPublished: boolean
+    accessType: "email" | "token"
   }
   workspaceSlug: string
   eventSlug: string
@@ -107,6 +108,32 @@ export function FormLinksPanel({ form, workspaceSlug, eventSlug }: FormLinksPane
           <div className="flex items-center gap-2 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
             <Icons.info className="h-4 w-4" />
             {t("forms.publishToGetLinks")}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Token mode - show message to generate links from guest list
+  if (form.accessType === "token") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <QrCode className="h-5 w-5" />
+            {t("forms.linksAndQr")}
+          </CardTitle>
+          <CardDescription>{t("forms.linksDescription")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border border-dashed p-6 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <Icons.link className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <h3 className="text-sm font-medium mb-1">{t("forms.tokenModeTitle")}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t("forms.tokenModeDescription")}
+            </p>
           </div>
         </CardContent>
       </Card>
