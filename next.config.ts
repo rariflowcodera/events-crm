@@ -1,7 +1,12 @@
+import { readFileSync } from "fs"
+
 import { NextConfig } from "next"
 import createNextIntlPlugin from "next-intl/plugin"
 
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts")
+
+// Read version from package.json at build time
+const packageJson = JSON.parse(readFileSync("./package.json", "utf8"))
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
@@ -33,6 +38,9 @@ const nextConfig: NextConfig = {
         pathname: "**",
       },
     ],
+  },
+  env: {
+    NEXT_PUBLIC_APP_VERSION: packageJson.version,
   },
 }
 

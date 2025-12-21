@@ -73,6 +73,8 @@ export const useUpdateEventForm = ({
       toast.success("Form updated successfully")
       utils.eventForms.getOne.invalidate({ formId: data.id })
       utils.eventForms.getMany.invalidate({ eventId: data.eventId })
+      // Also invalidate getBySlug since form detail pages use slug-based queries
+      utils.eventForms.getBySlug.invalidate({ eventId: data.eventId, formSlug: data.slug })
       onSuccess?.()
     },
     onError: (error) => {
@@ -146,6 +148,7 @@ export const usePublishEventForm = ({
       toast.success("Form published successfully")
       utils.eventForms.getOne.invalidate({ formId: data.id })
       utils.eventForms.getMany.invalidate({ eventId: data.eventId })
+      utils.eventForms.getBySlug.invalidate({ eventId: data.eventId, formSlug: data.slug })
       onSuccess?.()
     },
     onError: (error) => {
@@ -171,6 +174,7 @@ export const useUnpublishEventForm = ({
       toast.success("Form unpublished")
       utils.eventForms.getOne.invalidate({ formId: data.id })
       utils.eventForms.getMany.invalidate({ eventId: data.eventId })
+      utils.eventForms.getBySlug.invalidate({ eventId: data.eventId, formSlug: data.slug })
       onSuccess?.()
     },
     onError: (error) => {
@@ -195,6 +199,7 @@ export const useRegenerateShortCode = ({
     onSuccess: (data) => {
       toast.success("Short code regenerated")
       utils.eventForms.getOne.invalidate({ formId: data.id })
+      utils.eventForms.getBySlug.invalidate({ eventId: data.eventId, formSlug: data.slug })
       onSuccess?.()
     },
     onError: (error) => {

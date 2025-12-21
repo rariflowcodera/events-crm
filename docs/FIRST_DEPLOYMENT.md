@@ -310,20 +310,89 @@ If `events-crm-worker` is **errored**:
 
 ---
 
-## PHASE 5: Promote to Staging & Production
+## Versioning
 
-### When dev is verified working
+The application uses **semantic versioning** (Major.Minor.Patch) with the version displayed in the sidebar.
+
+### Version Convention
+
+| Bump Type | When to Use | Example |
+|-----------|-------------|---------|
+| `patch` | Bug fixes, small tweaks | 0.1.0 → 0.1.1 |
+| `minor` | New features, non-breaking changes | 0.1.0 → 0.2.0 |
+| `major` | Breaking changes, major milestones | 0.1.0 → 1.0.0 |
+
+### Manual Version Bumping
 
 ```bash
-# Promote to staging
+pnpm bump:patch   # Bug fixes
+pnpm bump:minor   # New features
+pnpm bump:major   # Breaking changes
+```
+
+### Where Version is Displayed
+
+- **Sidebar**: Shown below "User Guide" and above user profile
+- **Visible in**: Both localhost (dev) and production environments
+- **Source**: Read from `package.json` at build time
+
+---
+
+## PHASE 5: Deploy to Production
+
+### Option A: Automated Deployment (Recommended)
+
+Use the interactive deployment script that handles everything:
+
+```bash
+pnpm run deploy
+```
+
+This will:
+1. Prompt for version bump type (patch/minor/major/none)
+2. Commit the version change (if bumping)
+3. Checkout `prod` branch (creates if needed)
+4. Merge `dev` into `prod`
+5. Push to origin (triggers GitHub Actions)
+6. Switch back to `dev` branch
+
+**Requirements:**
+- Must be on `dev` branch
+- No uncommitted changes (except version bump)
+
+### Option B: Manual Deployment
+
+If you prefer manual control:
+
+```bash
+# 1. Bump version (optional)
+pnpm bump:patch
+git add package.json
+git commit -m "chore: bump version to x.x.x"
+
+# 2. Checkout prod branch
+git checkout prod || git checkout -b prod
+
+# 3. Merge changes from dev
+git merge dev
+
+# 4. Push to GitHub (triggers GitHub Actions)
+git push origin prod
+
+# 5. Switch back to dev
+git checkout dev
+```
+
+### Promoting Through Environments
+
+```bash
+# Dev → Staging
 git checkout test
 git merge dev
 git push origin test  # Auto-deploys to TEST environment
 
-# Verify staging works, then:
-git checkout prod
-git merge test
-git push origin prod  # Auto-deploys to PROD environment
+# Staging → Production (after verification)
+pnpm run deploy  # Or use manual steps above
 ```
 
 ---
@@ -382,7 +451,8 @@ If `logs/` folder is missing, `rsync` might have deleted it.
 - [ ] Migration files committed
 - [ ] Pushed to dev and verified
 - [ ] Merged to test and verified
-- [ ] Merged to prod and verified
+- [ ] Version bumped appropriately (`pnpm bump:patch/minor/major`)
+- [ ] Deployed to prod (`pnpm run deploy`)
 
 ---
 
@@ -400,3 +470,5 @@ If `logs/` folder is missing, `rsync` might have deleted it.
 
 - [DEPLOYMENT.md](./DEPLOYMENT.md) - Ongoing deployment reference
 - [ecosystem.config.js](../ecosystem.config.js) - PM2 configuration
+- [scripts/deploy.mjs](../scripts/deploy.mjs) - Automated deployment script
+- [scripts/bump-version.mjs](../scripts/bump-version.mjs) - Version bump script

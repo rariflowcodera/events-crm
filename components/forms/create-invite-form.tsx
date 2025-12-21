@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useParams } from "next/navigation"
 import { UserType, WorkspaceType } from "@/server/db/schema-types"
 import { useCreateInvitationTRPC } from "@/trpc/hooks/invitations-hooks"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -8,6 +9,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { usePermissions } from "@/hooks/use-permissions"
 import { invitationSchema } from "@/lib/schemas"
 import { Button } from "@/components/ui/button"
 import {
@@ -57,14 +59,43 @@ type CredentialsDialogData = {
 } | null
 
 export function CreateInviteForm({ currentUser, workspaceId }: MemberInviteFormProps) {
+  const { slug } = useParams<{ slug: string }>()
+  const { isOwner, isAdmin, isManager } = usePermissions(slug)
   const [credentialsDialog, setCredentialsDialog] = useState<CredentialsDialogData>(null)
   const [copiedField, setCopiedField] = useState<"email" | "password" | "both" | null>(null)
+
+  // Determine available roles based on current user's role
+  const getAvailableRoles = () => {
+    if (isOwner) {
+      return [
+        { value: "member", label: "Member" },
+        { value: "event_staff", label: "Event Staff" },
+        { value: "manager", label: "Manager" },
+        { value: "admin", label: "Admin" },
+      ]
+    }
+    if (isAdmin) {
+      return [
+        { value: "member", label: "Member" },
+        { value: "event_staff", label: "Event Staff" },
+        { value: "manager", label: "Manager" },
+        { value: "admin", label: "Admin" },
+      ]
+    }
+    if (isManager) {
+      return [{ value: "event_staff", label: "Event Staff" }]
+    }
+    return []
+  }
+
+  const availableRoles = getAvailableRoles()
+  const defaultRole = isManager ? "event_staff" : "member"
 
   const form = useForm<z.infer<typeof invitationSchema>>({
     resolver: zodResolver(invitationSchema),
     defaultValues: {
       email: "",
-      role: "member",
+      role: defaultRole,
       workspaceId,
       invitedBy: `${currentUser.name} ${currentUser.lastName}`,
       invitedByProfileImage: currentUser.image ?? "",
@@ -241,17 +272,22 @@ export function CreateInviteForm({ currentUser, workspaceId }: MemberInviteFormP
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={availableRoles.length <= 1}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Role" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="member">Member</SelectItem>
-                        <SelectItem value="event_staff">Event Staff</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
+                        {availableRoles.map((role) => (
+                          <SelectItem key={role.value} value={role.value}>
+                            {role.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
 

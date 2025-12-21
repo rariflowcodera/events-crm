@@ -49,3 +49,6 @@ export const OCI_FINGERPRINT_ENV = process.env.OCI_FINGERPRINT || ""
 export const OCI_PRIVATE_KEY_ENV = process.env.OCI_PRIVATE_KEY || ""
 export const OCI_REGION_ENV = process.env.OCI_REGION || "me-jeddah-1"
 export const OCI_COMPARTMENT_ID_ENV = process.env.OCI_COMPARTMENT_ID || ""
+
+// App Version (injected at build time from package.json)
+export const NEXT_PUBLIC_APP_VERSION_ENV = process.env.NEXT_PUBLIC_APP_VERSION || "0.0.0"

@@ -2,7 +2,7 @@ import { hashPassword } from "better-auth/crypto"
 
 import { BETTER_AUTH_URL_ENV } from "@/env"
 import { db, dbClient } from "@/server/db/config/database"
-import { account, invitations, users, workspaceMembers, workspaces } from "@/server/db/schemas"
+import { account, invitations, roles, users, workspaceMembers, workspaces } from "@/server/db/schemas"
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import { render } from "@react-email/render"
@@ -110,6 +110,35 @@ export const invitationsRouter = createTRPCRouter({
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You don't have permission to invite members to this workspace",
+        })
+      }
+
+      // Get current user's role to check role restrictions
+      const currentUserMember = await trx.query.workspaceMembers.findFirst({
+        where: and(
+          eq(workspaceMembers.userId, user.id),
+          eq(workspaceMembers.workspaceId, workspaceId)
+        ),
+        with: {
+          role: true,
+        },
+      })
+
+      const currentUserRole = currentUserMember?.role?.name
+
+      // Managers can only invite as event_staff
+      if (currentUserRole === "manager" && role !== "event_staff") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Managers can only invite members as Event Staff",
+        })
+      }
+
+      // Admins cannot invite as owner
+      if (currentUserRole === "admin" && role === "owner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Admins cannot invite members as Owner",
         })
       }
 

@@ -15,6 +15,7 @@ import {
 import { UserButton } from "@/components/buttons/user-button"
 import { ActionTooltip } from "@/components/global/action-tooltip"
 import { Search } from "@/components/global/search"
+import { VersionDisplay } from "@/components/global/version-display"
 import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher"
 import { EventSwitcher } from "@/components/navigation/event-switcher"
 import { AppSidebarContent } from "@/components/navigation/app-sidebar-content"
@@ -56,6 +57,7 @@ export function AppSidebar({ slug, ...props }: AppSidebarProps) {
             </ActionTooltip>
           </SidebarMenu>
         </SidebarGroup>
+        <VersionDisplay />
         <SidebarMenu>
           <UserButton slug={slug} />
         </SidebarMenu>

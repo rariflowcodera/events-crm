@@ -1,6 +1,6 @@
 {
   "name": "next-js-15-sass-template",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -23,7 +23,11 @@
     "worker:email": "dotenv -e .env.local -- tsx --watch server/workers/email-worker.ts",
     "worker:email:prod": "dotenv -e .env.local -- node --import tsx server/workers/email-worker.ts",
     "worker:suppression": "dotenv -e .env.local -- tsx --watch server/workers/suppression-sync-worker.ts",
-    "worker:suppression:prod": "dotenv -e .env.local -- node --import tsx server/workers/suppression-sync-worker.ts"
+    "worker:suppression:prod": "dotenv -e .env.local -- node --import tsx server/workers/suppression-sync-worker.ts",
+    "bump:major": "node scripts/bump-version.mjs major",
+    "bump:minor": "node scripts/bump-version.mjs minor",
+    "bump:patch": "node scripts/bump-version.mjs patch",
+    "deploy": "node scripts/deploy.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.787.0",

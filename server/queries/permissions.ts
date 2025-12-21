@@ -237,6 +237,8 @@ const defaultRoles: DefaultRolesType[] = [
     description: "Event manager with limited access",
     permissions: [
       "view:members",
+      "invite:members",
+      "manage:members",
       "view:event",
       "manage:event",
       "view:guests",

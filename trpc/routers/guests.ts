@@ -9,7 +9,7 @@ import {
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import { TRPCError } from "@trpc/server"
-import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm"
+import { and, asc, desc, eq, ilike, inArray, ne, or, sql } from "drizzle-orm"
 import { z } from "zod"
 
 const guestStatusValues = [
@@ -318,6 +318,21 @@ export const guestsRouter = createTRPCRouter({
         })
       }
 
+      // Check for duplicate email within the event (case-insensitive)
+      const existingGuest = await db.query.guests.findFirst({
+        where: and(
+          eq(guests.eventId, event.id),
+          sql`LOWER(${guests.email}) = LOWER(${input.email})`
+        ),
+      })
+
+      if (existingGuest) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "A guest with this email already exists in this event",
+        })
+      }
+
       // Generate unique RSVP token
       const rsvpToken = crypto.randomUUID()
 
@@ -406,6 +421,24 @@ export const guestsRouter = createTRPCRouter({
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Invalid category for this event",
+          })
+        }
+      }
+
+      // Check for duplicate email if email is being updated (case-insensitive)
+      if (input.email && input.email.toLowerCase() !== guest.email?.toLowerCase()) {
+        const existingGuest = await db.query.guests.findFirst({
+          where: and(
+            eq(guests.eventId, guest.eventId),
+            ne(guests.id, guest.id),
+            sql`LOWER(${guests.email}) = LOWER(${input.email})`
+          ),
+        })
+
+        if (existingGuest) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "A guest with this email already exists in this event",
           })
         }
       }

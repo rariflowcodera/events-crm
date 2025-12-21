@@ -149,8 +149,7 @@ export function EventOverviewTab({
               <div className="space-y-4">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-8 w-full" />
-                <div className="grid grid-cols-4 gap-2">
-                  <Skeleton className="h-16" />
+                <div className="grid grid-cols-3 gap-2">
                   <Skeleton className="h-16" />
                   <Skeleton className="h-16" />
                   <Skeleton className="h-16" />
@@ -172,7 +171,7 @@ export function EventOverviewTab({
                   </p>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <StatusCard
                     label={t("event.dashboard.statusConfirmed")}
                     count={confirmedGuests}
@@ -184,12 +183,6 @@ export function EventOverviewTab({
                     count={pendingGuests}
                     color="bg-yellow-500"
                     icon={Icons.clock}
-                  />
-                  <StatusCard
-                    label={t("event.dashboard.statusMaybe")}
-                    count={maybeGuests}
-                    color="bg-blue-500"
-                    icon={Icons.helpCircle}
                   />
                   <StatusCard
                     label={t("event.dashboard.statusDeclined")}
