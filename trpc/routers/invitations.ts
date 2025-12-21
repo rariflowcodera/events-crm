@@ -134,13 +134,7 @@ export const invitationsRouter = createTRPCRouter({
         })
       }
 
-      // Admins cannot invite as owner
-      if (currentUserRole === "admin" && role === "owner") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Admins cannot invite members as Owner",
-        })
-      }
+      // Note: "owner" role is not in invitationSchema, so admins cannot invite as owner by design
 
       if (invitedUser) {
         // Check if the user is already a member
