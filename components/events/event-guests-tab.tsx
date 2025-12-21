@@ -72,6 +72,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false)
   const [isFormLinkDialogOpen, setIsFormLinkDialogOpen] = useState(false)
   const [viewConfig, setViewConfig] = useState<GuestListViewConfig>(DEFAULT_VIEW_CONFIG)
+  const [showFilters, setShowFilters] = useState(false)
 
   // View management state
   const [currentViewId, setCurrentViewId] = useState<string | null>(null)
@@ -321,23 +322,6 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
     )
   }, [viewConfig.filters])
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-medium">{t("guests")}</h3>
-            <p className="text-muted-foreground text-sm">
-              Manage guests for this event
-            </p>
-          </div>
-        </div>
-        <GuestsTableSkeleton />
-      </div>
-    )
-  }
-
   // Error state
   if (error) {
     return (
@@ -390,9 +374,13 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
         defaultViewId={defaultView?.id}
         totalGuests={totalGuests}
         filteredCount={hasActiveFilters ? guests.length : undefined}
+        showFilters={showFilters}
+        onShowFiltersChange={setShowFilters}
       />
 
-      {hasGuests || hasActiveFilters ? (
+      {isLoading ? (
+        <GuestsTableSkeleton />
+      ) : hasGuests || hasActiveFilters ? (
         <div className={fullHeight ? "flex-1 min-h-0 mt-4" : ""}>
           <GuestsDataTable
             guests={guests as any}

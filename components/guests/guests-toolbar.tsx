@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { Filter, X, Check, Search, Settings2, FileText } from "lucide-react"
@@ -16,7 +16,6 @@ import { ColumnPicker, SaveViewDialog, ViewSelector } from "@/components/guests/
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
   Popover,
@@ -97,6 +96,9 @@ interface GuestsToolbarProps {
   // Optional: guest count display
   totalGuests?: number
   filteredCount?: number
+  // Filter pane visibility (controlled from parent to persist across remounts)
+  showFilters: boolean
+  onShowFiltersChange: (show: boolean) => void
 }
 
 const STATUS_OPTIONS: { value: GuestStatus; label: string }[] = [
@@ -144,11 +146,32 @@ export function GuestsToolbar({
   defaultViewId,
   totalGuests,
   filteredCount,
+  showFilters,
+  onShowFiltersChange,
 }: GuestsToolbarProps) {
   const t = useTranslations("guest")
   const { can } = usePermissions(workspaceSlug)
   const [showSaveViewDialog, setShowSaveViewDialog] = useState(false)
-  const [showFilters, setShowFilters] = useState(false)
+
+  // Local state for search input (for immediate display, debounced to parent)
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery)
+
+  // Sync local state when prop changes from outside (e.g., "Clear all" button)
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery)
+  }, [searchQuery])
+
+  // Debounce search query updates to parent (300ms delay)
+  useEffect(() => {
+    // Don't fire if local matches prop (prevents unnecessary updates)
+    if (localSearchQuery === searchQuery) return
+
+    const timer = setTimeout(() => {
+      onSearchChange(localSearchQuery)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [localSearchQuery, searchQuery, onSearchChange])
 
   // Permission checks
   const canManageGuests = can(PERMISSIONS.MANAGE_GUESTS)
@@ -221,25 +244,22 @@ export function GuestsToolbar({
             )}
 
             {/* Filter toggle button */}
-            <Collapsible open={showFilters} onOpenChange={setShowFilters}>
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant={activeFilterCount > 0 ? "default" : "ghost"}
-                  size="sm"
+            <Button
+              variant={activeFilterCount > 0 ? "default" : "ghost"}
+              size="sm"
+              onClick={() => onShowFiltersChange(!showFilters)}
+            >
+              <Filter className="mr-2 h-4 w-4" />
+              Filters
+              {activeFilterCount > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
                 >
-                  <Filter className="mr-2 h-4 w-4" />
-                  Filters
-                  {activeFilterCount > 0 && (
-                    <Badge
-                      variant="secondary"
-                      className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                    >
-                      {activeFilterCount}
-                    </Badge>
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-            </Collapsible>
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
 
             {/* Column picker */}
             {viewConfig && onColumnsChange && (
@@ -342,24 +362,24 @@ export function GuestsToolbar({
       </div>
 
       {/* Collapsible filter row */}
-      <Collapsible open={showFilters} onOpenChange={setShowFilters}>
+      <Collapsible open={showFilters}>
         <CollapsibleContent>
           <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-3">
             {/* Search input */}
             <div className="relative w-64">
               <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
+                value={localSearchQuery}
+                onChange={(e) => setLocalSearchQuery(e.target.value)}
                 placeholder="Search guests..."
                 className="pl-9 h-9"
               />
-              {searchQuery && (
+              {localSearchQuery && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0"
-                  onClick={() => onSearchChange("")}
+                  onClick={() => setLocalSearchQuery("")}
                 >
                   <X className="h-3 w-3" />
                 </Button>

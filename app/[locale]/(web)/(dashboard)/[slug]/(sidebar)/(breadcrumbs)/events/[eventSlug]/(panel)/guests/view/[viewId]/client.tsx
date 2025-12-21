@@ -1,14 +1,17 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { notFound } from "next/navigation"
 import { useTranslations } from "next-intl"
+import { Search, X } from "lucide-react"
 
 import { VIEW_COLORS, type ViewColor } from "@/server/db/schemas"
 import { trpc } from "@/trpc/client"
 import { PagePanel } from "@/components/global/page-panel"
 import { GuestsDataTable } from "@/components/guests/guests-data-table"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { createRoute } from "@/lib/routes"
 import { PERMISSIONS } from "@/lib/permissions"
 import { usePermissions } from "@/hooks/use-permissions"
@@ -34,6 +37,9 @@ export function GuestListViewPageClient({
 
   // Local view config state (allows users to modify filters without saving)
   const [localViewConfig, setLocalViewConfig] = useState<GuestListViewConfig | null>(null)
+
+  // Local search state with debouncing
+  const [localSearchQuery, setLocalSearchQuery] = useState("")
 
   // Fetch the view
   const { data: view, isLoading: isLoadingView } = trpc.guestListViews.getOne.useQuery(
@@ -61,17 +67,39 @@ export function GuestListViewPageClient({
     { enabled: !!event?.id }
   )
 
+  // Debounce search to update viewConfig.filters.search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!view) return
+
+      const baseConfig = localViewConfig ?? view.config
+      const currentSearch = baseConfig.filters?.search || ""
+
+      // Only update if search actually changed
+      if (localSearchQuery !== currentSearch) {
+        setLocalViewConfig({
+          ...baseConfig,
+          filters: {
+            ...baseConfig.filters,
+            search: localSearchQuery || undefined,
+          },
+        })
+      }
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [localSearchQuery, view, localViewConfig])
+
   // View config change handler
   const handleViewConfigChange = useCallback((config: GuestListViewConfig) => {
     setLocalViewConfig(config)
   }, [])
 
-  const isLoading = isLoadingView || isLoadingEvent || isLoadingGuests
-
   // Fallback URL for back navigation
   const backHref = createRoute("event-detail", { slug: workspaceSlug, eventSlug }).href + "?tab=guests"
 
-  if (isLoading) {
+  // Only show full skeleton on initial load (when view/event not yet loaded)
+  if (isLoadingView || isLoadingEvent) {
     return (
       <PagePanel
         title={t("common.loading")}
@@ -91,45 +119,68 @@ export function GuestListViewPageClient({
   const getGuestDetailHref = (guestId: string) =>
     `/${workspaceSlug}/events/${eventSlug}/guests/${guestId}?fromView=${viewId}`
 
-  // Check if filters are modified from saved view
-  const hasUnsavedChanges = localViewConfig !== null
-
   return (
     <PagePanel
       title={view.name}
       description={view.description || undefined}
       noScroll
+      hideNavigation
     >
       <div className="flex flex-col h-full">
         {/* View info header */}
-        <div className="mb-4 flex items-center gap-2">
-          <span className={`size-3 rounded-full ${colorConfig.dot}`} />
-          <span className="text-muted-foreground text-sm">
-            {guests.length} {t("guest.guests").toLowerCase()}
-            {hasUnsavedChanges && (
-              <span className="ml-2 text-yellow-600">(unsaved changes)</span>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          {/* Left: Count */}
+          <div className="flex items-center gap-2">
+            <span className={`size-3 rounded-full ${colorConfig.dot}`} />
+            <span className="text-muted-foreground text-sm">
+              {guests.length} {t("guest.guests").toLowerCase()}
+            </span>
+          </div>
+
+          {/* Right: Search */}
+          <div className="relative w-64">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={localSearchQuery}
+              onChange={(e) => setLocalSearchQuery(e.target.value)}
+              placeholder="Search guests..."
+              className="pl-9 h-8"
+            />
+            {localSearchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 h-5 w-5 -translate-y-1/2 p-0"
+                onClick={() => setLocalSearchQuery("")}
+              >
+                <X className="h-3 w-3" />
+              </Button>
             )}
-          </span>
+          </div>
         </div>
 
         {/* Guest table with view configuration */}
         <div className="flex-1 min-h-0">
-          <GuestsDataTable
-            guests={guests as any}
-            selectedIds={selectedIds}
-            onSelectionChange={setSelectedIds}
-            getGuestDetailHref={getGuestDetailHref}
-            eventId={event.id}
-            event={{
-              customDomain: event.customDomain,
-              customDomainVerified: event.customDomainVerified,
-            }}
-            workspaceSlug={workspaceSlug}
-            viewConfig={activeConfig ?? view.config}
-            onViewConfigChange={handleViewConfigChange}
-            fillHeight
-            canViewDetails={canViewDetails}
-          />
+          {isLoadingGuests ? (
+            <GuestTableSkeleton />
+          ) : (
+            <GuestsDataTable
+              guests={guests as any}
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
+              getGuestDetailHref={getGuestDetailHref}
+              eventId={event.id}
+              event={{
+                customDomain: event.customDomain,
+                customDomainVerified: event.customDomainVerified,
+              }}
+              workspaceSlug={workspaceSlug}
+              viewConfig={activeConfig ?? view.config}
+              onViewConfigChange={handleViewConfigChange}
+              fillHeight
+              canViewDetails={canViewDetails}
+            />
+          )}
         </div>
       </div>
     </PagePanel>
@@ -146,24 +197,30 @@ function GuestListViewSkeleton() {
       </div>
 
       {/* Table skeleton */}
-      <div className="space-y-2">
-        <div className="flex gap-4 border-b pb-2">
+      <GuestTableSkeleton />
+    </div>
+  )
+}
+
+function GuestTableSkeleton() {
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-4 border-b pb-2">
+        <Skeleton className="h-4 w-8" />
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-20" />
+      </div>
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div key={i} className="flex gap-4 py-2">
           <Skeleton className="h-4 w-8" />
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-4 w-40" />
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-4 w-20" />
         </div>
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="flex gap-4 py-2">
-            <Skeleton className="h-4 w-8" />
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-20" />
-          </div>
-        ))}
-      </div>
+      ))}
     </div>
   )
 }

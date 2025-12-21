@@ -26,6 +26,8 @@ interface PagePanelProps {
   open?: boolean
   /** Skip ScrollArea wrapper (when content handles own scrolling) */
   noScroll?: boolean
+  /** Hide back and close navigation buttons */
+  hideNavigation?: boolean
 }
 
 /**
@@ -44,6 +46,7 @@ export function PagePanel({
   className,
   open = true,
   noScroll = false,
+  hideNavigation = false,
 }: PagePanelProps) {
   const isMobile = useIsMobile()
   const { goBack } = useBackNavigation(backHref)
@@ -72,15 +75,17 @@ export function PagePanel({
           >
             {/* Mobile Header */}
             <header className="bg-background sticky top-0 z-10 flex items-center gap-3 border-b px-4 py-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={goBack}
-                className="shrink-0 -ml-2"
-                aria-label="Go back"
-              >
-                <ArrowLeftIcon className="h-5 w-5" />
-              </Button>
+              {!hideNavigation && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={goBack}
+                  className="shrink-0 -ml-2"
+                  aria-label="Go back"
+                >
+                  <ArrowLeftIcon className="h-5 w-5" />
+                </Button>
+              )}
               <div className="min-w-0 flex-1">
                 <DrawerPrimitive.Title className="font-semibold truncate">
                   {title}
@@ -140,15 +145,17 @@ export function PagePanel({
             {/* Desktop Header */}
             <header className="bg-background sticky top-0 z-10 flex items-center justify-between gap-4 border-b px-6 py-4">
               <div className="flex items-center gap-3 min-w-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={goBack}
-                  className="shrink-0 -ml-2"
-                  aria-label="Go back"
-                >
-                  <ArrowLeftIcon className="h-5 w-5" />
-                </Button>
+                {!hideNavigation && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={goBack}
+                    className="shrink-0 -ml-2"
+                    aria-label="Go back"
+                  >
+                    <ArrowLeftIcon className="h-5 w-5" />
+                  </Button>
+                )}
                 <div className="min-w-0">
                   <h1 className="font-semibold text-lg truncate">{title}</h1>
                   {description && (
@@ -158,15 +165,17 @@ export function PagePanel({
                   )}
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={goBack}
-                className="shrink-0"
-                aria-label="Close panel"
-              >
-                <XIcon className="h-5 w-5" />
-              </Button>
+              {!hideNavigation && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={goBack}
+                  className="shrink-0"
+                  aria-label="Close panel"
+                >
+                  <XIcon className="h-5 w-5" />
+                </Button>
+              )}
             </header>
 
             {/* Desktop Content - overflow-hidden prevents PagePanel from showing scrollbars */}

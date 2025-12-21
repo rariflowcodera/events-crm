@@ -38,7 +38,6 @@ interface CategoryStatusChartProps {
 const STATUS_COLORS = {
   confirmed: "#22c55e", // green-500
   pending: "#eab308", // yellow-500
-  maybe: "#3b82f6", // blue-500
   declined: "#ef4444", // red-500
 }
 
@@ -116,12 +115,6 @@ export function CategoryStatusChart({
                 name={t("statusPending")}
                 stackId="a"
                 fill={STATUS_COLORS.pending}
-              />
-              <Bar
-                dataKey="maybe"
-                name={t("statusMaybe")}
-                stackId="a"
-                fill={STATUS_COLORS.maybe}
               />
               <Bar
                 dataKey="declined"
