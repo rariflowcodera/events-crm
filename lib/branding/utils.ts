@@ -254,6 +254,42 @@ export function getLogoForTheme(branding: ResolvedBranding, isDarkMode: boolean)
 }
 
 /**
+ * Get the appropriate logo URL based on the display mode setting.
+ * Used for public pages (RSVP, custom forms) where the logo display mode is configurable.
+ *
+ * @param branding - Branding configuration (resolved or event)
+ * @param displayMode - The configured display mode ("light", "dark", or "auto")
+ * @param isSystemDark - Whether the user's system is in dark mode (only used for "auto" mode)
+ * @returns Logo URL or null if not set
+ */
+export function getLogoForDisplayMode(
+  branding: { logo?: string | null; logoDark?: string | null } | null | undefined,
+  displayMode: "light" | "dark" | "auto" = "light",
+  isSystemDark: boolean = false
+): string | null {
+  if (!branding) return null
+
+  const logo = branding.logo || null
+  const logoDark = branding.logoDark || null
+
+  switch (displayMode) {
+    case "dark":
+      // Always prefer dark logo, fallback to light
+      return logoDark || logo
+    case "auto":
+      // Use system preference, fallback appropriately
+      if (isSystemDark) {
+        return logoDark || logo
+      }
+      return logo || logoDark
+    case "light":
+    default:
+      // Always prefer light logo, fallback to dark
+      return logo || logoDark
+  }
+}
+
+/**
  * Check if branding has any custom values set.
  */
 export function hasBrandingValues(

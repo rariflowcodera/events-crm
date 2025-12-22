@@ -111,6 +111,7 @@ export type RsvpFormConfig = {
 export type EventBranding = {
   logo?: string // Light mode logo URL
   logoDark?: string // Dark mode logo URL
+  logoDisplayMode?: "light" | "dark" | "auto" // Which logo to show on public pages (light=default, dark=always dark, auto=system preference)
   primaryColor?: string // Primary brand color (hex)
   secondaryColor?: string // Secondary brand color (hex)
   primaryColorDark?: string // Dark mode primary color

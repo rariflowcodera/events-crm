@@ -822,7 +822,13 @@
     "sectionBackgroundColor": "Background Color",
     "sectionTextColor": "Text Color",
     "preview": "Preview",
-    "sampleSectionTitle": "Travel & Logistics"
+    "sampleSectionTitle": "Travel & Logistics",
+    "logoDisplayMode": "Logo Display Mode",
+    "logoDisplayModeSelect": "Select display mode",
+    "logoDisplayModeLight": "Light (Always use light logo)",
+    "logoDisplayModeDark": "Dark (Always use dark logo)",
+    "logoDisplayModeAuto": "Auto (Match user's system theme)",
+    "logoDisplayModeDescription": "Choose which logo to display on RSVP and form pages"
   },
   "documents": {
     "title": "Document Library",

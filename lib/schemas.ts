@@ -99,8 +99,12 @@ export const sectionHeaderSchema = z.object({
   textColor: hexColorSchema.unwrap(),
 }).optional()
 
+/** Logo display mode for public pages */
+export const logoDisplayModeSchema = z.enum(["light", "dark", "auto"]).optional()
+
 /** Event branding schema (extends base with event-specific fields) */
 export const eventBrandingSchema = baseBrandingSchema.extend({
+  logoDisplayMode: logoDisplayModeSchema,
   secondaryColor: hexColorSchema,
   secondaryColorDark: hexColorSchema,
   backgroundImage: brandingImageSchema,

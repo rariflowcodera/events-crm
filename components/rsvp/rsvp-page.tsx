@@ -27,6 +27,7 @@ import { formatEventDateTime } from "@/lib/date-utils"
 import { linkify } from "@/lib/linkify"
 import { getBackgroundStyles, type BackgroundImageMode } from "@/components/branding/background-image-upload"
 import { getAccentStyles } from "@/components/branding/card-accent-settings"
+import { getLogoForDisplayMode } from "@/lib/branding/utils"
 
 import { DynamicFormRenderer } from "./dynamic-form-renderer"
 import { VisualResponseSelector } from "./visual-response-selector"
@@ -109,6 +110,7 @@ interface GuestData {
     branding?: {
       logo?: string
       logoDark?: string
+      logoDisplayMode?: "light" | "dark" | "auto"
       primaryColor?: string
       secondaryColor?: string
       backgroundImage?: string
@@ -182,6 +184,17 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
   // Language toggle - allows switching between EN/AR without URL change
   const [displayLocale, setDisplayLocale] = useState<"en" | "ar">(locale as "en" | "ar")
   const isRtl = displayLocale === "ar"
+
+  // System dark mode detection for "auto" logo display mode
+  const [isSystemDark, setIsSystemDark] = useState(false)
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    setIsSystemDark(mediaQuery.matches)
+    const handler = (e: MediaQueryListEvent) => setIsSystemDark(e.matches)
+    mediaQuery.addEventListener("change", handler)
+    return () => mediaQuery.removeEventListener("change", handler)
+  }, [])
 
   // Handle language toggle - uses query param for custom domains, state for main app
   const handleLanguageToggle = () => {
@@ -357,8 +370,13 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
     const { guest, event, category } = guestData
     const previousStatus = guest.status as "confirmed" | "declined" | "maybe"
 
-    // Use resolved branding with fallbacks
-    const brandLogo = event.resolvedBranding?.logo || event.branding?.logo || event.organization?.logo
+    // Use resolved branding with fallbacks, respecting logo display mode
+    const logoDisplayMode = event.branding?.logoDisplayMode || "light"
+    const brandLogo = getLogoForDisplayMode(
+      { logo: event.resolvedBranding?.logo || event.branding?.logo || event.organization?.logo, logoDark: event.resolvedBranding?.logoDark || event.branding?.logoDark },
+      logoDisplayMode,
+      isSystemDark
+    )
     const brandAccent = event.resolvedBranding?.accentColor || event.branding?.secondaryColor
 
     // Get custom labels from config or use defaults
@@ -466,8 +484,13 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
       confirmationMessage = t("confirmation.maybe")
     }
 
-    // Use resolved branding with fallbacks
-    const brandLogo = guestData.event.resolvedBranding?.logo || guestData.event.branding?.logo || guestData.event.organization?.logo
+    // Use resolved branding with fallbacks, respecting logo display mode
+    const logoDisplayMode = guestData.event.branding?.logoDisplayMode || "light"
+    const brandLogo = getLogoForDisplayMode(
+      { logo: guestData.event.resolvedBranding?.logo || guestData.event.branding?.logo || guestData.event.organization?.logo, logoDark: guestData.event.resolvedBranding?.logoDark || guestData.event.branding?.logoDark },
+      logoDisplayMode,
+      isSystemDark
+    )
     const brandAccent = guestData.event.resolvedBranding?.accentColor || guestData.event.branding?.secondaryColor
     const bgUrl = guestData.category.rsvpPageConfig?.backgroundImage || guestData.event.branding?.backgroundImage
     const bgMode = guestData.event.branding?.backgroundImageMode || "cover"
@@ -596,8 +619,13 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
     requestAnimationFrame(() => setTransitioningStep(false))
   }
 
-  // Use resolved branding with fallbacks
-  const brandLogo = event.resolvedBranding?.logo || event.branding?.logo || event.organization?.logo
+  // Use resolved branding with fallbacks, respecting logo display mode
+  const logoDisplayMode = event.branding?.logoDisplayMode || "light"
+  const brandLogo = getLogoForDisplayMode(
+    { logo: event.resolvedBranding?.logo || event.branding?.logo || event.organization?.logo, logoDark: event.resolvedBranding?.logoDark || event.branding?.logoDark },
+    logoDisplayMode,
+    isSystemDark
+  )
   const brandPrimary = event.resolvedBranding?.primaryColor || event.branding?.primaryColor
   const brandAccent = event.resolvedBranding?.accentColor || event.branding?.secondaryColor
   const bgUrl = category.rsvpPageConfig?.backgroundImage || event.branding?.backgroundImage

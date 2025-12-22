@@ -820,7 +820,13 @@
     "sectionBackgroundColor": "لون الخلفية",
     "sectionTextColor": "لون النص",
     "preview": "معاينة",
-    "sampleSectionTitle": "السفر والخدمات اللوجستية"
+    "sampleSectionTitle": "السفر والخدمات اللوجستية",
+    "logoDisplayMode": "وضع عرض الشعار",
+    "logoDisplayModeSelect": "اختر وضع العرض",
+    "logoDisplayModeLight": "فاتح (استخدم الشعار الفاتح دائماً)",
+    "logoDisplayModeDark": "داكن (استخدم الشعار الداكن دائماً)",
+    "logoDisplayModeAuto": "تلقائي (مطابقة سمة نظام المستخدم)",
+    "logoDisplayModeDescription": "اختر الشعار الذي سيتم عرضه في صفحات الحضور والنماذج"
   },
   "documents": {
     "title": "مكتبة المستندات",

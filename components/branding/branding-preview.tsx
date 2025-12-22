@@ -28,6 +28,7 @@ type SectionHeader = {
 interface BrandingPreviewProps {
   logo?: string
   logoDark?: string
+  logoDisplayMode?: "light" | "dark" | "auto"
   primaryColor?: string
   accentColor?: string
   backgroundImage?: string
@@ -44,6 +45,7 @@ interface BrandingPreviewProps {
 export function BrandingPreview({
   logo,
   logoDark,
+  logoDisplayMode = "light",
   primaryColor = "#4F46E5",
   accentColor = "#0EA5E9",
   backgroundImage,
@@ -54,7 +56,21 @@ export function BrandingPreview({
 }: BrandingPreviewProps) {
   const [isDark, setIsDark] = useState(false)
 
-  const displayLogo = isDark ? logoDark || logo : logo
+  // Determine which logo to display based on logoDisplayMode
+  // - "light": always show light logo
+  // - "dark": always show dark logo (fallback to light)
+  // - "auto": use the preview toggle to simulate system preference
+  const displayLogo = (() => {
+    switch (logoDisplayMode) {
+      case "dark":
+        return logoDark || logo
+      case "auto":
+        return isDark ? logoDark || logo : logo
+      case "light":
+      default:
+        return logo
+    }
+  })()
 
   return (
     <Card className={cn("overflow-hidden", className)}>

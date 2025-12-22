@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTranslations } from "next-intl"
 import { Loader2, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react"
 
@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils"
 import { linkify } from "@/lib/linkify"
 import { getBackgroundStyles, type BackgroundImageMode } from "@/components/branding/background-image-upload"
 import { getAccentStyles } from "@/components/branding/card-accent-settings"
-import type { ResolvedBranding } from "@/lib/branding/utils"
+import { getLogoForDisplayMode, type ResolvedBranding } from "@/lib/branding/utils"
 
 import { usePublicFormByToken, useSubmitFormResponseByToken } from "@/trpc/hooks/public-forms-hooks"
 import type { FormConfig, FormFieldConfig, FormSectionConfig } from "@/server/db/schemas/event-form"
@@ -46,6 +46,17 @@ export function TokenFormPage({ token, locale }: TokenFormPageProps) {
   // Language toggle state - separate from URL locale
   const [displayLocale, setDisplayLocale] = useState(locale)
   const isRtl = displayLocale === "ar"
+
+  // System dark mode detection for "auto" logo display mode
+  const [isSystemDark, setIsSystemDark] = useState(false)
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    setIsSystemDark(mediaQuery.matches)
+    const handler = (e: MediaQueryListEvent) => setIsSystemDark(e.matches)
+    mediaQuery.addEventListener("change", handler)
+    return () => mediaQuery.removeEventListener("change", handler)
+  }, [])
 
   // State
   const [step, setStep] = useState<"form" | "success">("form")
@@ -138,8 +149,13 @@ export function TokenFormPage({ token, locale }: TokenFormPageProps) {
     ? { backgroundColor: resolvedBranding.primaryColor }
     : {}
 
-  // Get logo (prefer resolved, fallback to event branding)
-  const logoUrl = resolvedBranding?.logo || eventBranding?.logo
+  // Get logo with display mode support
+  const logoDisplayMode = eventBranding?.logoDisplayMode || "light"
+  const logoUrl = getLogoForDisplayMode(
+    { logo: resolvedBranding?.logo || eventBranding?.logo, logoDark: resolvedBranding?.logoDark || eventBranding?.logoDark },
+    logoDisplayMode,
+    isSystemDark
+  )
 
   // Build guest data for form step
   const guestData = {

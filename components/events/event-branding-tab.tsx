@@ -11,7 +11,8 @@ import { useUpdateEventBranding } from "@/trpc/hooks/events-hooks"
 import { eventBrandingSchema } from "@/lib/schemas"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -47,6 +48,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
     defaultValues: {
       logo: "",
       logoDark: "",
+      logoDisplayMode: undefined,
       primaryColor: "",
       secondaryColor: "",
       primaryColorDark: "",
@@ -70,6 +72,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
       const newValues = {
         logo: data.eventBranding?.logo || "",
         logoDark: data.eventBranding?.logoDark || "",
+        logoDisplayMode: data.eventBranding?.logoDisplayMode,
         primaryColor: data.eventBranding?.primaryColor || "",
         secondaryColor: data.eventBranding?.secondaryColor || "",
         primaryColorDark: data.eventBranding?.primaryColorDark || "",
@@ -86,6 +89,25 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
 
   const watchedValues = form.watch()
 
+  // Helper to build complete branding payload for auto-save
+  const buildBrandingPayload = (overrides: Partial<FormValues> = {}) => {
+    const values = { ...form.getValues(), ...overrides }
+    return {
+      logo: values.logo || undefined,
+      logoDark: values.logoDark || undefined,
+      logoDisplayMode: values.logoDisplayMode || undefined,
+      primaryColor: values.primaryColor || undefined,
+      secondaryColor: values.secondaryColor || undefined,
+      primaryColorDark: values.primaryColorDark || undefined,
+      secondaryColorDark: values.secondaryColorDark || undefined,
+      backgroundImage: values.backgroundImage || undefined,
+      backgroundImageMode: values.backgroundImageMode || undefined,
+      cardAccent: values.cardAccent || undefined,
+      sectionHeader: values.sectionHeader || undefined,
+      emailBranding: values.emailBranding || undefined,
+    }
+  }
+
   // Calculate which fields are inherited (empty in event branding)
   const isInherited = {
     logo: !watchedValues.logo && !!workspaceBranding?.logo,
@@ -101,19 +123,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
   const onSubmit = (values: FormValues) => {
     updateBranding({
       eventId: event.id,
-      branding: {
-        logo: values.logo || undefined,
-        logoDark: values.logoDark || undefined,
-        primaryColor: values.primaryColor || undefined,
-        secondaryColor: values.secondaryColor || undefined,
-        primaryColorDark: values.primaryColorDark || undefined,
-        secondaryColorDark: values.secondaryColorDark || undefined,
-        backgroundImage: values.backgroundImage || undefined,
-        backgroundImageMode: values.backgroundImageMode || undefined,
-        cardAccent: values.cardAccent || undefined,
-        sectionHeader: values.sectionHeader || undefined,
-        emailBranding: values.emailBranding || undefined,
-      },
+      branding: buildBrandingPayload(values),
     })
   }
 
@@ -125,6 +135,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
     form.reset({
       logo: "",
       logoDark: "",
+      logoDisplayMode: undefined,
       primaryColor: "",
       secondaryColor: "",
       primaryColorDark: "",
@@ -187,39 +198,17 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
                   logo={watchedValues.logo || ""}
                   logoDark={watchedValues.logoDark || ""}
                   onLogoChange={(url) => {
-                    // Update form value for immediate visual feedback
                     form.setValue("logo", url)
-                    // Auto-save after logo upload
-                    const currentValues = form.getValues()
                     updateBranding({
                       eventId: event.id,
-                      branding: {
-                        logo: url || undefined,
-                        logoDark: currentValues.logoDark || undefined,
-                        primaryColor: currentValues.primaryColor || undefined,
-                        secondaryColor: currentValues.secondaryColor || undefined,
-                        primaryColorDark: currentValues.primaryColorDark || undefined,
-                        secondaryColorDark: currentValues.secondaryColorDark || undefined,
-                        backgroundImage: currentValues.backgroundImage || undefined,
-                      },
+                      branding: buildBrandingPayload({ logo: url }),
                     })
                   }}
                   onLogoDarkChange={(url) => {
-                    // Update form value for immediate visual feedback
                     form.setValue("logoDark", url)
-                    // Auto-save after logo upload
-                    const currentValues = form.getValues()
                     updateBranding({
                       eventId: event.id,
-                      branding: {
-                        logo: currentValues.logo || undefined,
-                        logoDark: url || undefined,
-                        primaryColor: currentValues.primaryColor || undefined,
-                        secondaryColor: currentValues.secondaryColor || undefined,
-                        primaryColorDark: currentValues.primaryColorDark || undefined,
-                        secondaryColorDark: currentValues.secondaryColorDark || undefined,
-                        backgroundImage: currentValues.backgroundImage || undefined,
-                      },
+                      branding: buildBrandingPayload({ logoDark: url }),
                     })
                   }}
                   disabled={isPending}
@@ -229,6 +218,49 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
                     Using workspace logo. Upload a custom logo to override.
                   </p>
                 )}
+
+                {/* Logo Display Mode */}
+                <FormField
+                  control={form.control}
+                  name="logoDisplayMode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("branding.logoDisplayMode") || "Logo Display Mode"}</FormLabel>
+                      <Select
+                        value={field.value || "light"}
+                        onValueChange={(value: "light" | "dark" | "auto") => {
+                          field.onChange(value)
+                          updateBranding({
+                            eventId: event.id,
+                            branding: buildBrandingPayload({ logoDisplayMode: value }),
+                          })
+                        }}
+                        disabled={isPending}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t("branding.logoDisplayModeSelect") || "Select display mode"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="light">
+                            {t("branding.logoDisplayModeLight") || "Light (Always use light logo)"}
+                          </SelectItem>
+                          <SelectItem value="dark">
+                            {t("branding.logoDisplayModeDark") || "Dark (Always use dark logo)"}
+                          </SelectItem>
+                          <SelectItem value="auto">
+                            {t("branding.logoDisplayModeAuto") || "Auto (Match user's system theme)"}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        {t("branding.logoDisplayModeDescription") || "Choose which logo to display on RSVP and form pages"}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <Separator />
@@ -333,42 +365,18 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
                 <BackgroundImageUpload
                   value={watchedValues.backgroundImage || ""}
                   onChange={(url) => {
-                    // Update form value for immediate visual feedback
                     form.setValue("backgroundImage", url, { shouldDirty: true })
-                    // Auto-save after background image change
-                    const currentValues = form.getValues()
                     updateBranding({
                       eventId: event.id,
-                      branding: {
-                        logo: currentValues.logo || undefined,
-                        logoDark: currentValues.logoDark || undefined,
-                        primaryColor: currentValues.primaryColor || undefined,
-                        secondaryColor: currentValues.secondaryColor || undefined,
-                        primaryColorDark: currentValues.primaryColorDark || undefined,
-                        secondaryColorDark: currentValues.secondaryColorDark || undefined,
-                        backgroundImage: url || undefined,
-                        backgroundImageMode: currentValues.backgroundImageMode || undefined,
-                      },
+                      branding: buildBrandingPayload({ backgroundImage: url }),
                     })
                   }}
                   mode={watchedValues.backgroundImageMode || "cover"}
                   onModeChange={(mode) => {
-                    // Update form value for immediate visual feedback
                     form.setValue("backgroundImageMode", mode, { shouldDirty: true })
-                    // Auto-save after mode change
-                    const currentValues = form.getValues()
                     updateBranding({
                       eventId: event.id,
-                      branding: {
-                        logo: currentValues.logo || undefined,
-                        logoDark: currentValues.logoDark || undefined,
-                        primaryColor: currentValues.primaryColor || undefined,
-                        secondaryColor: currentValues.secondaryColor || undefined,
-                        primaryColorDark: currentValues.primaryColorDark || undefined,
-                        secondaryColorDark: currentValues.secondaryColorDark || undefined,
-                        backgroundImage: currentValues.backgroundImage || undefined,
-                        backgroundImageMode: mode || undefined,
-                      },
+                      branding: buildBrandingPayload({ backgroundImageMode: mode }),
                     })
                   }}
                   disabled={isPending}
@@ -390,22 +398,9 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
                   value={watchedValues.cardAccent}
                   onChange={(accent) => {
                     form.setValue("cardAccent", accent, { shouldDirty: true })
-                    // Auto-save
-                    const currentValues = form.getValues()
                     updateBranding({
                       eventId: event.id,
-                      branding: {
-                        logo: currentValues.logo || undefined,
-                        logoDark: currentValues.logoDark || undefined,
-                        primaryColor: currentValues.primaryColor || undefined,
-                        secondaryColor: currentValues.secondaryColor || undefined,
-                        primaryColorDark: currentValues.primaryColorDark || undefined,
-                        secondaryColorDark: currentValues.secondaryColorDark || undefined,
-                        backgroundImage: currentValues.backgroundImage || undefined,
-                        backgroundImageMode: currentValues.backgroundImageMode || undefined,
-                        cardAccent: accent || undefined,
-                        sectionHeader: currentValues.sectionHeader || undefined,
-                      },
+                      branding: buildBrandingPayload({ cardAccent: accent }),
                     })
                   }}
                   disabled={isPending}
@@ -415,22 +410,9 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
                   value={watchedValues.sectionHeader}
                   onChange={(header) => {
                     form.setValue("sectionHeader", header, { shouldDirty: true })
-                    // Auto-save
-                    const currentValues = form.getValues()
                     updateBranding({
                       eventId: event.id,
-                      branding: {
-                        logo: currentValues.logo || undefined,
-                        logoDark: currentValues.logoDark || undefined,
-                        primaryColor: currentValues.primaryColor || undefined,
-                        secondaryColor: currentValues.secondaryColor || undefined,
-                        primaryColorDark: currentValues.primaryColorDark || undefined,
-                        secondaryColorDark: currentValues.secondaryColorDark || undefined,
-                        backgroundImage: currentValues.backgroundImage || undefined,
-                        backgroundImageMode: currentValues.backgroundImageMode || undefined,
-                        cardAccent: currentValues.cardAccent || undefined,
-                        sectionHeader: header || undefined,
-                      },
+                      branding: buildBrandingPayload({ sectionHeader: header }),
                     })
                   }}
                   disabled={isPending}
@@ -492,6 +474,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
         <BrandingPreview
           logo={resolved?.logo || watchedValues.logo}
           logoDark={resolved?.logoDark || watchedValues.logoDark}
+          logoDisplayMode={watchedValues.logoDisplayMode || "light"}
           primaryColor={resolved?.primaryColor || watchedValues.primaryColor || "#4F46E5"}
           accentColor={resolved?.accentColor || watchedValues.secondaryColor || "#0EA5E9"}
           backgroundImage={watchedValues.backgroundImage}
