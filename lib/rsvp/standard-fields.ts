@@ -461,7 +461,7 @@ export function createDefaultFormConfig(): import("@/server/db/schemas/event").R
 <p><strong>Venue:</strong> {{event.venue}}</p>
 <p><strong>Date:</strong> {{event.dateRange}}</p>
 <p style="color: var(--destructive)"><strong>RSVP Deadline:</strong> {{rsvp.deadline}}</p>`,
-        ar: `<p>عزيزي/عزيزتي <strong>{{guest.fullName}}</strong>، أنت مدعو/ة إلى <strong>{{event.name}}</strong></p>
+        ar: `<p>{{greeting.ar}} <strong>{{guest.displayNameAr}}</strong>، أنت مدعو/ة إلى <strong>{{event.name}}</strong></p>
 <p><strong>المكان:</strong> {{event.venue}}</p>
 <p><strong>التاريخ:</strong> {{event.dateRange}}</p>
 <p style="color: var(--destructive)"><strong>الموعد النهائي للرد:</strong> {{rsvp.deadline}}</p>`,

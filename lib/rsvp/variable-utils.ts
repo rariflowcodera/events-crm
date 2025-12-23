@@ -45,7 +45,7 @@ export const WELCOME_MESSAGE_VARIABLES = {
   ],
   greeting: [
     { key: "greeting.en", label: { en: "English Greeting", ar: "التحية بالإنجليزية" }, example: "Dear" },
-    { key: "greeting.ar", label: { en: "Arabic Greeting", ar: "التحية بالعربية" }, example: "الفاضل" },
+    { key: "greeting.ar", label: { en: "Arabic Greeting", ar: "التحية بالعربية" }, example: "السيد" },
   ],
   event: [
     { key: "event.name", label: { en: "Event Name", ar: "اسم الفعالية" }, example: "Asia Cup 2027" },
@@ -76,9 +76,9 @@ export function getAllVariables() {
  * Get Arabic greeting based on gender
  */
 function getArabicGreeting(gender: string | null | undefined): string {
-  if (gender === "male") return "الفاضل"
-  if (gender === "female") return "الفاضلة"
-  return "الفاضل/الفاضلة" // Fallback for unspecified
+  if (gender === "male") return "السيد"
+  if (gender === "female") return "السيدة"
+  return "السيد/السيدة" // Fallback for unspecified
 }
 
 /**

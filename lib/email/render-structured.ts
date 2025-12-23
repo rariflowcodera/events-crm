@@ -118,14 +118,14 @@ export interface RenderResult {
 
 /**
  * Get gender-aware Arabic greeting.
- * - male: الفاضل (Al-Fadil - The Honored One)
- * - female: الفاضلة (Al-Fadila - The Honored One)
- * - unspecified/null: الفاضل/الفاضلة (show both forms)
+ * - male: السيد (Al-Sayyid - Mr./Sir)
+ * - female: السيدة (Al-Sayyida - Mrs./Madam)
+ * - unspecified/null: السيد/السيدة (show both forms)
  */
 function getArabicGreeting(gender: string | null | undefined): string {
-  if (gender === "male") return "الفاضل"
-  if (gender === "female") return "الفاضلة"
-  return "الفاضل/الفاضلة" // Fallback for unspecified
+  if (gender === "male") return "السيد"
+  if (gender === "female") return "السيدة"
+  return "السيد/السيدة" // Fallback for unspecified
 }
 
 /**

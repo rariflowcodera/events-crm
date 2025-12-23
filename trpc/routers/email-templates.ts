@@ -445,7 +445,7 @@ export const emailTemplatesRouter = createTRPCRouter({
         ],
         greeting: [
           { key: "{{greeting.en}}", description: "English greeting (Dear)" },
-          { key: "{{greeting.ar}}", description: "Arabic greeting based on gender (عزيزي/عزيزتي)" },
+          { key: "{{greeting.ar}}", description: "Arabic greeting based on gender (السيد/السيدة)" },
         ],
         event: [
           { key: "{{event.name}}", description: "Event name" },
