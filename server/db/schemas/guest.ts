@@ -45,6 +45,7 @@ export const guests = pgTable(
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
     preferredName: text("preferred_name"),
+    displayNameAr: text("display_name_ar"), // Arabic display name
     title: text("title"),
     salutation: text("salutation"),
     country: text("country"), // ISO 3166-1 alpha-2 code

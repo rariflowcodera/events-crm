@@ -28,6 +28,7 @@ export interface Guest {
   id: string
   firstName: string
   lastName: string | null
+  displayNameAr: string | null
   title: string | null
   salutation: string | null
   email: string | null
@@ -77,6 +78,7 @@ export interface TemplateWithStructuredContent {
   fromName: string | null
   fromEmail: string | null
   replyTo: string | null
+  showBannerFooter?: boolean | null
 }
 
 export interface MasterTemplate {
@@ -126,6 +128,7 @@ export function buildVariableContext(
     "guest.firstName": guest.firstName || "",
     "guest.lastName": guest.lastName || "",
     "guest.fullName": [guest.firstName, guest.lastName].filter(Boolean).join(" "),
+    "guest.displayNameAr": guest.displayNameAr || "",
     "guest.title": guest.title || "",
     "guest.salutation": guest.salutation || "",
     "guest.email": guest.email || "",
@@ -339,6 +342,20 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     }
   }
 
+  // Get banner footer image URL - ensure it's absolute for email clients
+  const rawBannerUrl = resolvedEmailBranding.bannerFooterImage
+  let bannerFooterImageUrl: string | null = null
+  if (rawBannerUrl) {
+    if (rawBannerUrl.startsWith("http://") || rawBannerUrl.startsWith("https://")) {
+      bannerFooterImageUrl = rawBannerUrl
+    } else if (rawBannerUrl.startsWith("/")) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || ""
+      bannerFooterImageUrl = baseUrl ? `${baseUrl}${rawBannerUrl}` : null
+    } else {
+      bannerFooterImageUrl = rawBannerUrl
+    }
+  }
+
   const masterContext = {
     // Email metadata
     emailSubject: processedEnContent.subject,
@@ -376,9 +393,14 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     showEnglishSection: structure.showEnglishSection,
     showArabicSection: structure.showArabicSection && !!processedArContent,
     showDivider: structure.showDivider,
+    // Per-template showBannerFooter overrides master template setting
+    showBannerFooter:
+      (template.showBannerFooter ?? structure.showBannerFooter ?? true) &&
+      !!bannerFooterImageUrl,
     showFooter: structure.showFooter,
 
     // Footer
+    bannerFooterImageUrl,
     footerText: resolvedEmailBranding.footerText || `${event.name}`,
   }
 
@@ -631,6 +653,7 @@ export function getSamplePreviewData(): { guest: Guest; event: Event } {
       id: "preview-guest",
       firstName: "John",
       lastName: "Smith",
+      displayNameAr: "جون سميث",
       title: "Dr.",
       salutation: "Dr.",
       email: "john.smith@example.com",

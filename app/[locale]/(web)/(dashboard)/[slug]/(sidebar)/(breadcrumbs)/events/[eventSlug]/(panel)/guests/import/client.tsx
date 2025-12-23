@@ -62,10 +62,11 @@ interface ColumnMapping {
   entity: string
   department: string
   category: string
+  displayNameAr: string
 }
 
 const requiredFields = ["firstName", "lastName", "email"] as const
-const optionalFields = ["phone", "country", "position", "entity", "department", "category"] as const
+const optionalFields = ["phone", "country", "position", "entity", "department", "category", "displayNameAr"] as const
 const allFields = [...requiredFields, ...optionalFields] as const
 
 const fieldLabels: Record<string, string> = {
@@ -78,6 +79,7 @@ const fieldLabels: Record<string, string> = {
   entity: "Company/Entity",
   department: "Department",
   category: "Category",
+  displayNameAr: "Arabic Name",
 }
 
 export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuestsPageClientProps) {
@@ -117,6 +119,7 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
     entity: "",
     department: "",
     category: "",
+    displayNameAr: "",
   })
   const [defaultCategoryId, setDefaultCategoryId] = useState<string>("")
   const [importProgress, setImportProgress] = useState(0)
@@ -192,6 +195,7 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
           entity: "",
           department: "",
           category: "",
+          displayNameAr: "",
         }
 
         headers.forEach((header) => {
@@ -214,6 +218,8 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
             autoMapping.department = header
           } else if (lowerHeader.includes("category") || lowerHeader.includes("cat") || lowerHeader === "type") {
             autoMapping.category = header
+          } else if (lowerHeader.includes("arabicname") || lowerHeader.includes("namear") || lowerHeader === "arabic" || lowerHeader.includes("displaynamear")) {
+            autoMapping.displayNameAr = header
           }
         })
 
@@ -483,6 +489,9 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
           department: mapping.department
             ? String(row[mapping.department] || "").trim() || undefined
             : undefined,
+          displayNameAr: mapping.displayNameAr
+            ? String(row[mapping.displayNameAr] || "").trim() || undefined
+            : undefined,
         }
       })
 
@@ -570,7 +579,10 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
 
   // Download template with sample data
   const handleDownloadTemplate = useCallback(() => {
-    const headers = ["First Name", "Last Name", "Email", "Phone", "Country", "Position", "Organization/Entity", "Department", "Category"]
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Country", "Position", "Organization/Entity", "Department", "Category", "Arabic Name"]
+
+    // Sample Arabic names
+    const sampleArabicNames = ["محمد", "أحمد", "علي", "فاطمة", "سارة"]
 
     // Create sample rows - one for each category
     const sampleRows = categories.map((cat, i) => [
@@ -583,11 +595,12 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
       "",
       "",
       cat.code,
+      sampleArabicNames[i % sampleArabicNames.length],
     ])
 
     // If no categories, add a placeholder row
     if (sampleRows.length === 0) {
-      sampleRows.push(["John", "Doe", "john@example.com", "", "US", "", "", "", ""])
+      sampleRows.push(["John", "Doe", "john@example.com", "", "US", "", "", "", "", "جون دو"])
     }
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows])
@@ -603,6 +616,7 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
       { wch: 20 },
       { wch: 15 },
       { wch: 12 },
+      { wch: 15 },
     ]
 
     const wb = XLSX.utils.book_new()
@@ -680,6 +694,7 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
                     <li>Company/Entity</li>
                     <li>Department</li>
                     <li>Category (uses category code: {categories.map(c => c.code).join(", ")})</li>
+                    <li>Arabic Name (الاسم بالعربية)</li>
                   </ul>
 
                   <Button

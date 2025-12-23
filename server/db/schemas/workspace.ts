@@ -25,6 +25,7 @@ export type EmailBrandingConfig = {
 
   // Footer
   footerText?: string
+  bannerFooterImage?: string // URL for optional banner image above footer text
 }
 
 // ============================================================================

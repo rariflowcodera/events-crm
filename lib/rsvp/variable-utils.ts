@@ -9,6 +9,7 @@ export interface WelcomeMessageData {
     firstName: string
     lastName: string
     preferredName?: string
+    displayNameAr?: string
     title?: string
     email?: string
   }
@@ -35,6 +36,7 @@ export const WELCOME_MESSAGE_VARIABLES = {
     { key: "guest.firstName", label: { en: "First Name", ar: "الاسم الأول" }, example: "Ahmed" },
     { key: "guest.lastName", label: { en: "Last Name", ar: "اسم العائلة" }, example: "Al-Rashid" },
     { key: "guest.fullName", label: { en: "Full Name", ar: "الاسم الكامل" }, example: "Ahmed Al-Rashid" },
+    { key: "guest.displayNameAr", label: { en: "Arabic Name", ar: "الاسم بالعربية" }, example: "أحمد الراشد" },
     { key: "guest.title", label: { en: "Title", ar: "اللقب" }, example: "Mr." },
     { key: "guest.email", label: { en: "Email", ar: "البريد الإلكتروني" }, example: "ahmed@example.com" },
   ],
@@ -111,12 +113,16 @@ export function replaceWelcomeMessageVariables(
     })
   }
 
+  // Build Arabic name with fallback to English full name
+  const arabicName = guest.displayNameAr || fullName
+
   // Variable replacements map
   const replacements: Record<string, string> = {
     // Guest variables
     "guest.firstName": guest.firstName || "",
     "guest.lastName": guest.lastName || "",
     "guest.fullName": fullName,
+    "guest.displayNameAr": arabicName,
     "guest.title": guest.title || "",
     "guest.email": guest.email || "",
 
@@ -143,7 +149,8 @@ export function replaceWelcomeMessageVariables(
  */
 export function getDefaultWelcomeMessage(locale: "en" | "ar"): string {
   if (locale === "ar") {
-    return `<p>عزيزي/عزيزتي <strong>{{guest.fullName}}</strong>، أنت مدعو/ة إلى <strong>{{event.name}}</strong></p>
+    // Use displayNameAr which falls back to fullName if not set
+    return `<p>عزيزي/عزيزتي <strong>{{guest.displayNameAr}}</strong>، أنت مدعو/ة إلى <strong>{{event.name}}</strong></p>
 <p><strong>المكان:</strong> {{event.venue}}</p>
 <p><strong>التاريخ:</strong> {{event.dateRange}}</p>
 <p style="color: var(--destructive)"><strong>الموعد النهائي للرد:</strong> {{rsvp.deadline}}</p>`

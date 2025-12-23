@@ -115,6 +115,7 @@ type EmailPreviewData = {
     templateId?: string | null
     structuredContent?: unknown
     masterTemplateId?: string | null
+    showBannerFooter?: boolean
     isStructuredMode: boolean
   }
 }
@@ -143,38 +144,6 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
     }
   }, [])
 
-  // Refresh handler - re-renders the email with latest branding/template
-  const handleRefresh = async () => {
-    if (!templateData?._meta?.isStructuredMode || !templateData._meta.eventId) {
-      // Legacy mode or missing metadata - just reload from sessionStorage
-      const stored = sessionStorage.getItem("emailPreviewData")
-      if (stored) {
-        setTemplateData(JSON.parse(stored))
-      }
-      return
-    }
-
-    try {
-      const result = await previewStructuredDraft({
-        eventId: templateData._meta.eventId,
-        structuredContent: templateData._meta.structuredContent as Parameters<typeof previewStructuredDraft>[0]["structuredContent"],
-        masterTemplateId: templateData._meta.masterTemplateId || undefined,
-        language: templateData.lang,
-      })
-
-      const newData: EmailPreviewData = {
-        ...templateData,
-        subject: result.subject,
-        html: result.html,
-        text: result.text || "",
-      }
-
-      setTemplateData(newData)
-      sessionStorage.setItem("emailPreviewData", JSON.stringify(newData))
-    } catch (error) {
-      console.error("Failed to refresh preview:", error)
-    }
-  }
 
   // Extract values from template data
   const subject = templateData?.subject || ""
@@ -202,6 +171,67 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
     if (!selectedGuestId && guests.length > 0) return guests[0]
     return guests.find((g) => g.id === selectedGuestId) || guests[0]
   }, [selectedGuestId, guests])
+
+  // Function to re-render preview with current guest
+  const refreshPreview = async (guestId?: string) => {
+    if (!templateData?._meta?.isStructuredMode || !templateData._meta.eventId) {
+      return
+    }
+
+    try {
+      const result = await previewStructuredDraft({
+        eventId: templateData._meta.eventId,
+        structuredContent: templateData._meta.structuredContent as Parameters<typeof previewStructuredDraft>[0]["structuredContent"],
+        masterTemplateId: templateData._meta.masterTemplateId || undefined,
+        showBannerFooter: templateData._meta.showBannerFooter,
+        language: templateData.lang,
+        guestId,
+      })
+
+      const newData: EmailPreviewData = {
+        ...templateData,
+        subject: result.subject,
+        html: result.html,
+        text: result.text || "",
+      }
+
+      setTemplateData(newData)
+      sessionStorage.setItem("emailPreviewData", JSON.stringify(newData))
+    } catch (error) {
+      console.error("Failed to refresh preview:", error)
+    }
+  }
+
+  // Re-render when guest selection changes
+  useEffect(() => {
+    if (selectedGuest?.id && templateData?._meta?.isStructuredMode) {
+      refreshPreview(selectedGuest.id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGuest?.id])
+
+  // Refresh button handler
+  const handleRefresh = async () => {
+    if (!templateData?._meta?.isStructuredMode) {
+      // Legacy mode - just reload from sessionStorage
+      const stored = sessionStorage.getItem("emailPreviewData")
+      if (stored) {
+        setTemplateData(JSON.parse(stored))
+      }
+      return
+    }
+    // Structured mode - re-render with current guest
+    await refreshPreview(selectedGuest?.id)
+  }
+
+  // Open full screen preview in new window
+  const handleFullScreen = () => {
+    const previewWindow = window.open("", "_blank")
+    if (previewWindow) {
+      previewWindow.document.write(renderedHtml || "<p>No HTML content</p>")
+      previewWindow.document.close()
+    }
+  }
 
   // Build preview data
   const previewData = useMemo(() => {
@@ -254,21 +284,40 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
     return { guest: guestData, event: eventData, rsvp: rsvpData, category: categoryData }
   }, [selectedGuest, event])
 
-  // Render content with variables replaced (first documents, then other variables)
+  // Render content with variables replaced
+  // In structured mode, the server already replaces all variables including documents
+  // In legacy mode, we need client-side replacement
+  const isStructuredMode = templateData?._meta?.isStructuredMode ?? false
+
   const renderedSubject = useMemo(() => {
+    if (isStructuredMode) {
+      // Server already rendered all variables
+      return subject
+    }
+    // Legacy mode: apply client-side variable replacement
     const withDocs = replaceDocumentVariables(subject, documents, false)
     return replaceVariables(withDocs, previewData)
-  }, [subject, previewData, documents])
+  }, [subject, previewData, documents, isStructuredMode])
 
   const renderedHtml = useMemo(() => {
+    if (isStructuredMode) {
+      // Server already rendered all variables
+      return htmlContent
+    }
+    // Legacy mode: apply client-side variable replacement
     const withDocs = replaceDocumentVariables(htmlContent, documents, true)
     return replaceVariables(withDocs, previewData)
-  }, [htmlContent, previewData, documents])
+  }, [htmlContent, previewData, documents, isStructuredMode])
 
   const renderedText = useMemo(() => {
+    if (isStructuredMode) {
+      // Server already rendered all variables
+      return textContent
+    }
+    // Legacy mode: apply client-side variable replacement
     const withDocs = replaceDocumentVariables(textContent, documents, false)
     return replaceVariables(withDocs, previewData)
-  }, [textContent, previewData, documents])
+  }, [textContent, previewData, documents, isStructuredMode])
 
   const direction = language === "ar" ? "rtl" : "ltr"
   const isLoading = isLoadingEvent || isLoadingGuests || templateData === null
@@ -307,15 +356,25 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
             <div className="h-6 w-px bg-border" />
             <h1 className="text-lg font-semibold">{t("preview")}</h1>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <Icons.refresh className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-            {isRefreshing ? "Refreshing..." : "Refresh"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <Icons.refresh className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              {isRefreshing ? "Refreshing..." : "Refresh"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleFullScreen}
+            >
+              <Icons.externalLink className="mr-2 h-4 w-4" />
+              Full Screen
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -374,27 +433,31 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
             <TabsContent value="html" className="m-0">
               <div className="bg-white dark:bg-zinc-950">
                 <iframe
-                  srcDoc={`
-                    <!DOCTYPE html>
-                    <html dir="${direction}">
-                    <head>
-                      <meta charset="utf-8">
-                      <meta name="viewport" content="width=device-width, initial-scale=1">
-                      <style>
-                        body {
-                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                          margin: 0;
-                          padding: 24px;
-                          line-height: 1.6;
-                          color: #1a1a1a;
-                        }
-                        a { color: #2563eb; }
-                        img { max-width: 100%; height: auto; }
-                      </style>
-                    </head>
-                    <body>${renderedHtml || "<p>No HTML content</p>"}</body>
-                    </html>
-                  `}
+                  srcDoc={
+                    isStructuredMode
+                      ? renderedHtml || `<!DOCTYPE html><html><body><p>No HTML content</p></body></html>`
+                      : `
+                        <!DOCTYPE html>
+                        <html dir="${direction}">
+                        <head>
+                          <meta charset="utf-8">
+                          <meta name="viewport" content="width=device-width, initial-scale=1">
+                          <style>
+                            body {
+                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                              margin: 0;
+                              padding: 24px;
+                              line-height: 1.6;
+                              color: #1a1a1a;
+                            }
+                            a { color: #2563eb; }
+                            img { max-width: 100%; height: auto; }
+                          </style>
+                        </head>
+                        <body>${renderedHtml || "<p>No HTML content</p>"}</body>
+                        </html>
+                      `
+                  }
                   sandbox="allow-same-origin"
                   className="h-[calc(100vh-400px)] min-h-[500px] w-full border-0"
                   title="Email Preview"

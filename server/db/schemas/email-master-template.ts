@@ -22,6 +22,7 @@ export type MasterTemplateStructure = {
   showArabicSection: boolean
   showDivider: boolean
   showFooter: boolean
+  showBannerFooter: boolean // Show banner image above footer (if configured in branding)
   sectionOrder: ("en" | "ar")[]
 }
 

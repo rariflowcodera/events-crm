@@ -80,6 +80,7 @@ export async function GET(
       firstName: guest.firstName,
       lastName: guest.lastName,
       preferredName: guest.preferredName,
+      displayNameAr: guest.displayNameAr,
       title: guest.title,
       salutation: guest.salutation,
       email: guest.email,

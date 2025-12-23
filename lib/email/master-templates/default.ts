@@ -10,6 +10,7 @@ export const defaultMasterTemplateStructure: MasterTemplateStructure = {
   showArabicSection: true,
   showDivider: true,
   showFooter: true,
+  showBannerFooter: true,
   sectionOrder: ["en", "ar"],
 }
 
@@ -36,6 +37,7 @@ export const defaultMasterTemplateStructure: MasterTemplateStructure = {
  * - {{enContent}} - Rendered English content section
  * - {{arContent}} - Rendered Arabic content section
  * - {{footerText}} - Footer text
+ * - {{bannerFooterImageUrl}} - Banner footer image URL
  *
  * Conditional flags:
  * - {{#if showLogo}}...{{/if}}
@@ -43,6 +45,7 @@ export const defaultMasterTemplateStructure: MasterTemplateStructure = {
  * - {{#if showEnglishSection}}...{{/if}}
  * - {{#if showArabicSection}}...{{/if}}
  * - {{#if showDivider}}...{{/if}}
+ * - {{#if showBannerFooter}}...{{/if}}
  * - {{#if showFooter}}...{{/if}}
  */
 export const defaultMasterTemplate = `<!DOCTYPE html>
@@ -233,6 +236,17 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
 
               </td>
             </tr>
+
+            {{#if showBannerFooter}}
+            {{#if bannerFooterImageUrl}}
+            <!-- Banner Footer Image -->
+            <tr>
+              <td style="padding: 0;">
+                <img src="{{bannerFooterImageUrl}}" alt="" style="width: 100%; height: auto; display: block;" />
+              </td>
+            </tr>
+            {{/if}}
+            {{/if}}
 
           </table>
         </td>

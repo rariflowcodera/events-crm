@@ -225,6 +225,7 @@
       "firstName": "First Name",
       "lastName": "Last Name",
       "preferredName": "Preferred Name",
+      "displayNameAr": "Arabic Name",
       "title": "Title",
       "position": "Position",
       "entity": "Organization/Entity",
@@ -363,6 +364,8 @@
     "headingDescription": "Main heading displayed prominently in the email",
     "subheading": "Subheading",
     "subheadingDescription": "Optional subheading or event name/tagline",
+    "showBannerFooter": "Show Banner Footer",
+    "showBannerFooterDescription": "Display the banner image configured in branding settings",
     "fields": {
       "name": "Template Name",
       "type": "Template Type",
@@ -828,7 +831,12 @@
     "logoDisplayModeLight": "Light (Always use light logo)",
     "logoDisplayModeDark": "Dark (Always use dark logo)",
     "logoDisplayModeAuto": "Auto (Match user's system theme)",
-    "logoDisplayModeDescription": "Choose which logo to display on RSVP and form pages"
+    "logoDisplayModeDescription": "Choose which logo to display on RSVP and form pages",
+    "bannerFooterImage": {
+      "title": "Banner Footer Image",
+      "description": "Optional image displayed above the footer text in emails",
+      "hint": "Recommended width: 600px. This image appears above the footer text."
+    }
   },
   "documents": {
     "title": "Document Library",

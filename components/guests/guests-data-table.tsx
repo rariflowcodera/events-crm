@@ -70,6 +70,7 @@ interface Guest {
   firstName: string
   lastName: string
   preferredName: string | null
+  displayNameAr: string | null
   title: string | null
   salutation: string | null
   profileImage: string | null
@@ -381,6 +382,20 @@ export function GuestsDataTable({
         header: "Preferred Name",
         cell: ({ getValue }) => (getValue() as string) || "",
         size: getColumnWidth("preferredName"),
+      },
+      {
+        id: "displayNameAr",
+        accessorKey: "displayNameAr",
+        header: "Arabic Name",
+        cell: ({ getValue }) => {
+          const value = getValue() as string | null
+          return (
+            <span className="truncate" dir="rtl" title={value ?? undefined}>
+              {value || ""}
+            </span>
+          )
+        },
+        size: getColumnWidth("displayNameAr"),
       },
       {
         id: "title",

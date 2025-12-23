@@ -67,6 +67,7 @@ const masterTemplateFormSchema = z.object({
     showArabicSection: z.boolean(),
     showDivider: z.boolean(),
     showFooter: z.boolean(),
+    showBannerFooter: z.boolean(),
     sectionOrder: z.array(z.enum(["en", "ar"])),
   }),
   htmlTemplate: z.string().optional(),
@@ -115,6 +116,7 @@ export function MasterTemplateEditor({
         showArabicSection: true,
         showDivider: true,
         showFooter: true,
+        showBannerFooter: true,
         sectionOrder: ["en", "ar"],
       },
       htmlTemplate: initialValues?.htmlTemplate || defaultHtmlTemplate || "",
@@ -373,6 +375,27 @@ export function MasterTemplateEditor({
                                 <Label className="font-normal">Show Footer</Label>
                                 <p className="text-xs text-muted-foreground">
                                   Footer text at the bottom
+                                </p>
+                              </div>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
+                        />
+
+                        <Separator />
+
+                        <FormField
+                          control={form.control}
+                          name="structure.showBannerFooter"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between py-2">
+                              <div>
+                                <Label className="font-normal">Show Banner Footer Image</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Display banner image above footer (if configured in branding)
                                 </p>
                               </div>
                               <Switch

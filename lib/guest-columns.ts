@@ -22,6 +22,7 @@ export type GuestColumnId =
   | "firstName"
   | "lastName"
   | "preferredName"
+  | "displayNameAr"
   | "title"
   | "salutation"
   | "email"
@@ -136,6 +137,16 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     labelAr: "الاسم المفضل",
     defaultVisible: false,
     defaultWidth: 130,
+    sortable: true,
+    filterable: false,
+    group: "personal",
+  },
+  {
+    id: "displayNameAr",
+    label: "Arabic Name",
+    labelAr: "الاسم بالعربية",
+    defaultVisible: false,
+    defaultWidth: 150,
     sortable: true,
     filterable: false,
     group: "personal",

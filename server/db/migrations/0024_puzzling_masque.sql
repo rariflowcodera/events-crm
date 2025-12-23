@@ -1,0 +1,1 @@
+ALTER TABLE "email_template" ADD COLUMN "show_banner_footer" boolean DEFAULT true;

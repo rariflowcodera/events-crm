@@ -60,6 +60,7 @@ interface ParsedRow {
 interface ColumnMapping {
   firstName: string
   lastName: string
+  displayNameAr: string
   email: string
   phone: string
   country: string
@@ -70,12 +71,13 @@ interface ColumnMapping {
 }
 
 const requiredFields = ["firstName", "lastName", "email"] as const
-const optionalFields = ["phone", "country", "position", "entity", "department", "category"] as const
+const optionalFields = ["displayNameAr", "phone", "country", "position", "entity", "department", "category"] as const
 const allFields = [...requiredFields, ...optionalFields] as const
 
 const fieldLabels: Record<string, string> = {
   firstName: "First Name",
   lastName: "Last Name",
+  displayNameAr: "Arabic Name",
   email: "Email",
   phone: "Phone",
   country: "Country",
@@ -101,6 +103,7 @@ export function ImportGuestsModal({
   const [mapping, setMapping] = useState<ColumnMapping>({
     firstName: "",
     lastName: "",
+    displayNameAr: "",
     email: "",
     phone: "",
     country: "",
@@ -171,6 +174,7 @@ export function ImportGuestsModal({
         const autoMapping: ColumnMapping = {
           firstName: "",
           lastName: "",
+          displayNameAr: "",
           email: "",
           phone: "",
           country: "",
@@ -186,6 +190,8 @@ export function ImportGuestsModal({
             autoMapping.firstName = header
           } else if (lowerHeader.includes("lastname") || lowerHeader === "last") {
             autoMapping.lastName = header
+          } else if (lowerHeader.includes("arabicname") || lowerHeader.includes("namear") || lowerHeader.includes("displaynamear") || lowerHeader === "arabic") {
+            autoMapping.displayNameAr = header
           } else if (lowerHeader.includes("email") || lowerHeader.includes("mail")) {
             autoMapping.email = header
           } else if (lowerHeader.includes("phone") || lowerHeader.includes("mobile") || lowerHeader.includes("tel")) {
@@ -220,6 +226,7 @@ export function ImportGuestsModal({
     return parsedData.slice(0, 5).map((row) => ({
       firstName: String(row[mapping.firstName] || ""),
       lastName: String(row[mapping.lastName] || ""),
+      displayNameAr: mapping.displayNameAr ? String(row[mapping.displayNameAr] || "") : "",
       email: String(row[mapping.email] || ""),
       phone: mapping.phone ? String(row[mapping.phone] || "") : "",
       country: mapping.country ? String(row[mapping.country] || "") : "",
@@ -453,6 +460,9 @@ export function ImportGuestsModal({
           categoryId,
           firstName: String(row[mapping.firstName] || "").trim(),
           lastName: String(row[mapping.lastName] || "").trim(),
+          displayNameAr: mapping.displayNameAr
+            ? String(row[mapping.displayNameAr] || "").trim() || undefined
+            : undefined,
           email: String(row[mapping.email] || "").trim(),
           phone: mapping.phone
             ? String(row[mapping.phone] || "").trim() || undefined
@@ -568,6 +578,7 @@ export function ImportGuestsModal({
     setMapping({
       firstName: "",
       lastName: "",
+      displayNameAr: "",
       email: "",
       phone: "",
       country: "",
@@ -593,12 +604,13 @@ export function ImportGuestsModal({
 
   // Download template with sample data
   const handleDownloadTemplate = useCallback(() => {
-    const headers = ["First Name", "Last Name", "Email", "Phone", "Country", "Position", "Organization/Entity", "Department", "Category"]
+    const headers = ["First Name", "Last Name", "Arabic Name", "Email", "Phone", "Country", "Position", "Organization/Entity", "Department", "Category"]
 
     // Create sample rows - one for each category
     const sampleRows = categories.map((cat, i) => [
       `Sample First ${i + 1}`,
       `Sample Last ${i + 1}`,
+      `نموذج ${i + 1}`, // Sample Arabic name
       `sample${i + 1}@example.com`,
       "",
       "SA", // Sample country code
@@ -610,7 +622,7 @@ export function ImportGuestsModal({
 
     // If no categories, add a placeholder row
     if (sampleRows.length === 0) {
-      sampleRows.push(["John", "Doe", "john@example.com", "", "US", "", "", "", ""])
+      sampleRows.push(["John", "Doe", "جون دو", "john@example.com", "", "US", "", "", "", ""])
     }
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows])
@@ -619,6 +631,7 @@ export function ImportGuestsModal({
     ws["!cols"] = [
       { wch: 15 }, // First Name
       { wch: 15 }, // Last Name
+      { wch: 20 }, // Arabic Name
       { wch: 25 }, // Email
       { wch: 15 }, // Phone
       { wch: 15 }, // Country
@@ -692,6 +705,7 @@ export function ImportGuestsModal({
                     </ul>
                     <h4 className="mt-3 text-sm font-medium">Optional columns:</h4>
                     <ul className="mt-2 text-sm text-muted-foreground list-disc list-inside">
+                      <li>Arabic Name</li>
                       <li>Phone</li>
                       <li>Country (code like &quot;SA&quot; or name like &quot;Saudi Arabia&quot;)</li>
                       <li>Position/Title</li>

@@ -486,6 +486,7 @@ export const emailMasterTemplatesRouter = createTRPCRouter({
             showArabicSection: z.boolean(),
             showDivider: z.boolean(),
             showFooter: z.boolean(),
+            showBannerFooter: z.boolean(),
             sectionOrder: z.array(z.enum(["en", "ar"])),
           })
           .optional(),

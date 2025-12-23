@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ColorPicker } from "./color-picker"
+import { BackgroundImageUpload } from "./background-image-upload"
 import { cn } from "@/lib/utils"
 
 // ============================================================================
@@ -428,6 +429,36 @@ export function EmailBrandingSettings({
                 </FormControl>
                 <FormDescription>
                   Displayed at the bottom of all emails. Leave empty to use event name.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Banner Footer Image Section */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base">{t("bannerFooterImage.title")}</CardTitle>
+          <CardDescription>
+            {t("bannerFooterImage.description")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormField
+            control={form.control}
+            name={`${namePrefix}.bannerFooterImage`}
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <BackgroundImageUpload
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormDescription>
+                  {t("bannerFooterImage.hint")}
                 </FormDescription>
                 <FormMessage />
               </FormItem>

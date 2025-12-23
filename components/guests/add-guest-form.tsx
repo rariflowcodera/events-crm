@@ -45,6 +45,7 @@ interface AddGuestFormProps {
 const addGuestSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
   lastName: z.string().min(1, "Last name is required").max(100),
+  displayNameAr: z.string().optional(),
   email: z.string().min(1, "Email is required").email("Invalid email address"),
   phone: z.string().optional(),
   country: z.string().optional(),
@@ -65,6 +66,7 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
     defaultValues: {
       firstName: "",
       lastName: "",
+      displayNameAr: "",
       email: "",
       phone: "",
       country: "",
@@ -88,6 +90,7 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
       eventId,
       firstName: values.firstName,
       lastName: values.lastName,
+      displayNameAr: values.displayNameAr || undefined,
       email: values.email,
       phone: values.phone || undefined,
       country: values.country || undefined,
@@ -154,6 +157,25 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="displayNameAr"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("fields.displayNameAr")}</FormLabel>
+              <FormControl>
+                <Input
+                  dir="rtl"
+                  placeholder="الاسم بالعربية"
+                  disabled={isPending}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}

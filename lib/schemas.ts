@@ -71,6 +71,7 @@ export const emailBrandingConfigSchema = z.object({
 
   // Footer
   footerText: z.string().max(500).optional(),
+  bannerFooterImage: brandingImageSchema, // URL for optional banner image above footer text
 })
 
 export type EmailBrandingConfigInput = z.infer<typeof emailBrandingConfigSchema>
@@ -484,6 +485,7 @@ export const masterTemplateStructureSchema = z.object({
   showArabicSection: z.boolean().default(true),
   showDivider: z.boolean().default(true),
   showFooter: z.boolean().default(true),
+  showBannerFooter: z.boolean().default(true),
   sectionOrder: z.array(z.enum(["en", "ar"])).default(["en", "ar"]),
 })
 

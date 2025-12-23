@@ -432,6 +432,7 @@ export const emailTemplatesRouter = createTRPCRouter({
           { key: "{{guest.firstName}}", description: "Guest's first name" },
           { key: "{{guest.lastName}}", description: "Guest's last name" },
           { key: "{{guest.fullName}}", description: "Guest's full name" },
+          { key: "{{guest.displayNameAr}}", description: "Guest's Arabic name" },
           { key: "{{guest.title}}", description: "Guest's title (Mr., Mrs., etc.)" },
           { key: "{{guest.salutation}}", description: "Guest's salutation" },
           { key: "{{guest.email}}", description: "Guest's email address" },
@@ -690,6 +691,7 @@ export const emailTemplatesRouter = createTRPCRouter({
         categoryId: z.string().uuid().optional(),
         structuredContent: bilingualStructuredContentSchema,
         masterTemplateId: z.string().uuid().optional(),
+        showBannerFooter: z.boolean().default(true),
         defaultLanguage: z.enum(["en", "ar"]).default("en"),
         fromName: z.string().optional(),
         fromEmail: z.string().email().optional().or(z.literal("")),
@@ -786,6 +788,7 @@ export const emailTemplatesRouter = createTRPCRouter({
           content: placeholderContent,
           structuredContent: input.structuredContent,
           masterTemplateId: input.masterTemplateId,
+          showBannerFooter: input.showBannerFooter,
           defaultLanguage: input.defaultLanguage,
           fromName: input.fromName || null,
           fromEmail: input.fromEmail || null,
@@ -805,6 +808,7 @@ export const emailTemplatesRouter = createTRPCRouter({
         templateId: z.string().uuid(),
         structuredContent: bilingualStructuredContentSchema,
         masterTemplateId: z.string().uuid().nullable().optional(),
+        showBannerFooter: z.boolean().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -851,6 +855,10 @@ export const emailTemplatesRouter = createTRPCRouter({
 
       if (input.masterTemplateId !== undefined) {
         updateData.masterTemplateId = input.masterTemplateId
+      }
+
+      if (input.showBannerFooter !== undefined) {
+        updateData.showBannerFooter = input.showBannerFooter
       }
 
       const [updated] = await db
@@ -930,6 +938,7 @@ export const emailTemplatesRouter = createTRPCRouter({
             id: guestRecord.id,
             firstName: guestRecord.firstName,
             lastName: guestRecord.lastName,
+            displayNameAr: guestRecord.displayNameAr,
             title: guestRecord.title,
             salutation: guestRecord.salutation,
             email: guestRecord.email,
@@ -1128,6 +1137,7 @@ export const emailTemplatesRouter = createTRPCRouter({
         masterTemplateId: z.string().uuid().optional().nullable(),
         language: z.enum(["en", "ar"]).optional(),
         guestId: z.string().uuid().optional(), // Use real guest data if provided
+        showBannerFooter: z.boolean().optional(), // Per-template toggle for banner footer
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -1195,6 +1205,7 @@ export const emailTemplatesRouter = createTRPCRouter({
             id: guestRecord.id,
             firstName: guestRecord.firstName,
             lastName: guestRecord.lastName,
+            displayNameAr: guestRecord.displayNameAr,
             title: guestRecord.title,
             salutation: guestRecord.salutation,
             email: guestRecord.email,
@@ -1215,6 +1226,7 @@ export const emailTemplatesRouter = createTRPCRouter({
           id: "sample-guest-id",
           firstName: "John",
           lastName: "Doe",
+          displayNameAr: "جون دو",
           title: "Mr.",
           salutation: "Dear Mr. Doe",
           email: "john.doe@example.com",
@@ -1236,6 +1248,7 @@ export const emailTemplatesRouter = createTRPCRouter({
           fromName: null,
           fromEmail: null,
           replyTo: null,
+          showBannerFooter: input.showBannerFooter,
         },
         masterTemplate: masterTemplate
           ? {

@@ -15,6 +15,8 @@ import {
   workflows,
   workflowSteps,
   emailMasterTemplates,
+  type EventBranding,
+  type EmailBrandingConfig,
 } from "@/server/db/schemas"
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
 import { DEFAULT_EMAIL_TEMPLATES } from "@/lib/email/default-templates"
@@ -554,10 +556,38 @@ export const eventsRouter = createTRPCRouter({
         })
       }
 
+      // If branding is null, reset to workspace defaults
+      if (branding === null) {
+        const [updated] = await db
+          .update(events)
+          .set({ branding: null, updatedAt: new Date() })
+          .where(eq(events.id, eventId))
+          .returning({ id: events.id, branding: events.branding })
+
+        return {
+          message: "Event branding reset to workspace defaults",
+          branding: updated.branding,
+        }
+      }
+
+      // Merge with existing branding to prevent losing existing settings
+      const existingBranding = (event.branding ?? {}) as EventBranding
+      const mergedEmailBranding: EmailBrandingConfig | undefined =
+        branding.emailBranding !== undefined
+          ? { ...existingBranding.emailBranding, ...branding.emailBranding }
+          : existingBranding.emailBranding
+
+      const mergedBranding: EventBranding = {
+        ...existingBranding,
+        ...branding,
+        // Deep merge emailBranding to preserve existing email settings
+        emailBranding: mergedEmailBranding,
+      }
+
       const [updated] = await db
         .update(events)
         .set({
-          branding,
+          branding: mergedBranding,
           updatedAt: new Date(),
         })
         .where(eq(events.id, eventId))
@@ -567,10 +597,7 @@ export const eventsRouter = createTRPCRouter({
         })
 
       return {
-        message:
-          branding === null
-            ? "Event branding reset to workspace defaults"
-            : "Event branding updated successfully",
+        message: "Event branding updated successfully",
         branding: updated.branding,
       }
     }),

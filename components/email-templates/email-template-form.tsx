@@ -94,6 +94,7 @@ const structuredFormSchema = z.object({
   categoryId: z.string().nullable().optional(),
   structuredContent: bilingualStructuredContentSchema,
   masterTemplateId: z.string().nullable().optional(),
+  showBannerFooter: z.boolean().default(true),
   defaultLanguage: z.enum(["en", "ar"]),
   fromName: z.string().max(100).optional(),
   fromEmail: z.string().email().optional().or(z.literal("")),
@@ -225,6 +226,7 @@ export function EmailTemplateForm({
           categoryId: template.categoryId,
           structuredContent: template.structuredContent,
           masterTemplateId: template.masterTemplateId || null,
+          showBannerFooter: template.showBannerFooter ?? true,
           defaultLanguage: (template.defaultLanguage as "en" | "ar") || "en",
           fromName: template.fromName || "",
           fromEmail: template.fromEmail || "",
@@ -280,6 +282,7 @@ export function EmailTemplateForm({
           templateId,
           structuredContent: structuredData.structuredContent,
           masterTemplateId: structuredData.masterTemplateId || undefined,
+          showBannerFooter: structuredData.showBannerFooter,
         })
       } else {
         createStructuredTemplate({
@@ -289,6 +292,7 @@ export function EmailTemplateForm({
           categoryId: structuredData.categoryId || undefined,
           structuredContent: structuredData.structuredContent,
           masterTemplateId: structuredData.masterTemplateId || undefined,
+          showBannerFooter: structuredData.showBannerFooter,
           defaultLanguage: structuredData.defaultLanguage,
           fromName: structuredData.fromName || undefined,
           fromEmail: structuredData.fromEmail || undefined,
@@ -409,6 +413,7 @@ export function EmailTemplateForm({
           },
         },
         masterTemplateId: null,
+        showBannerFooter: true,
         defaultLanguage: currentValues.defaultLanguage,
         fromName: currentValues.fromName,
         fromEmail: currentValues.fromEmail,
@@ -474,10 +479,12 @@ export function EmailTemplateForm({
         const structuredContent = form.getValues("structuredContent")
         const masterTemplateId = form.getValues("masterTemplateId")
 
+        const showBannerFooter = form.getValues("showBannerFooter")
         const result = await previewStructuredDraft({
           eventId,
           structuredContent,
           masterTemplateId: masterTemplateId || undefined,
+          showBannerFooter,
           language: activeLanguage,
         })
 
@@ -497,6 +504,7 @@ export function EmailTemplateForm({
             templateId,
             structuredContent,
             masterTemplateId: masterTemplateId || null,
+            showBannerFooter,
             isStructuredMode: true,
           },
         }
@@ -706,7 +714,7 @@ export function EmailTemplateForm({
 
                 {/* Master Template Selector (only for structured mode) */}
                 {useStructuredMode && (
-                  <div className="mt-4 pt-4 border-t">
+                  <div className="mt-4 pt-4 border-t space-y-4">
                     <FormField
                       control={form.control}
                       name="masterTemplateId"
@@ -748,6 +756,26 @@ export function EmailTemplateForm({
                             The master template defines the email layout and styling
                           </FormDescription>
                         </FormItem>
+                      )}
+                    />
+
+                    {/* Banner Footer Toggle */}
+                    <FormField
+                      control={form.control}
+                      name="showBannerFooter"
+                      render={({ field }) => (
+                        <div className="flex items-center justify-between pt-4 border-t">
+                          <div className="space-y-0.5">
+                            <Label className="font-normal">{t("showBannerFooter")}</Label>
+                            <p className="text-xs text-muted-foreground">
+                              {t("showBannerFooterDescription")}
+                            </p>
+                          </div>
+                          <Switch
+                            checked={field.value ?? true}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
                       )}
                     />
                   </div>

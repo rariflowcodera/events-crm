@@ -69,6 +69,7 @@ interface Guest {
   id: string
   firstName: string
   lastName: string
+  displayNameAr: string | null
   email: string | null
   phone: string | null
   country: string | null
@@ -119,6 +120,7 @@ const statusOptions: { value: GuestStatus; label: string }[] = [
 const editGuestSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
   lastName: z.string().min(1, "Last name is required").max(100),
+  displayNameAr: z.string().optional(),
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   phone: z.string().optional(),
   country: z.string().optional(),
@@ -175,6 +177,7 @@ export function GuestDetailContent({
     defaultValues: {
       firstName: guest.firstName,
       lastName: guest.lastName,
+      displayNameAr: guest.displayNameAr || "",
       email: guest.email || "",
       phone: guest.phone || "",
       country: guest.country || "",
@@ -203,6 +206,7 @@ export function GuestDetailContent({
       guestId: guest.id,
       firstName: values.firstName,
       lastName: values.lastName,
+      displayNameAr: values.displayNameAr || undefined,
       email: values.email || undefined,
       phone: values.phone || undefined,
       country: values.country || undefined,
@@ -334,6 +338,25 @@ export function GuestDetailContent({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="displayNameAr"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("fields.displayNameAr")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      dir="rtl"
+                      placeholder="الاسم بالعربية"
+                      disabled={isUpdating}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -555,6 +578,13 @@ export function GuestDetailContent({
                 </AvatarFallback>
               </Avatar>
             </div>
+
+            {guest.displayNameAr && (
+              <div className="text-center">
+                <p className="text-muted-foreground text-xs">{t("fields.displayNameAr")}</p>
+                <p className="text-sm" dir="rtl">{guest.displayNameAr}</p>
+              </div>
+            )}
 
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium">Contact Information</h4>

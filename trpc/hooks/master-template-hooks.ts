@@ -55,6 +55,7 @@ export const useMasterTemplatePreview = (params: {
     showArabicSection: boolean
     showDivider: boolean
     showFooter: boolean
+    showBannerFooter: boolean
     sectionOrder: ("en" | "ar")[]
   }
   workspaceId: string

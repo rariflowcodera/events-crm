@@ -89,6 +89,9 @@ export const emailTemplates = pgTable(
       { onDelete: "set null" }
     ),
 
+    // Per-template toggle for banner footer image (overrides master template setting)
+    showBannerFooter: boolean("show_banner_footer").default(true),
+
     // Default language for this template
     defaultLanguage: text("default_language").notNull().default("en"),
 

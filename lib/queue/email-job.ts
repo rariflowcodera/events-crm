@@ -18,6 +18,7 @@ interface Guest {
   id: string
   firstName: string
   lastName: string | null
+  displayNameAr: string | null
   title: string | null
   salutation: string | null
   email: string | null

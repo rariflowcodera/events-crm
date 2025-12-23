@@ -29,7 +29,7 @@ Implement a master template system that separates email layout (structure) from 
 1. **Master Template System** - Separates email layout from content
    - `emailMasterTemplates` table for storing templates
    - Default master template with Handlebars placeholders
-   - Structure toggles (logo, accent strip, sections, divider, footer)
+   - Structure toggles (logo, accent strip, sections, divider, banner footer, footer)
    - Language order configuration (EN first or AR first)
    - **Full management UI** in workspace branding settings (list, edit, duplicate, delete, set default)
 
@@ -44,6 +44,7 @@ Implement a master template system that separates email layout (structure) from 
    - Typography: English and Arabic font families (including Noto Sans brand fonts)
    - Layout: accent strip height, button style
    - Footer text configuration
+   - **Banner footer image**: optional image displayed above footer text (workspace/event override)
 
 4. **Backwards Compatibility** - Existing templates continue to work
    - `renderEmailTemplate()` checks for `structuredContent`
@@ -113,6 +114,7 @@ export type EmailBrandingConfig = {
 
   // Footer
   footerText?: string
+  bannerFooterImage?: string  // Optional banner image above footer text
 }
 
 export type WorkspaceBranding = {
@@ -155,6 +157,7 @@ export type MasterTemplateStructure = {
   showArabicSection: boolean
   showDivider: boolean
   showFooter: boolean
+  showBannerFooter: boolean  // Show banner image above footer (if configured in branding)
   sectionOrder: ('en' | 'ar')[]
 }
 

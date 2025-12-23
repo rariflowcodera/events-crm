@@ -268,6 +268,7 @@ export const guestsRouter = createTRPCRouter({
         title: z.string().optional(),
         salutation: z.string().optional(),
         preferredName: z.string().optional(),
+        displayNameAr: z.string().optional(),
         position: z.string().optional(),
         entity: z.string().optional(),
         department: z.string().optional(),
@@ -361,6 +362,7 @@ export const guestsRouter = createTRPCRouter({
         title: z.string().nullable().optional(),
         salutation: z.string().nullable().optional(),
         preferredName: z.string().nullable().optional(),
+        displayNameAr: z.string().nullable().optional(),
         position: z.string().nullable().optional(),
         entity: z.string().nullable().optional(),
         department: z.string().nullable().optional(),
@@ -937,6 +939,7 @@ export const guestsRouter = createTRPCRouter({
             internalNotes: z.string().optional(),
             externalId: z.string().optional(),
             country: z.string().optional(),
+            displayNameAr: z.string().optional(),
           })
         ).min(1).max(500),
         importBatchId: z.string().optional(),

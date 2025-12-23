@@ -323,6 +323,7 @@ export type ResolvedEmailBranding = {
   fontFamily: "noto-sans" | "inter" | "arial" | "georgia" | "system"
   arabicFontFamily: "noto-sans" | "din-next" | "geeza" | "tahoma" | "system"
   footerText?: string
+  bannerFooterImage?: string // URL for optional banner image above footer text
 }
 
 /**
@@ -365,6 +366,7 @@ export function resolveEmailBranding(
     fontFamily: ev.fontFamily || ws.fontFamily || "inter",
     arabicFontFamily: ev.arabicFontFamily || ws.arabicFontFamily || "din-next",
     footerText: resolveString(ev.footerText, ws.footerText),
+    bannerFooterImage: resolveString(ev.bannerFooterImage, ws.bannerFooterImage),
   }
 }
 
