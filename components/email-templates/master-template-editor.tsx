@@ -115,7 +115,7 @@ export function MasterTemplateEditor({
         showEnglishSection: true,
         showArabicSection: true,
         showDivider: true,
-        showFooter: true,
+        showFooter: false,
         showBannerFooter: true,
         sectionOrder: ["en", "ar"],
       },

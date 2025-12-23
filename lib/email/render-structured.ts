@@ -1,5 +1,9 @@
 import Handlebars from "handlebars"
-import type { BilingualStructuredContent, StructuredEmailContent } from "@/server/db/schemas/email-template"
+import type {
+  BilingualStructuredContent,
+  StructuredEmailContent,
+  BodyParagraph,
+} from "@/server/db/schemas/email-template"
 import type { MasterTemplateStructure } from "@/server/db/schemas/email-master-template"
 import type { WorkspaceBranding, EventBranding } from "@/server/db/schemas"
 import {
@@ -84,6 +88,7 @@ export interface TemplateWithStructuredContent {
 
 export interface MasterTemplate {
   id: string
+  name: string
   htmlTemplate: string
   structure: MasterTemplateStructure | null
 }
@@ -192,6 +197,47 @@ function formatDate(date: Date, language: "en" | "ar"): string {
 }
 
 // ============================================================================
+// Markdown Processing
+// ============================================================================
+
+/**
+ * Process markdown-style syntax to HTML.
+ * Supports:
+ * - **text** → <strong>text</strong> (bold)
+ * - _text_ → <em>text</em> (italic)
+ * - --- (on its own line) → <hr> (horizontal rule)
+ * - Newlines → <br> (line breaks)
+ */
+function processMarkdown(text: string): string {
+  return (
+    text
+      // Bold: **text** → <strong>text</strong>
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      // Italic: _text_ → <em>text</em> (only when not part of a word)
+      .replace(/(?<![a-zA-Z0-9])_([^_]+?)_(?![a-zA-Z0-9])/g, "<em>$1</em>")
+      // Horizontal rule: --- on its own line → <hr> (neutral gray)
+      .replace(/^---$/gm, '<hr style="border: none; border-top: 1px solid #D1D5DB; margin: 16px 0;">')
+      // Line breaks: \n → <br>
+      .replace(/\n/g, "<br>")
+  )
+}
+
+/**
+ * Strip markdown syntax from text (for plain text version).
+ */
+function stripMarkdown(text: string): string {
+  return (
+    text
+      // Remove bold markers
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      // Remove italic markers
+      .replace(/(?<![a-zA-Z0-9])_([^_]+?)_(?![a-zA-Z0-9])/g, "$1")
+      // Convert horizontal rule to plain text separator
+      .replace(/^---$/gm, "---")
+  )
+}
+
+// ============================================================================
 // Variable Substitution
 // ============================================================================
 
@@ -206,18 +252,37 @@ function replaceVariables(text: string, variables: Record<string, string>): stri
 }
 
 /**
- * Process structured content fields to replace variables.
+ * Get font-size CSS value for paragraph size.
+ */
+function getParagraphFontSize(size: "small" | "normal" | "large" | undefined): string {
+  switch (size) {
+    case "small":
+      return "14px"
+    case "large":
+      return "20px"
+    default:
+      return "16px"
+  }
+}
+
+/**
+ * Process structured content fields to replace variables and apply markdown.
  */
 function processStructuredContent(
   content: StructuredEmailContent,
   variables: Record<string, string>
-): StructuredEmailContent {
+): StructuredEmailContent & { bodyParagraphs: Array<{ content: string; alignment?: string; size?: string; fontSize: string }> } {
   return {
     subject: replaceVariables(content.subject, variables),
     greeting: content.greeting ? replaceVariables(content.greeting, variables) : undefined,
-    heading: replaceVariables(content.heading, variables),
+    heading: content.heading ? replaceVariables(content.heading, variables) : undefined,
     subheading: content.subheading ? replaceVariables(content.subheading, variables) : undefined,
-    bodyParagraphs: content.bodyParagraphs.map((p) => replaceVariables(p, variables)),
+    bodyParagraphs: content.bodyParagraphs.map((p) => ({
+      content: processMarkdown(replaceVariables(p.content, variables)),
+      alignment: p.alignment,
+      size: p.size,
+      fontSize: getParagraphFontSize(p.size),
+    })),
     cta: content.cta
       ? {
           text: replaceVariables(content.cta.text, variables),
@@ -434,7 +499,7 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     showBannerFooter:
       (template.showBannerFooter ?? structure.showBannerFooter ?? true) &&
       !!bannerFooterImageUrl,
-    showFooter: structure.showFooter,
+    showFooter: structure.showFooter ?? false,
 
     // Footer
     bannerFooterImageUrl,
@@ -605,32 +670,37 @@ function generatePlainText(
 ): string {
   const lines: string[] = []
 
+  // Helper to clean text for plain text output
+  const cleanText = (text: string) => stripHtml(stripMarkdown(text))
+
   // English section
   if (enContent.greeting) {
-    lines.push(stripHtml(enContent.greeting))
+    lines.push(cleanText(enContent.greeting))
     lines.push("")
   }
 
-  lines.push(stripHtml(enContent.heading))
-  lines.push("")
+  if (enContent.heading) {
+    lines.push(cleanText(enContent.heading))
+    lines.push("")
+  }
 
   if (enContent.subheading) {
-    lines.push(stripHtml(enContent.subheading))
+    lines.push(cleanText(enContent.subheading))
     lines.push("")
   }
 
   for (const paragraph of enContent.bodyParagraphs) {
-    lines.push(stripHtml(paragraph))
+    lines.push(cleanText(paragraph.content))
     lines.push("")
   }
 
   if (enContent.cta) {
-    lines.push(`${stripHtml(enContent.cta.text)}: ${enContent.cta.url}`)
+    lines.push(`${cleanText(enContent.cta.text)}: ${enContent.cta.url}`)
     lines.push("")
   }
 
   if (enContent.postCtaText) {
-    lines.push(stripHtml(enContent.postCtaText))
+    lines.push(cleanText(enContent.postCtaText))
     lines.push("")
   }
 
@@ -640,30 +710,32 @@ function generatePlainText(
     lines.push("")
 
     if (arContent.greeting) {
-      lines.push(stripHtml(arContent.greeting))
+      lines.push(cleanText(arContent.greeting))
       lines.push("")
     }
 
-    lines.push(stripHtml(arContent.heading))
-    lines.push("")
+    if (arContent.heading) {
+      lines.push(cleanText(arContent.heading))
+      lines.push("")
+    }
 
     if (arContent.subheading) {
-      lines.push(stripHtml(arContent.subheading))
+      lines.push(cleanText(arContent.subheading))
       lines.push("")
     }
 
     for (const paragraph of arContent.bodyParagraphs) {
-      lines.push(stripHtml(paragraph))
+      lines.push(cleanText(paragraph.content))
       lines.push("")
     }
 
     if (arContent.cta) {
-      lines.push(`${stripHtml(arContent.cta.text)}: ${arContent.cta.url}`)
+      lines.push(`${cleanText(arContent.cta.text)}: ${arContent.cta.url}`)
       lines.push("")
     }
 
     if (arContent.postCtaText) {
-      lines.push(stripHtml(arContent.postCtaText))
+      lines.push(cleanText(arContent.postCtaText))
     }
   }
 

@@ -111,7 +111,7 @@ export function replaceWelcomeMessageVariables(
   const { guest, event, locale } = data
 
   // Build the full name
-  const fullName = guest.preferredName || `${guest.firstName} ${guest.lastName}`.trim()
+  const fullName = guest.preferredName || [guest.firstName, guest.lastName].filter(Boolean).join(" ")
 
   // Format dates
   const startDateFormatted = formatDate(event.startDate, locale)

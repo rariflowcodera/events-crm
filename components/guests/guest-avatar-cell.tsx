@@ -7,7 +7,7 @@ import { User } from "lucide-react"
 interface GuestAvatarCellProps {
   profileImage: string | null
   firstName: string
-  lastName: string
+  lastName?: string | null
   onClick?: () => void
 }
 
@@ -17,7 +17,7 @@ export function GuestAvatarCell({
   lastName,
   onClick,
 }: GuestAvatarCellProps) {
-  const initials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase()
+  const initials = `${firstName[0] || ""}${lastName?.[0] || ""}`.toUpperCase()
   const hasImage = !!profileImage
 
   return (
@@ -34,7 +34,7 @@ export function GuestAvatarCell({
       }}
     >
       {profileImage ? (
-        <AvatarImage src={profileImage} alt={`${firstName} ${lastName}`} />
+        <AvatarImage src={profileImage} alt={[firstName, lastName].filter(Boolean).join(" ")} />
       ) : null}
       <AvatarFallback className="text-xs bg-muted">
         {initials || <User className="size-3" />}

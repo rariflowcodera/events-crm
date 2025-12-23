@@ -987,6 +987,7 @@ export const emailTemplatesRouter = createTRPCRouter({
       if (template.masterTemplate) {
         masterTemplate = {
           id: template.masterTemplate.id,
+          name: template.masterTemplate.name,
           htmlTemplate: template.masterTemplate.htmlTemplate,
           structure: template.masterTemplate.structure,
         }
@@ -1004,6 +1005,7 @@ export const emailTemplatesRouter = createTRPCRouter({
         if (workspaceDefault) {
           masterTemplate = {
             id: workspaceDefault.id,
+            name: workspaceDefault.name,
             htmlTemplate: workspaceDefault.htmlTemplate,
             structure: workspaceDefault.structure,
           }
@@ -1011,6 +1013,7 @@ export const emailTemplatesRouter = createTRPCRouter({
           // Use built-in default
           masterTemplate = {
             id: "built-in",
+            name: "Default",
             htmlTemplate: defaultMasterTemplate,
             structure: defaultMasterTemplateStructure,
           }
@@ -1100,7 +1103,10 @@ export const emailTemplatesRouter = createTRPCRouter({
 
       const extractParagraphs = (html: string) => {
         const stripped = stripHtml(html)
-        return stripped.split(/\n\n+/).filter((p) => p.trim().length > 0)
+        return stripped
+          .split(/\n\n+/)
+          .filter((p) => p.trim().length > 0)
+          .map((content) => ({ content }))
       }
 
       const structuredContent = {
@@ -1275,6 +1281,7 @@ export const emailTemplatesRouter = createTRPCRouter({
         masterTemplate: masterTemplate
           ? {
               id: masterTemplate.id,
+              name: masterTemplate.name,
               htmlTemplate: masterTemplate.htmlTemplate,
               structure: masterTemplate.structure,
             }

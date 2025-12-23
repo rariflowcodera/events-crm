@@ -263,7 +263,7 @@ export const guestsRouter = createTRPCRouter({
         eventId: z.string().uuid(),
         categoryId: z.string().uuid(),
         firstName: z.string().min(1),
-        lastName: z.string().min(1),
+        lastName: z.string().optional(),
         email: z.string().email(),
         phone: z.string().optional(),
         whatsapp: z.string().optional(),
@@ -934,7 +934,7 @@ export const guestsRouter = createTRPCRouter({
           z.object({
             categoryId: z.string().uuid(),
             firstName: z.string().min(1),
-            lastName: z.string().min(1),
+            lastName: z.string().optional(),
             email: z.string().email(),
             phone: z.string().optional(),
             title: z.string().optional(),

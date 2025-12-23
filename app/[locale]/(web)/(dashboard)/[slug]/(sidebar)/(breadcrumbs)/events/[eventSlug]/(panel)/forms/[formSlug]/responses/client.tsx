@@ -291,7 +291,7 @@ interface ResponseDetailDialogProps {
     isAmendment: boolean
     guest: {
       firstName: string
-      lastName: string
+      lastName: string | null
       email: string | null
       categoryName?: string
     } | null

@@ -408,7 +408,7 @@ interface ResponseDetailDialogProps {
   response: {
     id: string
     response: Record<string, unknown>
-    guest: { firstName: string; lastName: string; email: string | null }
+    guest: { firstName: string; lastName: string | null; email: string | null }
     category: { name: string } | null
   } | null
   formConfig: RsvpFormConfig

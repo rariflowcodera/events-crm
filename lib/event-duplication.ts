@@ -474,6 +474,15 @@ function remapDocumentIdsInString(
 }
 
 /**
+ * Body paragraph type with optional alignment and size
+ */
+type BodyParagraph = {
+  content: string
+  alignment?: "left" | "center" | "right"
+  size?: "small" | "normal" | "large"
+}
+
+/**
  * Remaps document references in structured email content.
  * Processes all string fields that may contain document placeholders.
  */
@@ -481,9 +490,9 @@ export function remapDocumentReferences<T extends {
   en: {
     subject: string
     greeting?: string
-    heading: string
+    heading?: string
     subheading?: string
-    bodyParagraphs: string[]
+    bodyParagraphs: BodyParagraph[]
     cta?: { text: string; url: string }
     postCtaText?: string
     htmlOverride?: string
@@ -491,9 +500,9 @@ export function remapDocumentReferences<T extends {
   ar?: Partial<{
     subject: string
     greeting?: string
-    heading: string
+    heading?: string
     subheading?: string
-    bodyParagraphs: string[]
+    bodyParagraphs: BodyParagraph[]
     cta?: { text: string; url: string }
     postCtaText?: string
     htmlOverride?: string
@@ -512,7 +521,7 @@ export function remapDocumentReferences<T extends {
     greeting?: string
     heading?: string
     subheading?: string
-    bodyParagraphs?: string[]
+    bodyParagraphs?: BodyParagraph[]
     cta?: { text: string; url: string }
     postCtaText?: string
     htmlOverride?: string
@@ -525,7 +534,10 @@ export function remapDocumentReferences<T extends {
       greeting: section.greeting ? remapDocumentIdsInString(section.greeting, mapping) : section.greeting,
       heading: section.heading ? remapDocumentIdsInString(section.heading, mapping) : section.heading,
       subheading: section.subheading ? remapDocumentIdsInString(section.subheading, mapping) : section.subheading,
-      bodyParagraphs: section.bodyParagraphs?.map(p => remapDocumentIdsInString(p, mapping)),
+      bodyParagraphs: section.bodyParagraphs?.map(p => ({
+        ...p,
+        content: remapDocumentIdsInString(p.content, mapping),
+      })),
       cta: section.cta ? {
         text: remapDocumentIdsInString(section.cta.text, mapping),
         url: remapDocumentIdsInString(section.cta.url, mapping),

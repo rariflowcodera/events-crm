@@ -176,16 +176,16 @@ export function GuestsTable({
                     checked={isSelected}
                     onCheckedChange={() => toggleOne(guest.id)}
                     onClick={(e) => e.stopPropagation()}
-                    aria-label={`Select ${guest.firstName} ${guest.lastName}`}
+                    aria-label={`Select ${[guest.firstName, guest.lastName].filter(Boolean).join(" ")}`}
                   />
                 </div>
                 <div
                   className="w-[180px] p-2 flex-shrink-0 font-medium truncate"
                   onClick={() => router.push(getGuestDetailHref(guest.id))}
-                  title={`${guest.firstName} ${guest.lastName}`}
+                  title={[guest.firstName, guest.lastName].filter(Boolean).join(" ")}
                 >
                   <div className="truncate">
-                    {guest.firstName} {guest.lastName}
+                    {[guest.firstName, guest.lastName].filter(Boolean).join(" ")}
                     {guest.position && (
                       <p className="text-muted-foreground text-xs truncate">{guest.position}</p>
                     )}

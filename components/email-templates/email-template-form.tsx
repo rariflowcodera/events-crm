@@ -263,14 +263,19 @@ export function EmailTemplateForm({
 
       // Validate English required fields explicitly as a safeguard
       const enContent = structuredData.structuredContent.en
-      if (!enContent?.subject || !enContent?.heading || !enContent?.bodyParagraphs?.length) {
-        toast.error("English subject, heading, and at least one paragraph are required")
+      if (!enContent?.subject || !enContent?.bodyParagraphs?.length) {
+        toast.error("English subject and at least one paragraph are required")
         setActiveLanguage("en")
         return
       }
 
-      // Filter out empty body paragraphs before sending
-      const filteredBodyParagraphs = enContent.bodyParagraphs.filter((p: string) => p.trim())
+      // Filter out empty body paragraphs before sending (handle both string and object formats)
+      const filteredBodyParagraphs = enContent.bodyParagraphs.filter(
+        (p: string | { content: string }) => {
+          const content = typeof p === "string" ? p : p.content
+          return content.trim()
+        }
+      )
       if (filteredBodyParagraphs.length === 0) {
         toast.error("At least one non-empty paragraph is required")
         setActiveLanguage("en")
@@ -398,7 +403,7 @@ export function EmailTemplateForm({
             greeting: "",
             heading: "",
             subheading: "",
-            bodyParagraphs: [""],
+            bodyParagraphs: [{ content: "" }],
             cta: { text: "", url: "" },
             postCtaText: "",
           },

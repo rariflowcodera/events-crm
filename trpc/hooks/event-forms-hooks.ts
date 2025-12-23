@@ -226,7 +226,7 @@ export const useGetGuestFormToken = ({
   onSuccess?: (data: {
     token: string
     expiresAt: Date | null
-    guest: { id: string; firstName: string; lastName: string; email: string | null }
+    guest: { id: string; firstName: string; lastName: string | null; email: string | null }
     form: { id: string; name: string }
   }) => void
   onError?: () => void

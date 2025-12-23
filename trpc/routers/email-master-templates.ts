@@ -551,9 +551,9 @@ export const emailMasterTemplatesRouter = createTRPCRouter({
           heading: "You Are Cordially Invited",
           subheading: "Annual Gala 2025",
           bodyParagraphs: [
-            "We are pleased to invite you to our prestigious Annual Gala 2025, an evening of celebration and networking.",
-            "The event will feature keynote speakers, a gourmet dinner, and live entertainment.",
-            "Please confirm your attendance by March 10, 2025.",
+            { content: "We are pleased to invite you to our prestigious Annual Gala 2025, an evening of celebration and networking." },
+            { content: "The event will feature keynote speakers, a gourmet dinner, and live entertainment." },
+            { content: "Please confirm your attendance by March 10, 2025." },
           ],
           cta: {
             text: "Confirm Your Attendance",
@@ -567,9 +567,9 @@ export const emailMasterTemplatesRouter = createTRPCRouter({
           heading: "دعوة كريمة لحضور",
           subheading: "الحفل السنوي 2025",
           bodyParagraphs: [
-            "يسعدنا دعوتكم لحضور الحفل السنوي 2025، أمسية من الاحتفال والتواصل.",
-            "سيتضمن الحدث متحدثين بارزين وعشاء فاخر وترفيه حي.",
-            "يرجى تأكيد حضوركم قبل 10 مارس 2025.",
+            { content: "يسعدنا دعوتكم لحضور الحفل السنوي 2025، أمسية من الاحتفال والتواصل." },
+            { content: "سيتضمن الحدث متحدثين بارزين وعشاء فاخر وترفيه حي." },
+            { content: "يرجى تأكيد حضوركم قبل 10 مارس 2025." },
           ],
           cta: {
             text: "تأكيد الحضور",
@@ -582,7 +582,7 @@ export const emailMasterTemplatesRouter = createTRPCRouter({
       // Render preview
       const result = renderPreview(
         sampleContent,
-        { id: input.templateId || "preview", htmlTemplate, structure },
+        { id: input.templateId || "preview", name: "Preview", htmlTemplate, structure },
         workspace?.branding,
         eventBranding
       )

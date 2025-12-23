@@ -22,9 +22,9 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
         heading: "You're Cordially Invited",
         subheading: "{{event.name}}",
         bodyParagraphs: [
-          "You are cordially invited to attend {{event.name}}.",
-          "Date: {{event.startDate}}\nVenue: {{event.venue}}\nAddress: {{event.venueAddress}}",
-          "Please confirm your attendance by {{event.rsvpDeadline}}.",
+          { content: "You are cordially invited to attend {{event.name}}." },
+          { content: "Date: {{event.startDate}}\nVenue: {{event.venue}}\nAddress: {{event.venueAddress}}" },
+          { content: "Please confirm your attendance by {{event.rsvpDeadline}}." },
         ],
         cta: {
           text: "Respond to Invitation",
@@ -37,9 +37,9 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
         heading: "دعوة لحضور",
         subheading: "{{event.name}}",
         bodyParagraphs: [
-          "يسعدنا دعوتكم لحضور {{event.name}}.",
-          "التاريخ: {{event.startDate}}\nالمكان: {{event.venue}}\nالعنوان: {{event.venueAddress}}",
-          "يرجى تأكيد حضوركم قبل {{event.rsvpDeadline}}.",
+          { content: "يسعدنا دعوتكم لحضور {{event.name}}." },
+          { content: "التاريخ: {{event.startDate}}\nالمكان: {{event.venue}}\nالعنوان: {{event.venueAddress}}" },
+          { content: "يرجى تأكيد حضوركم قبل {{event.rsvpDeadline}}." },
         ],
         cta: {
           text: "الرد على الدعوة",
@@ -57,8 +57,8 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
         greeting: "Dear {{guest.salutation}} {{guest.fullName}},",
         heading: "Friendly Reminder",
         bodyParagraphs: [
-          "This is a friendly reminder to respond to your invitation for {{event.name}}.",
-          "The RSVP deadline is {{event.rsvpDeadline}}.",
+          { content: "This is a friendly reminder to respond to your invitation for {{event.name}}." },
+          { content: "The RSVP deadline is {{event.rsvpDeadline}}." },
         ],
         cta: {
           text: "Respond Now",
@@ -70,8 +70,8 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
         greeting: "{{guest.salutation}} {{guest.fullName}} العزيز/ة،",
         heading: "تذكير ودي",
         bodyParagraphs: [
-          "هذا تذكير ودي للرد على دعوتكم لحضور {{event.name}}.",
-          "آخر موعد للرد هو {{event.rsvpDeadline}}.",
+          { content: "هذا تذكير ودي للرد على دعوتكم لحضور {{event.name}}." },
+          { content: "آخر موعد للرد هو {{event.rsvpDeadline}}." },
         ],
         cta: {
           text: "الرد الآن",
@@ -89,9 +89,9 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
         greeting: "Dear {{guest.salutation}} {{guest.fullName}},",
         heading: "Thank You for Confirming",
         bodyParagraphs: [
-          "Thank you for confirming your attendance at {{event.name}}.",
-          "Date: {{event.startDate}}\nVenue: {{event.venue}}",
-          "If your plans change, you can update your response using the link below.",
+          { content: "Thank you for confirming your attendance at {{event.name}}." },
+          { content: "Date: {{event.startDate}}\nVenue: {{event.venue}}" },
+          { content: "If your plans change, you can update your response using the link below." },
         ],
         cta: {
           text: "Update Response",
@@ -104,9 +104,9 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
         greeting: "{{guest.salutation}} {{guest.fullName}} العزيز/ة،",
         heading: "شكراً لتأكيد حضوركم",
         bodyParagraphs: [
-          "شكراً لتأكيد حضوركم في {{event.name}}.",
-          "التاريخ: {{event.startDate}}\nالمكان: {{event.venue}}",
-          "إذا تغيرت خططكم، يمكنكم تحديث ردكم باستخدام الرابط أدناه.",
+          { content: "شكراً لتأكيد حضوركم في {{event.name}}." },
+          { content: "التاريخ: {{event.startDate}}\nالمكان: {{event.venue}}" },
+          { content: "إذا تغيرت خططكم، يمكنكم تحديث ردكم باستخدام الرابط أدناه." },
         ],
         cta: {
           text: "تحديث الرد",
@@ -125,8 +125,8 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
         greeting: "Dear {{guest.salutation}} {{guest.fullName}},",
         heading: "Response Received",
         bodyParagraphs: [
-          "We've received your response and understand you won't be able to attend {{event.name}}.",
-          "If your plans change, you can update your response using the link below.",
+          { content: "We've received your response and understand you won't be able to attend {{event.name}}." },
+          { content: "If your plans change, you can update your response using the link below." },
         ],
         cta: {
           text: "Update My Response",
@@ -139,8 +139,8 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
         greeting: "{{guest.salutation}} {{guest.fullName}} العزيز/ة،",
         heading: "تم استلام ردكم",
         bodyParagraphs: [
-          "تم استلام ردكم ونتفهم عدم قدرتكم على حضور {{event.name}}.",
-          "إذا تغيرت خططكم، يمكنكم تحديث ردكم باستخدام الرابط أدناه.",
+          { content: "تم استلام ردكم ونتفهم عدم قدرتكم على حضور {{event.name}}." },
+          { content: "إذا تغيرت خططكم، يمكنكم تحديث ردكم باستخدام الرابط أدناه." },
         ],
         cta: {
           text: "تحديث الرد",
@@ -159,8 +159,8 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
         greeting: "Dear {{guest.salutation}} {{guest.fullName}},",
         heading: "Response Received",
         bodyParagraphs: [
-          "Thank you for your response regarding {{event.name}}. We understand you're not yet certain about your availability.",
-          "Please update your response when you know for sure. The RSVP deadline is {{event.rsvpDeadline}}.",
+          { content: "Thank you for your response regarding {{event.name}}. We understand you're not yet certain about your availability." },
+          { content: "Please update your response when you know for sure. The RSVP deadline is {{event.rsvpDeadline}}." },
         ],
         cta: {
           text: "Update My Response",
@@ -172,8 +172,8 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
         greeting: "{{guest.salutation}} {{guest.fullName}} العزيز/ة،",
         heading: "تم استلام ردكم",
         bodyParagraphs: [
-          "شكراً لردكم بخصوص {{event.name}}. نتفهم أنكم غير متأكدين من توفركم بعد.",
-          "يرجى تحديث ردكم عندما تتأكدون. آخر موعد للرد هو {{event.rsvpDeadline}}.",
+          { content: "شكراً لردكم بخصوص {{event.name}}. نتفهم أنكم غير متأكدين من توفركم بعد." },
+          { content: "يرجى تحديث ردكم عندما تتأكدون. آخر موعد للرد هو {{event.rsvpDeadline}}." },
         ],
         cta: {
           text: "تحديث الرد",

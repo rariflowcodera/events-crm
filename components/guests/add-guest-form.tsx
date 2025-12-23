@@ -51,7 +51,7 @@ interface AddGuestFormProps {
 
 const addGuestSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
-  lastName: z.string().min(1, "Last name is required").max(100),
+  lastName: z.string().max(100).optional(),
   displayNameAr: z.string().optional(),
   email: z.string().min(1, "Email is required").email("Invalid email address"),
   phone: z.string().optional(),
@@ -102,7 +102,7 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
     mutate({
       eventId,
       firstName: values.firstName,
-      lastName: values.lastName,
+      lastName: values.lastName || undefined,
       displayNameAr: values.displayNameAr || undefined,
       email: values.email,
       phone: values.phone || undefined,
@@ -134,7 +134,7 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
                     onChange={field.onChange}
                     eventId={eventId}
                     disabled={isPending}
-                    guestName={`${form.watch("firstName")} ${form.watch("lastName")}`}
+                    guestName={[form.watch("firstName"), form.watch("lastName")].filter(Boolean).join(" ")}
                     size="lg"
                   />
                 </FormControl>

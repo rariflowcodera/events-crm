@@ -9,7 +9,7 @@ export const defaultMasterTemplateStructure: MasterTemplateStructure = {
   showEnglishSection: true,
   showArabicSection: true,
   showDivider: true,
-  showFooter: true,
+  showFooter: false,
   showBannerFooter: true,
   sectionOrder: ["en", "ar"],
 }
@@ -286,6 +286,7 @@ export const englishContentSectionTemplate = `<table role="presentation" cellspa
   </tr>
   {{/if}}
 
+  {{#if heading}}
   <tr>
     <td style="padding-bottom: 16px;">
       <h1 class="heading-primary" style="color: {{headingColor}}; font-family: {{{fontFamily}}}; font-weight: 600; font-size: 24px; line-height: 1.3; margin: 0;">
@@ -293,6 +294,7 @@ export const englishContentSectionTemplate = `<table role="presentation" cellspa
       </h1>
     </td>
   </tr>
+  {{/if}}
 
   {{#if subheading}}
   <tr>
@@ -306,9 +308,9 @@ export const englishContentSectionTemplate = `<table role="presentation" cellspa
 
   {{#each bodyParagraphs}}
   <tr>
-    <td style="padding-bottom: {{#if @last}}32px{{else}}16px{{/if}};">
-      <p class="body-text" style="color: {{../bodyTextColor}}; font-family: {{{../fontFamily}}}; font-size: 16px; line-height: 1.6; margin: 0;">
-        {{{this}}}
+    <td style="padding-bottom: {{#if @last}}32px{{else}}16px{{/if}};{{#if this.alignment}} text-align: {{this.alignment}};{{/if}}">
+      <p class="body-text" style="color: {{../bodyTextColor}}; font-family: {{{../fontFamily}}}; font-size: {{this.fontSize}}; line-height: 1.6; margin: 0;{{#if this.alignment}} text-align: {{this.alignment}};{{/if}}">
+        {{{this.content}}}
       </p>
     </td>
   </tr>
@@ -352,6 +354,7 @@ export const arabicContentSectionTemplate = `<table role="presentation" cellspac
   </tr>
   {{/if}}
 
+  {{#if heading}}
   <tr>
     <td style="padding-bottom: 16px; text-align: right;">
       <h1 class="heading-primary arabic-text" style="color: {{headingColor}}; font-family: {{{arabicFontFamily}}}; font-weight: 600; font-size: 24px; line-height: 1.4; margin: 0; direction: rtl; text-align: right;">
@@ -359,6 +362,7 @@ export const arabicContentSectionTemplate = `<table role="presentation" cellspac
       </h1>
     </td>
   </tr>
+  {{/if}}
 
   {{#if subheading}}
   <tr>
@@ -372,9 +376,9 @@ export const arabicContentSectionTemplate = `<table role="presentation" cellspac
 
   {{#each bodyParagraphs}}
   <tr>
-    <td style="padding-bottom: {{#if @last}}32px{{else}}16px{{/if}}; text-align: right;">
-      <p class="body-text arabic-text" style="color: {{../bodyTextColor}}; font-family: {{{../arabicFontFamily}}}; font-size: 16px; line-height: 1.8; margin: 0; direction: rtl; text-align: right;">
-        {{{this}}}
+    <td style="padding-bottom: {{#if @last}}32px{{else}}16px{{/if}}; text-align: {{#if this.alignment}}{{this.alignment}}{{else}}right{{/if}};">
+      <p class="body-text arabic-text" style="color: {{../bodyTextColor}}; font-family: {{{../arabicFontFamily}}}; font-size: {{this.fontSize}}; line-height: 1.8; margin: 0; direction: rtl; text-align: {{#if this.alignment}}{{this.alignment}}{{else}}right{{/if}};">
+        {{{this.content}}}
       </p>
     </td>
   </tr>

@@ -488,14 +488,14 @@ export type UpdateEmailTemplateInput = z.infer<typeof updateEmailTemplateSchema>
 
 /** Master template structure schema */
 export const masterTemplateStructureSchema = z.object({
-  showLogo: z.boolean().default(true),
-  showAccentStrip: z.boolean().default(true),
-  showEnglishSection: z.boolean().default(true),
-  showArabicSection: z.boolean().default(true),
-  showDivider: z.boolean().default(true),
-  showFooter: z.boolean().default(true),
-  showBannerFooter: z.boolean().default(true),
-  sectionOrder: z.array(z.enum(["en", "ar"])).default(["en", "ar"]),
+  showLogo: z.boolean(),
+  showAccentStrip: z.boolean(),
+  showEnglishSection: z.boolean(),
+  showArabicSection: z.boolean(),
+  showDivider: z.boolean(),
+  showFooter: z.boolean(),
+  showBannerFooter: z.boolean(),
+  sectionOrder: z.array(z.enum(["en", "ar"])),
 })
 
 export type MasterTemplateStructureInput = z.infer<typeof masterTemplateStructureSchema>
@@ -555,13 +555,31 @@ const optionalCtaSchema = z
     }
   })
 
+/** Body paragraph with optional alignment and size */
+export const bodyParagraphSchema = z.object({
+  content: z.string().max(2000),
+  alignment: z.enum(["left", "center", "right"]).optional(),
+  size: z.enum(["small", "normal", "large"]).optional(),
+})
+
+export type BodyParagraph = z.infer<typeof bodyParagraphSchema>
+
+/** Schema that accepts both legacy string format and new object format */
+const bodyParagraphInputSchema = z.union([
+  bodyParagraphSchema,
+  z.string().max(2000).transform((str) => ({ content: str })),
+])
+
 /** Structured email content for a single language */
 export const structuredEmailContentSchema = z.object({
   subject: z.string().min(1, "Subject is required").max(200),
   greeting: z.string().max(200).optional(),
-  heading: z.string().min(1, "Heading is required").max(200),
+  heading: z.string().max(200).optional(),
   subheading: z.string().max(300).optional(),
-  bodyParagraphs: z.array(z.string().max(2000)).min(1, "At least one paragraph is required").max(10),
+  bodyParagraphs: z
+    .array(bodyParagraphInputSchema)
+    .min(1, "At least one paragraph is required")
+    .max(10),
   cta: optionalCtaSchema,
   postCtaText: z.string().max(500).optional(),
   htmlOverride: z.string().max(100000).optional(),
@@ -576,7 +594,7 @@ const flexibleArabicContentSchema = z
     greeting: z.string().max(200).optional(),
     heading: z.string().max(200).optional(),
     subheading: z.string().max(300).optional(),
-    bodyParagraphs: z.array(z.string().max(2000)).max(10).optional(),
+    bodyParagraphs: z.array(bodyParagraphInputSchema).max(10).optional(),
     cta: optionalCtaSchema,
     postCtaText: z.string().max(500).optional(),
     htmlOverride: z.string().max(100000).optional(),
@@ -585,8 +603,12 @@ const flexibleArabicContentSchema = z
   .transform((val) => {
     if (!val) return undefined
 
-    // Filter out empty strings from bodyParagraphs
-    const filteredParagraphs = val.bodyParagraphs?.filter((p) => p.trim()) || []
+    // Filter out empty paragraphs (handle both legacy strings and new objects)
+    const filteredParagraphs =
+      val.bodyParagraphs?.filter((p) => {
+        const content = typeof p === "string" ? p : p.content
+        return content.trim()
+      }) || []
 
     // Check if Arabic content has any meaningful content
     const hasContent =

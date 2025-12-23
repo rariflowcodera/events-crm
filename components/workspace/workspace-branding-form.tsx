@@ -18,7 +18,7 @@ import {
   useSetDefaultMasterTemplate,
 } from "@/trpc/hooks/master-template-hooks"
 
-import { workspaceBrandingSchema } from "@/lib/schemas"
+import { workspaceBrandingSchema, type MasterTemplateStructureInput } from "@/lib/schemas"
 import { defaultMasterTemplate } from "@/lib/email/master-templates/default"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -128,15 +128,7 @@ export function WorkspaceBrandingForm({
   const handleEditorSubmit = (values: {
     name: string
     description?: string
-    structure: {
-      showLogo: boolean
-      showAccentStrip: boolean
-      showEnglishSection: boolean
-      showArabicSection: boolean
-      showDivider: boolean
-      showFooter: boolean
-      sectionOrder: ("en" | "ar")[]
-    }
+    structure: MasterTemplateStructureInput
     htmlTemplate?: string
     isDefault?: boolean
   }) => {
@@ -504,6 +496,7 @@ export function WorkspaceBrandingForm({
                   </div>
                 ) : (
                   <MasterTemplateEditor
+                    key={editingTemplateId || 'new'}
                     workspaceId={workspaceId}
                     mode={editingTemplateId ? "edit" : "create"}
                     initialValues={editingTemplate ? {

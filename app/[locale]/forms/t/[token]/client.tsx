@@ -264,7 +264,7 @@ type GuestData = {
   guest: {
     id: string
     firstName: string
-    lastName: string
+    lastName: string | null
     email: string | null
     categoryId: string | null
     categoryName: string | null

@@ -40,12 +40,18 @@ export type BilingualEmailContent = {
 // Structured Content Types (new mode)
 // ============================================================================
 
+export type BodyParagraph = {
+  content: string
+  alignment?: "left" | "center" | "right"
+  size?: "small" | "normal" | "large"
+}
+
 export type StructuredEmailContent = {
   subject: string
   greeting?: string // "Dear {{guest.fullName}},"
-  heading: string // "You Are Cordially Invited"
+  heading?: string // "You Are Cordially Invited" (optional)
   subheading?: string // Event name or tagline
-  bodyParagraphs: string[] // Array of paragraphs
+  bodyParagraphs: BodyParagraph[] // Array of paragraphs with optional alignment
   cta?: {
     text: string // "Confirm Your Attendance"
     url: string // "{{rsvp.link}}"

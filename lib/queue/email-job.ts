@@ -87,6 +87,7 @@ type Template = LegacyTemplate | StructuredTemplate
 /** Master template for structured emails */
 interface MasterTemplate {
   id: string
+  name: string
   htmlTemplate: string
   structure: MasterTemplateStructure | null
 }
@@ -163,6 +164,7 @@ function renderStructuredEmailTemplate(
   // Determine master template to use
   const masterTemplate = branding?.masterTemplate || {
     id: "built-in-default",
+    name: "Default",
     htmlTemplate: defaultMasterTemplate,
     structure: defaultMasterTemplateStructure,
   }

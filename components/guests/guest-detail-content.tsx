@@ -70,7 +70,7 @@ type GuestGender = "male" | "female" | "unspecified"
 interface Guest {
   id: string
   firstName: string
-  lastName: string
+  lastName: string | null
   displayNameAr: string | null
   email: string | null
   phone: string | null
@@ -190,7 +190,7 @@ export function GuestDetailContent({
     resolver: zodResolver(editGuestSchema),
     defaultValues: {
       firstName: guest.firstName,
-      lastName: guest.lastName,
+      lastName: guest.lastName || "",
       displayNameAr: guest.displayNameAr || "",
       email: guest.email || "",
       phone: guest.phone || "",
@@ -320,7 +320,7 @@ export function GuestDetailContent({
                         }}
                         eventId={eventId}
                         disabled={isUpdating}
-                        guestName={`${form.watch("firstName")} ${form.watch("lastName")}`}
+                        guestName={[form.watch("firstName"), form.watch("lastName")].filter(Boolean).join(" ")}
                         size="lg"
                       />
                     </FormControl>
@@ -659,10 +659,10 @@ export function GuestDetailContent({
             <div className="flex justify-center pb-2">
               <Avatar className="size-24 border-2 border-border">
                 {guest.profileImage && (
-                  <AvatarImage src={guest.profileImage} alt={`${guest.firstName} ${guest.lastName}`} />
+                  <AvatarImage src={guest.profileImage} alt={[guest.firstName, guest.lastName].filter(Boolean).join(" ")} />
                 )}
                 <AvatarFallback className="text-lg">
-                  {guest.firstName[0]}{guest.lastName[0]}
+                  {guest.firstName[0]}{guest.lastName?.[0]}
                 </AvatarFallback>
               </Avatar>
             </div>

@@ -73,8 +73,8 @@ interface ColumnMapping {
   category: string
 }
 
-const requiredFields = ["firstName", "lastName", "email"] as const
-const optionalFields = ["displayNameAr", "phone", "country", "gender", "title", "salutation", "position", "entity", "department", "category"] as const
+const requiredFields = ["firstName", "email"] as const
+const optionalFields = ["lastName", "displayNameAr", "phone", "country", "gender", "title", "salutation", "position", "entity", "department", "category"] as const
 const allFields = [...requiredFields, ...optionalFields] as const
 
 const fieldLabels: Record<string, string> = {
@@ -236,8 +236,8 @@ export function ImportGuestsModal({
     reader.readAsArrayBuffer(selectedFile)
   }, [])
 
-  // Validate mapping - firstName, lastName, and email are required
-  const isMappingValid = mapping.firstName && mapping.lastName && mapping.email
+  // Validate mapping - firstName and email are required (lastName is optional)
+  const isMappingValid = mapping.firstName && mapping.email
 
   // Get preview data
   const getPreviewData = useCallback(() => {
@@ -421,8 +421,8 @@ export function ImportGuestsModal({
         const email = String(row[mapping.email] || "").trim()
         const normalizedEmail = email.toLowerCase()
 
-        // Check required fields
-        if (!firstName || !lastName) {
+        // Check required fields (only firstName is required now)
+        if (!firstName) {
           skippedMissingName++
           return false
         }

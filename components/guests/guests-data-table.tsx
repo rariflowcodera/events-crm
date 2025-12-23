@@ -311,7 +311,7 @@ export function GuestsDataTable({
             checked={row.getIsSelected()}
             onCheckedChange={(value) => row.toggleSelected(!!value)}
             onClick={(e) => e.stopPropagation()}
-            aria-label={`Select ${row.original.firstName} ${row.original.lastName}`}
+            aria-label={`Select ${[row.original.firstName, row.original.lastName].filter(Boolean).join(" ")}`}
           />
         ),
         size: getColumnWidth("select"),
@@ -331,7 +331,7 @@ export function GuestsDataTable({
               if (row.original.profileImage) {
                 setLightboxImage({
                   src: row.original.profileImage,
-                  name: `${row.original.firstName} ${row.original.lastName}`,
+                  name: [row.original.firstName, row.original.lastName].filter(Boolean).join(" "),
                 })
               }
             }}
@@ -343,14 +343,14 @@ export function GuestsDataTable({
       },
       {
         id: "fullName",
-        accessorFn: (row) => `${row.firstName} ${row.lastName}`,
+        accessorFn: (row) => [row.firstName, row.lastName].filter(Boolean).join(" "),
         header: ({ column }) => (
           <FilterableHeader column={column} title="Name" />
         ),
         cell: ({ row }) => (
           <div className="truncate">
             <span className="font-medium">
-              {row.original.firstName} {row.original.lastName}
+              {[row.original.firstName, row.original.lastName].filter(Boolean).join(" ")}
             </span>
             {row.original.position && (
               <p className="text-muted-foreground text-xs truncate">
@@ -666,7 +666,7 @@ export function GuestsDataTable({
               guestId={row.original.id}
               isAttended={!!row.original.attendedAt}
               status={row.original.status}
-              guestName={`${row.original.firstName} ${row.original.lastName}`}
+              guestName={[row.original.firstName, row.original.lastName].filter(Boolean).join(" ")}
             />
           </div>
         ),

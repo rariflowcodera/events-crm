@@ -49,7 +49,7 @@ export const guests = pgTable(
 
     // Personal
     firstName: text("first_name").notNull(),
-    lastName: text("last_name").notNull(),
+    lastName: text("last_name"),
     preferredName: text("preferred_name"),
     displayNameAr: text("display_name_ar"), // Arabic display name
     title: text("title"),

@@ -117,7 +117,7 @@ const statusOptions: { value: GuestStatus; label: string }[] = [
 
 const editGuestSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
-  lastName: z.string().min(1, "Last name is required").max(100),
+  lastName: z.string().max(100).optional(),
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   phone: z.string().optional(),
   country: z.string().optional(),
@@ -245,7 +245,7 @@ export function GuestDetailSheet({
           <div className="flex items-center justify-between">
             <div>
               <SheetTitle>
-                {guest.firstName} {guest.lastName}
+                {[guest.firstName, guest.lastName].filter(Boolean).join(" ")}
               </SheetTitle>
               <SheetDescription>
                 Added {format(new Date(guest.createdAt), "MMM d, yyyy")}
