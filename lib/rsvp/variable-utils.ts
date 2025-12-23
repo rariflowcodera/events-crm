@@ -10,7 +10,9 @@ export interface WelcomeMessageData {
     lastName: string
     preferredName?: string
     displayNameAr?: string
+    gender?: "male" | "female" | "unspecified" | null
     title?: string
+    salutation?: string
     email?: string
   }
   event: {
@@ -38,7 +40,12 @@ export const WELCOME_MESSAGE_VARIABLES = {
     { key: "guest.fullName", label: { en: "Full Name", ar: "الاسم الكامل" }, example: "Ahmed Al-Rashid" },
     { key: "guest.displayNameAr", label: { en: "Arabic Name", ar: "الاسم بالعربية" }, example: "أحمد الراشد" },
     { key: "guest.title", label: { en: "Title", ar: "اللقب" }, example: "Mr." },
+    { key: "guest.salutation", label: { en: "Salutation", ar: "التحية الرسمية" }, example: "Dr." },
     { key: "guest.email", label: { en: "Email", ar: "البريد الإلكتروني" }, example: "ahmed@example.com" },
+  ],
+  greeting: [
+    { key: "greeting.en", label: { en: "English Greeting", ar: "التحية بالإنجليزية" }, example: "Dear" },
+    { key: "greeting.ar", label: { en: "Arabic Greeting", ar: "التحية بالعربية" }, example: "عزيزي" },
   ],
   event: [
     { key: "event.name", label: { en: "Event Name", ar: "اسم الفعالية" }, example: "Asia Cup 2027" },
@@ -59,9 +66,19 @@ export const WELCOME_MESSAGE_VARIABLES = {
 export function getAllVariables() {
   return [
     ...WELCOME_MESSAGE_VARIABLES.guest,
+    ...WELCOME_MESSAGE_VARIABLES.greeting,
     ...WELCOME_MESSAGE_VARIABLES.event,
     ...WELCOME_MESSAGE_VARIABLES.rsvp,
   ]
+}
+
+/**
+ * Get Arabic greeting based on gender
+ */
+function getArabicGreeting(gender: string | null | undefined): string {
+  if (gender === "male") return "عزيزي"
+  if (gender === "female") return "عزيزتي"
+  return "عزيزي/عزيزتي" // Fallback for unspecified
 }
 
 /**
@@ -124,7 +141,12 @@ export function replaceWelcomeMessageVariables(
     "guest.fullName": fullName,
     "guest.displayNameAr": arabicName,
     "guest.title": guest.title || "",
+    "guest.salutation": guest.salutation || "",
     "guest.email": guest.email || "",
+
+    // Greeting variables
+    "greeting.en": "Dear",
+    "greeting.ar": getArabicGreeting(guest.gender),
 
     // Event variables
     "event.name": event.name || "",
@@ -149,14 +171,14 @@ export function replaceWelcomeMessageVariables(
  */
 export function getDefaultWelcomeMessage(locale: "en" | "ar"): string {
   if (locale === "ar") {
-    // Use displayNameAr which falls back to fullName if not set
-    return `<p>عزيزي/عزيزتي <strong>{{guest.displayNameAr}}</strong>، أنت مدعو/ة إلى <strong>{{event.name}}</strong></p>
+    // Use greeting.ar for gender-aware greeting, displayNameAr falls back to fullName
+    return `<p>{{greeting.ar}} <strong>{{guest.displayNameAr}}</strong>، أنت مدعو/ة إلى <strong>{{event.name}}</strong></p>
 <p><strong>المكان:</strong> {{event.venue}}</p>
 <p><strong>التاريخ:</strong> {{event.dateRange}}</p>
 <p style="color: var(--destructive)"><strong>الموعد النهائي للرد:</strong> {{rsvp.deadline}}</p>`
   }
 
-  return `<p>Dear <strong>{{guest.fullName}}</strong>, you are invited to <strong>{{event.name}}</strong></p>
+  return `<p>{{greeting.en}} <strong>{{guest.fullName}}</strong>, you are invited to <strong>{{event.name}}</strong></p>
 <p><strong>Venue:</strong> {{event.venue}}</p>
 <p><strong>Date:</strong> {{event.dateRange}}</p>
 <p style="color: var(--destructive)"><strong>RSVP Deadline:</strong> {{rsvp.deadline}}</p>`

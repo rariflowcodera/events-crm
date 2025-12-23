@@ -64,6 +64,9 @@ interface ColumnMapping {
   email: string
   phone: string
   country: string
+  gender: string
+  title: string
+  salutation: string
   position: string
   entity: string
   department: string
@@ -71,7 +74,7 @@ interface ColumnMapping {
 }
 
 const requiredFields = ["firstName", "lastName", "email"] as const
-const optionalFields = ["displayNameAr", "phone", "country", "position", "entity", "department", "category"] as const
+const optionalFields = ["displayNameAr", "phone", "country", "gender", "title", "salutation", "position", "entity", "department", "category"] as const
 const allFields = [...requiredFields, ...optionalFields] as const
 
 const fieldLabels: Record<string, string> = {
@@ -81,7 +84,10 @@ const fieldLabels: Record<string, string> = {
   email: "Email",
   phone: "Phone",
   country: "Country",
-  position: "Position/Title",
+  gender: "Gender",
+  title: "Title/Honorific",
+  salutation: "Salutation",
+  position: "Position/Job Title",
   entity: "Company/Entity",
   department: "Department",
   category: "Category",
@@ -107,6 +113,9 @@ export function ImportGuestsModal({
     email: "",
     phone: "",
     country: "",
+    gender: "",
+    title: "",
+    salutation: "",
     position: "",
     entity: "",
     department: "",
@@ -178,6 +187,9 @@ export function ImportGuestsModal({
           email: "",
           phone: "",
           country: "",
+          gender: "",
+          title: "",
+          salutation: "",
           position: "",
           entity: "",
           department: "",
@@ -198,7 +210,13 @@ export function ImportGuestsModal({
             autoMapping.phone = header
           } else if (lowerHeader.includes("country") || lowerHeader.includes("nation") || lowerHeader === "origin") {
             autoMapping.country = header
-          } else if (lowerHeader.includes("position") || lowerHeader.includes("title") || lowerHeader.includes("role")) {
+          } else if (lowerHeader === "gender" || lowerHeader === "sex") {
+            autoMapping.gender = header
+          } else if (lowerHeader === "title" || lowerHeader.includes("honorific") || lowerHeader === "prefix") {
+            autoMapping.title = header
+          } else if (lowerHeader.includes("salutation") || lowerHeader === "greeting") {
+            autoMapping.salutation = header
+          } else if (lowerHeader.includes("position") || lowerHeader.includes("jobtitle") || lowerHeader.includes("role")) {
             autoMapping.position = header
           } else if (lowerHeader.includes("company") || lowerHeader.includes("entity") || lowerHeader.includes("organization") || lowerHeader.includes("org")) {
             autoMapping.entity = header
@@ -230,6 +248,9 @@ export function ImportGuestsModal({
       email: String(row[mapping.email] || ""),
       phone: mapping.phone ? String(row[mapping.phone] || "") : "",
       country: mapping.country ? String(row[mapping.country] || "") : "",
+      gender: mapping.gender ? String(row[mapping.gender] || "") : "",
+      title: mapping.title ? String(row[mapping.title] || "") : "",
+      salutation: mapping.salutation ? String(row[mapping.salutation] || "") : "",
       position: mapping.position ? String(row[mapping.position] || "") : "",
       entity: mapping.entity ? String(row[mapping.entity] || "") : "",
       department: mapping.department ? String(row[mapping.department] || "") : "",
@@ -240,6 +261,15 @@ export function ImportGuestsModal({
   // Helper to validate email format
   const isValidEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  }
+
+  // Helper to normalize gender values
+  const normalizeGender = (value: string): "male" | "female" | "unspecified" | undefined => {
+    const lower = value.toLowerCase().trim()
+    if (lower === "male" || lower === "m" || lower === "ذكر") return "male"
+    if (lower === "female" || lower === "f" || lower === "أنثى") return "female"
+    if (lower === "unspecified" || lower === "u" || lower === "غير محدد") return "unspecified"
+    return undefined
   }
 
   // Helper to find category by code (case-insensitive)
@@ -456,6 +486,15 @@ export function ImportGuestsModal({
           }
         }
 
+        // Parse gender
+        let gender: "male" | "female" | "unspecified" | undefined
+        if (mapping.gender) {
+          const rawGender = String(row[mapping.gender] || "").trim()
+          if (rawGender) {
+            gender = normalizeGender(rawGender)
+          }
+        }
+
         return {
           categoryId,
           firstName: String(row[mapping.firstName] || "").trim(),
@@ -468,6 +507,13 @@ export function ImportGuestsModal({
             ? String(row[mapping.phone] || "").trim() || undefined
             : undefined,
           country: countryCode,
+          gender,
+          title: mapping.title
+            ? String(row[mapping.title] || "").trim() || undefined
+            : undefined,
+          salutation: mapping.salutation
+            ? String(row[mapping.salutation] || "").trim() || undefined
+            : undefined,
           position: mapping.position
             ? String(row[mapping.position] || "").trim() || undefined
             : undefined,
@@ -582,6 +628,9 @@ export function ImportGuestsModal({
       email: "",
       phone: "",
       country: "",
+      gender: "",
+      title: "",
+      salutation: "",
       position: "",
       entity: "",
       department: "",
@@ -604,7 +653,7 @@ export function ImportGuestsModal({
 
   // Download template with sample data
   const handleDownloadTemplate = useCallback(() => {
-    const headers = ["First Name", "Last Name", "Arabic Name", "Email", "Phone", "Country", "Position", "Organization/Entity", "Department", "Category"]
+    const headers = ["First Name", "Last Name", "Arabic Name", "Email", "Phone", "Country", "Gender", "Title", "Salutation", "Position", "Organization/Entity", "Department", "Category"]
 
     // Create sample rows - one for each category
     const sampleRows = categories.map((cat, i) => [
@@ -614,6 +663,9 @@ export function ImportGuestsModal({
       `sample${i + 1}@example.com`,
       "",
       "SA", // Sample country code
+      i % 2 === 0 ? "Male" : "Female", // Sample gender
+      i % 2 === 0 ? "Mr." : "Mrs.", // Sample title
+      "", // Salutation (usually left empty)
       "",
       "",
       "",
@@ -622,7 +674,7 @@ export function ImportGuestsModal({
 
     // If no categories, add a placeholder row
     if (sampleRows.length === 0) {
-      sampleRows.push(["John", "Doe", "جون دو", "john@example.com", "", "US", "", "", "", ""])
+      sampleRows.push(["John", "Doe", "جون دو", "john@example.com", "", "US", "Male", "Mr.", "", "", "", "", ""])
     }
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows])
@@ -635,6 +687,9 @@ export function ImportGuestsModal({
       { wch: 25 }, // Email
       { wch: 15 }, // Phone
       { wch: 15 }, // Country
+      { wch: 10 }, // Gender
+      { wch: 10 }, // Title
+      { wch: 15 }, // Salutation
       { wch: 15 }, // Position
       { wch: 20 }, // Organization/Entity
       { wch: 15 }, // Department
@@ -708,7 +763,10 @@ export function ImportGuestsModal({
                       <li>Arabic Name</li>
                       <li>Phone</li>
                       <li>Country (code like &quot;SA&quot; or name like &quot;Saudi Arabia&quot;)</li>
-                      <li>Position/Title</li>
+                      <li>Gender (Male, Female, M, F)</li>
+                      <li>Title (Mr., Mrs., Dr., Sheikh)</li>
+                      <li>Salutation (Your Excellency, etc.)</li>
+                      <li>Position/Job Title</li>
                       <li>Company/Entity</li>
                       <li>Department</li>
                       <li>Category (uses category code: {categories.map(c => c.code).join(", ")})</li>

@@ -382,6 +382,9 @@ export const emailTemplatesRouter = createTRPCRouter({
           type: template.type,
           categoryId: template.categoryId,
           content: template.content,
+          structuredContent: template.structuredContent,
+          masterTemplateId: template.masterTemplateId,
+          showBannerFooter: template.showBannerFooter,
           defaultLanguage: template.defaultLanguage,
           fromName: template.fromName,
           fromEmail: template.fromEmail,
@@ -439,6 +442,10 @@ export const emailTemplatesRouter = createTRPCRouter({
           { key: "{{guest.position}}", description: "Guest's job position" },
           { key: "{{guest.entity}}", description: "Guest's organization/company" },
           { key: "{{guest.category}}", description: "Guest's category name" },
+        ],
+        greeting: [
+          { key: "{{greeting.en}}", description: "English greeting (Dear)" },
+          { key: "{{greeting.ar}}", description: "Arabic greeting based on gender (عزيزي/عزيزتي)" },
         ],
         event: [
           { key: "{{event.name}}", description: "Event name" },
@@ -939,6 +946,7 @@ export const emailTemplatesRouter = createTRPCRouter({
             firstName: guestRecord.firstName,
             lastName: guestRecord.lastName,
             displayNameAr: guestRecord.displayNameAr,
+            gender: guestRecord.gender,
             title: guestRecord.title,
             salutation: guestRecord.salutation,
             email: guestRecord.email,
@@ -1170,6 +1178,18 @@ export const emailTemplatesRouter = createTRPCRouter({
         where: eq(workspaces.id, event.workspaceId),
       })
 
+      // DEBUG: Log branding data to identify where values are lost
+      console.log("Preview Debug - Branding Data:", {
+        eventId: input.eventId,
+        hasEventBranding: !!event.branding,
+        hasEventEmailBranding: !!(event.branding as Record<string, unknown>)?.emailBranding,
+        eventContentBg: ((event.branding as Record<string, unknown>)?.emailBranding as Record<string, unknown>)?.contentBackgroundColor,
+        eventBannerImage: ((event.branding as Record<string, unknown>)?.emailBranding as Record<string, unknown>)?.bannerFooterImage,
+        hasWorkspaceBranding: !!workspace?.branding,
+        hasWorkspaceEmailBranding: !!(workspace?.branding as Record<string, unknown>)?.emailBranding,
+        fullEventBranding: event.branding,
+      })
+
       // Get master template (provided or default)
       let masterTemplate = null
       if (input.masterTemplateId) {
@@ -1206,6 +1226,7 @@ export const emailTemplatesRouter = createTRPCRouter({
             firstName: guestRecord.firstName,
             lastName: guestRecord.lastName,
             displayNameAr: guestRecord.displayNameAr,
+            gender: guestRecord.gender,
             title: guestRecord.title,
             salutation: guestRecord.salutation,
             email: guestRecord.email,
@@ -1227,6 +1248,7 @@ export const emailTemplatesRouter = createTRPCRouter({
           firstName: "John",
           lastName: "Doe",
           displayNameAr: "جون دو",
+          gender: "male" as const,
           title: "Mr.",
           salutation: "Dear Mr. Doe",
           email: "john.doe@example.com",

@@ -65,6 +65,8 @@ interface GuestCategory {
   color: string | null
 }
 
+type GuestGender = "male" | "female" | "unspecified"
+
 interface Guest {
   id: string
   firstName: string
@@ -73,6 +75,9 @@ interface Guest {
   email: string | null
   phone: string | null
   country: string | null
+  gender: GuestGender | null
+  title: string | null
+  salutation: string | null
   position: string | null
   entity: string | null
   status: GuestStatus
@@ -117,6 +122,12 @@ const statusOptions: { value: GuestStatus; label: string }[] = [
   { value: "no_show", label: "No Show" },
 ]
 
+const genderOptions: { value: GuestGender; labelKey: string }[] = [
+  { value: "male", labelKey: "gender.male" },
+  { value: "female", labelKey: "gender.female" },
+  { value: "unspecified", labelKey: "gender.unspecified" },
+]
+
 const editGuestSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
   lastName: z.string().min(1, "Last name is required").max(100),
@@ -124,6 +135,9 @@ const editGuestSchema = z.object({
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   phone: z.string().optional(),
   country: z.string().optional(),
+  gender: z.enum(["male", "female", "unspecified"]).optional(),
+  title: z.string().max(50).optional(),
+  salutation: z.string().max(100).optional(),
   position: z.string().optional(),
   entity: z.string().optional(),
   categoryId: z.string().optional(),
@@ -181,6 +195,9 @@ export function GuestDetailContent({
       email: guest.email || "",
       phone: guest.phone || "",
       country: guest.country || "",
+      gender: guest.gender || undefined,
+      title: guest.title || "",
+      salutation: guest.salutation || "",
       position: guest.position || "",
       entity: guest.entity || "",
       categoryId: guest.category?.id || "",
@@ -210,6 +227,9 @@ export function GuestDetailContent({
       email: values.email || undefined,
       phone: values.phone || undefined,
       country: values.country || undefined,
+      gender: values.gender || undefined,
+      title: values.title || undefined,
+      salutation: values.salutation || undefined,
       position: values.position || undefined,
       entity: values.entity || undefined,
       categoryId: values.categoryId || undefined,
@@ -357,6 +377,74 @@ export function GuestDetailContent({
                 </FormItem>
               )}
             />
+
+            {/* Guest Addressing Section */}
+            <div className="grid grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("fields.gender")}</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isUpdating}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("gender.unspecified")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {genderOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {t(option.labelKey)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("fields.title")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Mr., Dr., Sheikh"
+                        disabled={isUpdating}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="salutation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("fields.salutation")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Your Excellency"
+                        disabled={isUpdating}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}

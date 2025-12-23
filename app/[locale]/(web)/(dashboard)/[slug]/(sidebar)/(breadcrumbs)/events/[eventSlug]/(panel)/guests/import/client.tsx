@@ -63,10 +63,11 @@ interface ColumnMapping {
   department: string
   category: string
   displayNameAr: string
+  gender: string
 }
 
 const requiredFields = ["firstName", "lastName", "email"] as const
-const optionalFields = ["phone", "country", "position", "entity", "department", "category", "displayNameAr"] as const
+const optionalFields = ["phone", "country", "position", "entity", "department", "category", "displayNameAr", "gender"] as const
 const allFields = [...requiredFields, ...optionalFields] as const
 
 const fieldLabels: Record<string, string> = {
@@ -80,6 +81,7 @@ const fieldLabels: Record<string, string> = {
   department: "Department",
   category: "Category",
   displayNameAr: "Arabic Name",
+  gender: "Gender",
 }
 
 export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuestsPageClientProps) {
@@ -120,6 +122,7 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
     department: "",
     category: "",
     displayNameAr: "",
+    gender: "",
   })
   const [defaultCategoryId, setDefaultCategoryId] = useState<string>("")
   const [importProgress, setImportProgress] = useState(0)
@@ -196,6 +199,7 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
           department: "",
           category: "",
           displayNameAr: "",
+          gender: "",
         }
 
         headers.forEach((header) => {
@@ -220,6 +224,8 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
             autoMapping.category = header
           } else if (lowerHeader.includes("arabicname") || lowerHeader.includes("namear") || lowerHeader === "arabic" || lowerHeader.includes("displaynamear")) {
             autoMapping.displayNameAr = header
+          } else if (lowerHeader.includes("gender") || lowerHeader === "sex") {
+            autoMapping.gender = header
           }
         })
 
@@ -253,6 +259,15 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
   // Helper to validate email format
   const isValidEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  }
+
+  // Helper to normalize gender values from various formats
+  const normalizeGender = (value: string): "male" | "female" | "unspecified" | undefined => {
+    const lower = value.toLowerCase().trim()
+    if (lower === "male" || lower === "m" || lower === "ذكر") return "male"
+    if (lower === "female" || lower === "f" || lower === "أنثى") return "female"
+    if (lower === "unspecified" || lower === "u" || lower === "غير محدد") return "unspecified"
+    return undefined
   }
 
   // Helper to find category by code (case-insensitive)
@@ -492,6 +507,9 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
           displayNameAr: mapping.displayNameAr
             ? String(row[mapping.displayNameAr] || "").trim() || undefined
             : undefined,
+          gender: mapping.gender
+            ? normalizeGender(String(row[mapping.gender] || "").trim())
+            : undefined,
         }
       })
 
@@ -579,10 +597,11 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
 
   // Download template with sample data
   const handleDownloadTemplate = useCallback(() => {
-    const headers = ["First Name", "Last Name", "Email", "Phone", "Country", "Position", "Organization/Entity", "Department", "Category", "Arabic Name"]
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Country", "Position", "Organization/Entity", "Department", "Category", "Arabic Name", "Gender"]
 
-    // Sample Arabic names
+    // Sample Arabic names and genders
     const sampleArabicNames = ["محمد", "أحمد", "علي", "فاطمة", "سارة"]
+    const sampleGenders = ["male", "male", "male", "female", "female"]
 
     // Create sample rows - one for each category
     const sampleRows = categories.map((cat, i) => [
@@ -596,11 +615,12 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
       "",
       cat.code,
       sampleArabicNames[i % sampleArabicNames.length],
+      sampleGenders[i % sampleGenders.length],
     ])
 
     // If no categories, add a placeholder row
     if (sampleRows.length === 0) {
-      sampleRows.push(["John", "Doe", "john@example.com", "", "US", "", "", "", "", "جون دو"])
+      sampleRows.push(["John", "Doe", "john@example.com", "", "US", "", "", "", "", "جون دو", "male"])
     }
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows])
@@ -617,6 +637,7 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
       { wch: 15 },
       { wch: 12 },
       { wch: 15 },
+      { wch: 10 },
     ]
 
     const wb = XLSX.utils.book_new()
@@ -695,6 +716,7 @@ export function ImportGuestsPageClient({ workspaceSlug, eventSlug }: ImportGuest
                     <li>Department</li>
                     <li>Category (uses category code: {categories.map(c => c.code).join(", ")})</li>
                     <li>Arabic Name (الاسم بالعربية)</li>
+                    <li>Gender (male, female, or unspecified)</li>
                   </ul>
 
                   <Button

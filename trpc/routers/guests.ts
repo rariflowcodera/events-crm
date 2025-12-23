@@ -26,6 +26,8 @@ const guestStatusValues = [
   "no_show",
 ] as const
 
+const guestGenderValues = ["male", "female", "unspecified"] as const
+
 export const guestsRouter = createTRPCRouter({
   // Get guests for an event with pagination and filters
   getMany: protectedProcedure
@@ -267,6 +269,7 @@ export const guestsRouter = createTRPCRouter({
         whatsapp: z.string().optional(),
         title: z.string().optional(),
         salutation: z.string().optional(),
+        gender: z.enum(guestGenderValues).optional(),
         preferredName: z.string().optional(),
         displayNameAr: z.string().optional(),
         position: z.string().optional(),
@@ -361,6 +364,7 @@ export const guestsRouter = createTRPCRouter({
         whatsapp: z.string().nullable().optional(),
         title: z.string().nullable().optional(),
         salutation: z.string().nullable().optional(),
+        gender: z.enum(guestGenderValues).nullable().optional(),
         preferredName: z.string().nullable().optional(),
         displayNameAr: z.string().nullable().optional(),
         position: z.string().nullable().optional(),
@@ -933,6 +937,9 @@ export const guestsRouter = createTRPCRouter({
             lastName: z.string().min(1),
             email: z.string().email(),
             phone: z.string().optional(),
+            title: z.string().optional(),
+            salutation: z.string().optional(),
+            gender: z.enum(guestGenderValues).optional(),
             position: z.string().optional(),
             entity: z.string().optional(),
             department: z.string().optional(),

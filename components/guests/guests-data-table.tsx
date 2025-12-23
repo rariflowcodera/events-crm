@@ -71,6 +71,7 @@ interface Guest {
   lastName: string
   preferredName: string | null
   displayNameAr: string | null
+  gender: "male" | "female" | "unspecified" | null
   title: string | null
   salutation: string | null
   profileImage: string | null
@@ -396,6 +397,20 @@ export function GuestsDataTable({
           )
         },
         size: getColumnWidth("displayNameAr"),
+      },
+      {
+        id: "gender",
+        accessorKey: "gender",
+        header: ({ column }) => (
+          <FilterableHeader column={column} title="Gender" />
+        ),
+        cell: ({ getValue }) => {
+          const value = getValue() as string | null
+          if (!value) return ""
+          // Capitalize first letter
+          return value.charAt(0).toUpperCase() + value.slice(1)
+        },
+        size: getColumnWidth("gender"),
       },
       {
         id: "title",

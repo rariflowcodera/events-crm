@@ -26,6 +26,12 @@ export const guestStatusEnum = pgEnum("guest_status", [
   "no_show",
 ])
 
+export const guestGenderEnum = pgEnum("guest_gender", [
+  "male",
+  "female",
+  "unspecified",
+])
+
 export const guests = pgTable(
   "guest",
   {
@@ -48,6 +54,7 @@ export const guests = pgTable(
     displayNameAr: text("display_name_ar"), // Arabic display name
     title: text("title"),
     salutation: text("salutation"),
+    gender: guestGenderEnum("gender").default("unspecified"),
     country: text("country"), // ISO 3166-1 alpha-2 code
 
     // Professional

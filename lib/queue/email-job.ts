@@ -19,6 +19,7 @@ interface Guest {
   firstName: string
   lastName: string | null
   displayNameAr: string | null
+  gender: "male" | "female" | "unspecified" | null
   title: string | null
   salutation: string | null
   email: string | null

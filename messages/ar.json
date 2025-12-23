@@ -224,7 +224,9 @@
       "lastName": "اسم العائلة",
       "preferredName": "الاسم المفضل",
       "displayNameAr": "الاسم بالعربية",
+      "gender": "الجنس",
       "title": "اللقب",
+      "salutation": "التحية الرسمية",
       "position": "المنصب",
       "entity": "الجهة",
       "department": "القسم",
@@ -236,6 +238,15 @@
       "accessibilityNeeds": "احتياجات الوصول",
       "internalNotes": "ملاحظات داخلية",
       "category": "الفئة"
+    },
+    "gender": {
+      "male": "ذكر",
+      "female": "أنثى",
+      "unspecified": "غير محدد"
+    },
+    "addressing": {
+      "title": "مخاطبة الضيف",
+      "description": "الجنس واللقب والتحية للتواصل المخصص"
     },
     "import": {
       "title": "استيراد الضيوف",
@@ -759,6 +770,7 @@
     "welcomeMessageVariables": "المتغيرات المتاحة",
     "welcomeMessageVariablesDescription": "انقر للنسخ. سيتم استبدال المتغيرات ببيانات الضيف والفعالية الفعلية.",
     "variableGroupGuest": "الضيف",
+    "variableGroupGreeting": "التحية",
     "variableGroupEvent": "الفعالية",
     "variableGroupRsvp": "تأكيد الحضور",
     "copied": "تم النسخ!",

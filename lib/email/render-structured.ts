@@ -29,6 +29,7 @@ export interface Guest {
   firstName: string
   lastName: string | null
   displayNameAr: string | null
+  gender: "male" | "female" | "unspecified" | null
   title: string | null
   salutation: string | null
   email: string | null
@@ -111,6 +112,18 @@ export interface RenderResult {
 // ============================================================================
 
 /**
+ * Get gender-aware Arabic greeting.
+ * - male: عزيزي (Azizi)
+ * - female: عزيزتي (Azizati)
+ * - unspecified/null: عزيزي/عزيزتي (show both forms)
+ */
+function getArabicGreeting(gender: string | null | undefined): string {
+  if (gender === "male") return "عزيزي"
+  if (gender === "female") return "عزيزتي"
+  return "عزيزي/عزيزتي" // Fallback for unspecified
+}
+
+/**
  * Build the variable context for Handlebars templates.
  * All variables are flattened for easy access in templates.
  */
@@ -129,12 +142,17 @@ export function buildVariableContext(
     "guest.lastName": guest.lastName || "",
     "guest.fullName": [guest.firstName, guest.lastName].filter(Boolean).join(" "),
     "guest.displayNameAr": guest.displayNameAr || "",
+    "guest.gender": guest.gender || "",
     "guest.title": guest.title || "",
     "guest.salutation": guest.salutation || "",
     "guest.email": guest.email || "",
     "guest.position": guest.position || "",
     "guest.entity": guest.entity || "",
     "guest.category": guest.category?.name || "",
+
+    // Greeting variables (gender-aware)
+    "greeting.en": "Dear",
+    "greeting.ar": getArabicGreeting(guest.gender),
 
     // Event variables
     "event.name": event.name,
@@ -276,6 +294,16 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     resolvedVisualBranding
   )
 
+  // DEBUG: Log resolved branding to identify where values are lost
+  console.log("Render Debug - Input Branding:", {
+    workspaceEmailBranding: workspaceBranding?.emailBranding,
+    eventEmailBranding: eventBranding?.emailBranding,
+  })
+  console.log("Render Debug - Resolved Branding:", {
+    contentBackgroundColor: resolvedEmailBranding.contentBackgroundColor,
+    bannerFooterImage: resolvedEmailBranding.bannerFooterImage,
+  })
+
   // 2. Build variable contexts for EN and AR
   const enVariables = buildVariableContext(guest, event, "en")
   const arVariables = buildVariableContext(guest, event, "ar")
@@ -324,6 +352,15 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
   // 6. Build master template context
   const structure = masterTemplate?.structure || defaultMasterTemplateStructure
   const masterHtml = masterTemplate?.htmlTemplate || defaultMasterTemplate
+
+  // DEBUG: Log which master template is being used
+  console.log("Render Debug - Master Template:", {
+    usingCustomTemplate: !!masterTemplate?.htmlTemplate,
+    masterTemplateId: masterTemplate?.id,
+    masterTemplateName: masterTemplate?.name,
+    hasContentBgInTemplate: masterHtml.includes("{{contentBackgroundColor}}"),
+    hasBannerFooterInTemplate: masterHtml.includes("{{bannerFooterImageUrl}}"),
+  })
 
   // Get logo URL - ensure it's absolute for email clients
   const rawLogoUrl = resolvedVisualBranding.logo
@@ -403,6 +440,16 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     bannerFooterImageUrl,
     footerText: resolvedEmailBranding.footerText || `${event.name}`,
   }
+
+  // DEBUG: Log final masterContext values passed to Handlebars
+  console.log("Render Debug - Master Context:", {
+    contentBackgroundColor: masterContext.contentBackgroundColor,
+    bannerFooterImageUrl: masterContext.bannerFooterImageUrl,
+    showBannerFooter: masterContext.showBannerFooter,
+    showLogo: masterContext.showLogo,
+    logoUrl: masterContext.logoUrl,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  })
 
   // 7. Compile and render master template
   const compiledMaster = Handlebars.compile(masterHtml)
@@ -654,6 +701,7 @@ export function getSamplePreviewData(): { guest: Guest; event: Event } {
       firstName: "John",
       lastName: "Smith",
       displayNameAr: "جون سميث",
+      gender: "male",
       title: "Dr.",
       salutation: "Dr.",
       email: "john.smith@example.com",

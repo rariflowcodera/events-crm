@@ -326,6 +326,15 @@ export const changePasswordSchema = z
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>
 
+// ============================================================================
+// Guest Schemas
+// ============================================================================
+
+/** Guest gender values for gender-aware greetings */
+export const guestGenderValues = ["male", "female", "unspecified"] as const
+export type GuestGender = (typeof guestGenderValues)[number]
+export const guestGenderSchema = z.enum(guestGenderValues)
+
 const nameRegex = /^[a-zA-Z0-9\s]+$/
 
 export const workspaceSchema = createInsertSchema(workspaces, {

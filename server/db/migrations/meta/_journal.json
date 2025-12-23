@@ -176,6 +176,13 @@
       "when": 1766476815119,
       "tag": "0024_puzzling_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1766485523275,
+      "tag": "0025_unusual_cobalt_man",
+      "breakpoints": true
     }
   ]
 }

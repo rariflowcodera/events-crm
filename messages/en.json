@@ -226,7 +226,9 @@
       "lastName": "Last Name",
       "preferredName": "Preferred Name",
       "displayNameAr": "Arabic Name",
+      "gender": "Gender",
       "title": "Title",
+      "salutation": "Salutation",
       "position": "Position",
       "entity": "Organization/Entity",
       "department": "Department",
@@ -238,6 +240,15 @@
       "accessibilityNeeds": "Accessibility Needs",
       "internalNotes": "Internal Notes",
       "category": "Category"
+    },
+    "gender": {
+      "male": "Male",
+      "female": "Female",
+      "unspecified": "Unspecified"
+    },
+    "addressing": {
+      "title": "Guest Addressing",
+      "description": "Gender, title, and salutation for personalized communications"
     },
     "import": {
       "title": "Import Guests",
@@ -761,6 +772,7 @@
     "welcomeMessageVariables": "Available Variables",
     "welcomeMessageVariablesDescription": "Click to copy. Variables will be replaced with actual guest and event data.",
     "variableGroupGuest": "Guest",
+    "variableGroupGreeting": "Greeting",
     "variableGroupEvent": "Event",
     "variableGroupRsvp": "RSVP",
     "copied": "Copied!",

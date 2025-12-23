@@ -27,6 +27,13 @@ import {
 import { Icons } from "@/components/global/icons"
 import { GuestProfileImage } from "@/components/guests/guest-profile-image"
 import { countries } from "@/lib/data/countries"
+import { Textarea } from "@/components/ui/textarea"
+
+const genderOptions = [
+  { value: "male", labelKey: "gender.male" },
+  { value: "female", labelKey: "gender.female" },
+  { value: "unspecified", labelKey: "gender.unspecified" },
+] as const
 
 interface GuestCategory {
   id: string
@@ -49,6 +56,9 @@ const addGuestSchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email address"),
   phone: z.string().optional(),
   country: z.string().optional(),
+  gender: z.enum(["male", "female", "unspecified"]).optional(),
+  title: z.string().max(50).optional(),
+  salutation: z.string().max(100).optional(),
   position: z.string().optional(),
   entity: z.string().optional(),
   categoryId: z.string().min(1, "Category is required"),
@@ -70,6 +80,9 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
       email: "",
       phone: "",
       country: "",
+      gender: undefined,
+      title: "",
+      salutation: "",
       position: "",
       entity: "",
       categoryId: categories.length > 0 ? categories[0].id : "",
@@ -94,6 +107,9 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
       email: values.email,
       phone: values.phone || undefined,
       country: values.country || undefined,
+      gender: values.gender || undefined,
+      title: values.title || undefined,
+      salutation: values.salutation || undefined,
       position: values.position || undefined,
       entity: values.entity || undefined,
       categoryId: values.categoryId,
@@ -176,6 +192,74 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
             </FormItem>
           )}
         />
+
+        {/* Guest Addressing Section */}
+        <div className="grid grid-cols-3 gap-4">
+          <FormField
+            control={form.control}
+            name="gender"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("fields.gender")}</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={isPending}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("gender.unspecified")} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {genderOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("fields.title")}</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Mr., Dr., Sheikh"
+                    disabled={isPending}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="salutation"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("fields.salutation")}</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Your Excellency"
+                    disabled={isPending}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
