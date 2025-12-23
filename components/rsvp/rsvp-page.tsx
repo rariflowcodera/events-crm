@@ -472,18 +472,22 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
     const status = form.getValues("responseStatus")
     const config = guestData.event.rsvpFormConfig
 
-    // Get confirmation message from config or use default
-    let confirmationMessage: string
+    // Get confirmation message from config or use default (both EN and AR)
+    const getMessage = (
+      bilingualMsg: { en: string; ar?: string } | undefined,
+      fallbackKey: string
+    ) => ({
+      en: bilingualMsg?.en || t(fallbackKey),
+      ar: bilingualMsg?.ar || undefined,
+    })
+
+    let messages: { en: string; ar?: string }
     if (status === "confirmed") {
-      confirmationMessage = config?.settings?.confirmationMessage
-        ? getLocalizedText(config.settings.confirmationMessage, displayLocale)
-        : t("confirmation.confirmed")
+      messages = getMessage(config?.settings?.confirmationMessage, "confirmation.confirmed")
     } else if (status === "declined") {
-      confirmationMessage = config?.settings?.declineMessage
-        ? getLocalizedText(config.settings.declineMessage, displayLocale)
-        : t("confirmation.declined")
+      messages = getMessage(config?.settings?.declineMessage, "confirmation.declined")
     } else {
-      confirmationMessage = t("confirmation.maybe")
+      messages = getMessage(config?.settings?.maybeMessage, "confirmation.maybe")
     }
 
     // Use resolved branding with fallbacks, respecting logo display mode
@@ -519,8 +523,22 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                 className="mx-auto mb-4 h-40 object-contain"
               />
             )}
-            <h2 className="text-xl sm:text-2xl font-bold">{t("submitted")}</h2>
-            <p className="mt-2 text-muted-foreground">{confirmationMessage}</p>
+            <div className="space-y-4">
+              {/* English message */}
+              <div
+                className="text-muted-foreground space-y-1.5 [&_p]:my-1 [&_strong]:font-semibold"
+                dir="ltr"
+                dangerouslySetInnerHTML={{ __html: messages.en }}
+              />
+              {/* Arabic message (if available) */}
+              {messages.ar && (
+                <div
+                  className="text-muted-foreground space-y-1.5 [&_p]:my-1 [&_strong]:font-semibold"
+                  dir="rtl"
+                  dangerouslySetInnerHTML={{ __html: messages.ar }}
+                />
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
