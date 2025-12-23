@@ -84,6 +84,7 @@ export async function GET(
       gender: guest.gender,
       title: guest.title,
       salutation: guest.salutation,
+      salutationAr: guest.salutationAr,
       email: guest.email,
       status: guest.status,
       hasCompanion: guest.hasCompanion,

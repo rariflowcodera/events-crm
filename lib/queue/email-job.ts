@@ -22,6 +22,7 @@ interface Guest {
   gender: "male" | "female" | "unspecified" | null
   title: string | null
   salutation: string | null
+  salutationAr: string | null
   email: string | null
   position: string | null
   entity: string | null

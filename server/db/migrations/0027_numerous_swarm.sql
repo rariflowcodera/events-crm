@@ -1,0 +1,1 @@
+ALTER TABLE "guest" ADD COLUMN "salutation_ar" text;

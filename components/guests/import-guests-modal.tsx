@@ -67,6 +67,7 @@ interface ColumnMapping {
   gender: string
   title: string
   salutation: string
+  salutationAr: string
   position: string
   entity: string
   department: string
@@ -74,7 +75,7 @@ interface ColumnMapping {
 }
 
 const requiredFields = ["firstName", "email"] as const
-const optionalFields = ["lastName", "displayNameAr", "phone", "country", "gender", "title", "salutation", "position", "entity", "department", "category"] as const
+const optionalFields = ["lastName", "displayNameAr", "phone", "country", "gender", "title", "salutation", "salutationAr", "position", "entity", "department", "category"] as const
 const allFields = [...requiredFields, ...optionalFields] as const
 
 const fieldLabels: Record<string, string> = {
@@ -87,6 +88,7 @@ const fieldLabels: Record<string, string> = {
   gender: "Gender",
   title: "Title/Honorific",
   salutation: "Salutation",
+  salutationAr: "Arabic Salutation",
   position: "Position/Job Title",
   entity: "Company/Entity",
   department: "Department",
@@ -116,6 +118,7 @@ export function ImportGuestsModal({
     gender: "",
     title: "",
     salutation: "",
+    salutationAr: "",
     position: "",
     entity: "",
     department: "",
@@ -190,6 +193,7 @@ export function ImportGuestsModal({
           gender: "",
           title: "",
           salutation: "",
+          salutationAr: "",
           position: "",
           entity: "",
           department: "",
@@ -216,6 +220,8 @@ export function ImportGuestsModal({
             autoMapping.title = header
           } else if (lowerHeader.includes("salutation") || lowerHeader === "greeting") {
             autoMapping.salutation = header
+          } else if (lowerHeader.includes("salutationer") || lowerHeader.includes("arabicsalutation") || lowerHeader === "salutationar") {
+            autoMapping.salutationAr = header
           } else if (lowerHeader.includes("position") || lowerHeader.includes("jobtitle") || lowerHeader.includes("role")) {
             autoMapping.position = header
           } else if (lowerHeader.includes("company") || lowerHeader.includes("entity") || lowerHeader.includes("organization") || lowerHeader.includes("org")) {
@@ -251,6 +257,7 @@ export function ImportGuestsModal({
       gender: mapping.gender ? String(row[mapping.gender] || "") : "",
       title: mapping.title ? String(row[mapping.title] || "") : "",
       salutation: mapping.salutation ? String(row[mapping.salutation] || "") : "",
+      salutationAr: mapping.salutationAr ? String(row[mapping.salutationAr] || "") : "",
       position: mapping.position ? String(row[mapping.position] || "") : "",
       entity: mapping.entity ? String(row[mapping.entity] || "") : "",
       department: mapping.department ? String(row[mapping.department] || "") : "",
@@ -514,6 +521,9 @@ export function ImportGuestsModal({
           salutation: mapping.salutation
             ? String(row[mapping.salutation] || "").trim() || undefined
             : undefined,
+          salutationAr: mapping.salutationAr
+            ? String(row[mapping.salutationAr] || "").trim() || undefined
+            : undefined,
           position: mapping.position
             ? String(row[mapping.position] || "").trim() || undefined
             : undefined,
@@ -631,6 +641,7 @@ export function ImportGuestsModal({
       gender: "",
       title: "",
       salutation: "",
+      salutationAr: "",
       position: "",
       entity: "",
       department: "",
@@ -653,7 +664,7 @@ export function ImportGuestsModal({
 
   // Download template with sample data
   const handleDownloadTemplate = useCallback(() => {
-    const headers = ["First Name", "Last Name", "Arabic Name", "Email", "Phone", "Country", "Gender", "Title", "Salutation", "Position", "Organization/Entity", "Department", "Category"]
+    const headers = ["First Name", "Last Name", "Arabic Name", "Email", "Phone", "Country", "Gender", "Title", "Salutation", "Arabic Salutation", "Position", "Organization/Entity", "Department", "Category"]
 
     // Create sample rows - one for each category
     const sampleRows = categories.map((cat, i) => [
@@ -666,6 +677,7 @@ export function ImportGuestsModal({
       i % 2 === 0 ? "Male" : "Female", // Sample gender
       i % 2 === 0 ? "Mr." : "Mrs.", // Sample title
       "", // Salutation (usually left empty)
+      i % 2 === 0 ? "السيد" : "السيدة", // Sample Arabic salutation
       "",
       "",
       "",
@@ -674,7 +686,7 @@ export function ImportGuestsModal({
 
     // If no categories, add a placeholder row
     if (sampleRows.length === 0) {
-      sampleRows.push(["John", "Doe", "جون دو", "john@example.com", "", "US", "Male", "Mr.", "", "", "", "", ""])
+      sampleRows.push(["John", "Doe", "جون دو", "john@example.com", "", "US", "Male", "Mr.", "", "السيد", "", "", "", ""])
     }
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows])
@@ -690,6 +702,7 @@ export function ImportGuestsModal({
       { wch: 10 }, // Gender
       { wch: 10 }, // Title
       { wch: 15 }, // Salutation
+      { wch: 18 }, // Arabic Salutation
       { wch: 15 }, // Position
       { wch: 20 }, // Organization/Entity
       { wch: 15 }, // Department
@@ -766,6 +779,7 @@ export function ImportGuestsModal({
                       <li>Gender (Male, Female, M, F)</li>
                       <li>Title (Mr., Mrs., Dr., Sheikh)</li>
                       <li>Salutation (Your Excellency, etc.)</li>
+                      <li>Arabic Salutation (السيد, سعادة, etc.)</li>
                       <li>Position/Job Title</li>
                       <li>Company/Entity</li>
                       <li>Department</li>

@@ -36,6 +36,7 @@ export interface Guest {
   gender: "male" | "female" | "unspecified" | null
   title: string | null
   salutation: string | null
+  salutationAr: string | null
   email: string | null
   position: string | null
   entity: string | null
@@ -117,18 +118,6 @@ export interface RenderResult {
 // ============================================================================
 
 /**
- * Get gender-aware Arabic greeting.
- * - male: السيد (Al-Sayyid - Mr./Sir)
- * - female: السيدة (Al-Sayyida - Mrs./Madam)
- * - unspecified/null: السيد/السيدة (show both forms)
- */
-function getArabicGreeting(gender: string | null | undefined): string {
-  if (gender === "male") return "السيد"
-  if (gender === "female") return "السيدة"
-  return "السيد/السيدة" // Fallback for unspecified
-}
-
-/**
  * Build the variable context for Handlebars templates.
  * All variables are flattened for easy access in templates.
  */
@@ -150,14 +139,11 @@ export function buildVariableContext(
     "guest.gender": guest.gender || "",
     "guest.title": guest.title || "",
     "guest.salutation": guest.salutation || "",
+    "guest.salutationAr": guest.salutationAr || "",
     "guest.email": guest.email || "",
     "guest.position": guest.position || "",
     "guest.entity": guest.entity || "",
     "guest.category": guest.category?.name || "",
-
-    // Greeting variables (gender-aware)
-    "greeting.en": "Dear",
-    "greeting.ar": getArabicGreeting(guest.gender),
 
     // Event variables
     "event.name": event.name,
@@ -776,6 +762,7 @@ export function getSamplePreviewData(): { guest: Guest; event: Event } {
       gender: "male",
       title: "Dr.",
       salutation: "Dr.",
+      salutationAr: "السيد",
       email: "john.smith@example.com",
       position: "CEO",
       entity: "Acme Corporation",

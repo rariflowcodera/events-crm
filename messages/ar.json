@@ -227,6 +227,7 @@
       "gender": "الجنس",
       "title": "اللقب",
       "salutation": "التحية الرسمية",
+      "salutationAr": "التحية بالعربية",
       "position": "المنصب",
       "entity": "الجهة",
       "department": "القسم",

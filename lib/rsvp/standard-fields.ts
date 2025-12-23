@@ -457,11 +457,11 @@ export function createDefaultFormConfig(): import("@/server/db/schemas/event").R
       allowAmendments: true,
       showProgressIndicator: true,
       welcomeMessage: {
-        en: `<p>Dear <strong>{{guest.fullName}}</strong>, you are invited to <strong>{{event.name}}</strong></p>
+        en: `<p>{{guest.salutation}} <strong>{{guest.fullName}}</strong>, you are invited to <strong>{{event.name}}</strong></p>
 <p><strong>Venue:</strong> {{event.venue}}</p>
 <p><strong>Date:</strong> {{event.dateRange}}</p>
 <p style="color: var(--destructive)"><strong>RSVP Deadline:</strong> {{rsvp.deadline}}</p>`,
-        ar: `<p>{{greeting.ar}} <strong>{{guest.displayNameAr}}</strong>، أنت مدعو/ة إلى <strong>{{event.name}}</strong></p>
+        ar: `<p>{{guest.salutationAr}} <strong>{{guest.displayNameAr}}</strong>، أنت مدعو/ة إلى <strong>{{event.name}}</strong></p>
 <p><strong>المكان:</strong> {{event.venue}}</p>
 <p><strong>التاريخ:</strong> {{event.dateRange}}</p>
 <p style="color: var(--destructive)"><strong>الموعد النهائي للرد:</strong> {{rsvp.deadline}}</p>`,

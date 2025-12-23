@@ -26,6 +26,7 @@ export type GuestColumnId =
   | "gender"
   | "title"
   | "salutation"
+  | "salutationAr"
   | "email"
   | "phone"
   | "whatsapp"
@@ -178,6 +179,16 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     labelAr: "التحية",
     defaultVisible: false,
     defaultWidth: 100,
+    sortable: false,
+    filterable: false,
+    group: "personal",
+  },
+  {
+    id: "salutationAr",
+    label: "Arabic Salutation",
+    labelAr: "التحية بالعربية",
+    defaultVisible: false,
+    defaultWidth: 120,
     sortable: false,
     filterable: false,
     group: "personal",

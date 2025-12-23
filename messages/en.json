@@ -229,6 +229,7 @@
       "gender": "Gender",
       "title": "Title",
       "salutation": "Salutation",
+      "salutationAr": "Arabic Salutation",
       "position": "Position",
       "entity": "Organization/Entity",
       "department": "Department",

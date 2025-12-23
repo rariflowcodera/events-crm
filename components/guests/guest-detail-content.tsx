@@ -78,6 +78,7 @@ interface Guest {
   gender: GuestGender | null
   title: string | null
   salutation: string | null
+  salutationAr: string | null
   position: string | null
   entity: string | null
   status: GuestStatus
@@ -138,6 +139,7 @@ const editGuestSchema = z.object({
   gender: z.enum(["male", "female", "unspecified"]).optional(),
   title: z.string().max(50).optional(),
   salutation: z.string().max(100).optional(),
+  salutationAr: z.string().max(100).optional(),
   position: z.string().optional(),
   entity: z.string().optional(),
   categoryId: z.string().optional(),
@@ -198,6 +200,7 @@ export function GuestDetailContent({
       gender: guest.gender || undefined,
       title: guest.title || "",
       salutation: guest.salutation || "",
+      salutationAr: guest.salutationAr || "",
       position: guest.position || "",
       entity: guest.entity || "",
       categoryId: guest.category?.id || "",
@@ -230,6 +233,7 @@ export function GuestDetailContent({
       gender: values.gender || undefined,
       title: values.title || undefined,
       salutation: values.salutation || undefined,
+      salutationAr: values.salutationAr || undefined,
       position: values.position || undefined,
       entity: values.entity || undefined,
       categoryId: values.categoryId || undefined,
@@ -445,6 +449,25 @@ export function GuestDetailContent({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="salutationAr"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("fields.salutationAr")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      dir="rtl"
+                      placeholder="السيد / سعادة"
+                      disabled={isUpdating}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

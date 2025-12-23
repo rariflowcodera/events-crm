@@ -59,6 +59,7 @@ const addGuestSchema = z.object({
   gender: z.enum(["male", "female", "unspecified"]).optional(),
   title: z.string().max(50).optional(),
   salutation: z.string().max(100).optional(),
+  salutationAr: z.string().max(100).optional(),
   position: z.string().optional(),
   entity: z.string().optional(),
   categoryId: z.string().min(1, "Category is required"),
@@ -83,6 +84,7 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
       gender: undefined,
       title: "",
       salutation: "",
+      salutationAr: "",
       position: "",
       entity: "",
       categoryId: categories.length > 0 ? categories[0].id : "",
@@ -110,6 +112,7 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
       gender: values.gender || undefined,
       title: values.title || undefined,
       salutation: values.salutation || undefined,
+      salutationAr: values.salutationAr || undefined,
       position: values.position || undefined,
       entity: values.entity || undefined,
       categoryId: values.categoryId,
@@ -260,6 +263,25 @@ export function AddGuestForm({ eventId, categories, onSuccess, onCancel }: AddGu
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="salutationAr"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("fields.salutationAr")}</FormLabel>
+              <FormControl>
+                <Input
+                  dir="rtl"
+                  placeholder="السيد / سعادة"
+                  disabled={isPending}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
