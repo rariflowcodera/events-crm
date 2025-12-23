@@ -79,6 +79,7 @@ interface GuestData {
     lastName: string
     preferredName?: string
     displayNameAr?: string
+    gender?: "male" | "female" | "unspecified"
     title?: string
     salutation?: string
     email?: string
@@ -539,6 +540,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
       lastName: guest.lastName,
       preferredName: guest.preferredName,
       displayNameAr: guest.displayNameAr,
+      gender: guest.gender,
       title: guest.title,
       email: guest.email,
     },
