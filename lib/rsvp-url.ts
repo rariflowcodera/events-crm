@@ -48,8 +48,17 @@ export function getRsvpDeclineUrl(event: EventWithCustomDomain, rsvpToken: strin
 
 /**
  * Get VAPP (Vehicle Access Parking Permit) URL for a guest
+ * Custom domains use /vapp/{token} without locale prefix
+ * Main app uses /en/vapp/{token} with locale prefix
  */
 export function getVappUrl(event: EventWithCustomDomain, rsvpToken: string): string {
   const baseUrl = getRsvpBaseUrl(event)
+
+  // Custom domains: no locale prefix (use ?lang=ar for Arabic)
+  if (event.customDomain && event.customDomainVerified) {
+    return `${baseUrl}/vapp/${rsvpToken}`
+  }
+
+  // Main app: include locale prefix
   return `${baseUrl}/en/vapp/${rsvpToken}`
 }

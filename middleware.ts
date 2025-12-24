@@ -86,6 +86,22 @@ function handleCustomDomain(
     return response
   }
 
+  // Handle VAPP routes: /vapp/{token}
+  const vappMatch = pathname.match(/^\/vapp\/([a-zA-Z0-9-]+)\/?$/)
+
+  if (vappMatch) {
+    const token = vappMatch[1]
+
+    // Rewrite to custom domain VAPP handler
+    const url = request.nextUrl.clone()
+    url.pathname = `/${locale}/vapp-custom/${token}`
+
+    const response = NextResponse.rewrite(url)
+    response.headers.set("x-custom-domain", host)
+    response.headers.set("x-locale", locale)
+    return response
+  }
+
   // Handle root path - show invalid domain page
   if (pathname === "/" || pathname === "") {
     const url = request.nextUrl.clone()

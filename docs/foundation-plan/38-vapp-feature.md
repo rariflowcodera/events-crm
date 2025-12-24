@@ -627,7 +627,43 @@ Add "VAPP" section to variable dropdown in `components/email-templates/variable-
 
 ---
 
-### Phase 38J: Translations
+### Phase 38J: Custom Domain Support
+
+**Files created/modified:**
+
+| File | Changes |
+|------|---------|
+| `lib/rsvp-url.ts` | Update `getVappUrl()` to omit locale prefix for custom domains |
+| `middleware.ts` | Add `/vapp/{token}` route handling for custom domains |
+| `app/[locale]/vapp-custom/[token]/page.tsx` | **NEW** - Custom domain VAPP page |
+| `app/[locale]/vapp-custom/error/page.tsx` | **NEW** - Custom domain VAPP error page |
+
+**URL Format:**
+
+| Context | RSVP URL | VAPP URL |
+|---------|----------|----------|
+| Main app | `/en/rsvp/{token}` | `/en/vapp/{token}` |
+| Custom domain | `/rsvp/{token}` | `/vapp/{token}` |
+| Custom domain (Arabic) | `/rsvp/{token}?lang=ar` | `/vapp/{token}?lang=ar` |
+
+**Implementation details:**
+
+The VAPP custom domain support follows the same pattern as RSVP custom domains:
+
+1. **`getVappUrl()`** checks if event has a verified custom domain:
+   - Custom domain: returns `https://custom-domain.sa/vapp/{token}` (no locale prefix)
+   - Main app: returns `https://main-app.sa/en/vapp/{token}` (with locale prefix)
+
+2. **Middleware** detects custom domain requests and rewrites `/vapp/{token}` to `/{locale}/vapp-custom/{token}`, passing the custom domain via `x-custom-domain` header.
+
+3. **`vapp-custom` page** validates:
+   - Domain is verified by at least one event
+   - Guest's event uses this specific custom domain
+   - Guest has a serial number assigned
+
+---
+
+### Phase 38K: Translations
 
 **Files to modify:**
 
@@ -721,6 +757,8 @@ Add "VAPP" section to variable dropdown in `components/email-templates/variable-
 | File | Purpose |
 |------|---------|
 | `app/[locale]/vapp/[token]/page.tsx` | Public VAPP page (server) |
+| `app/[locale]/vapp-custom/[token]/page.tsx` | Custom domain VAPP page |
+| `app/[locale]/vapp-custom/error/page.tsx` | Custom domain VAPP error page |
 | `components/vapp/vapp-page.tsx` | Public VAPP client component |
 | `components/vapp/vapp-voucher.tsx` | Voucher display component |
 | `components/vapp/vapp-download-button.tsx` | PDF download functionality |
@@ -744,8 +782,12 @@ Add "VAPP" section to variable dropdown in `components/email-templates/variable-
 | `trpc/routers/_app.ts` | Register publicVappRouter |
 | `components/guests/guests-toolbar.tsx` | Add VAPP button |
 | `components/events/event-guests-tab.tsx` | Handle get_vapp_link action |
-| `lib/email/render-structured.ts` | Add VAPP variables |
+| `lib/email/render-structured.ts` | Add VAPP variables + pipe syntax support |
 | `components/email-templates/variable-inserter.tsx` | Add VAPP section |
+| `components/email-templates/vapp-inserter.tsx` | NEW - Dedicated VAPP link inserter |
+| `components/email-templates/structured-content-editor.tsx` | Add VappInserter to toolbar |
+| `lib/rsvp-url.ts` | Update getVappUrl() for custom domain support |
+| `middleware.ts` | Add /vapp/{token} custom domain routing |
 | `messages/en.json` | Add translations |
 | `messages/ar.json` | Add Arabic translations |
 
@@ -814,7 +856,13 @@ Note: `html2canvas` and `jspdf` were previously used but replaced with Puppeteer
 - [ ] Variables render correctly in sent emails
 - [ ] Variables only show when VAPP is enabled
 
-### Phase 38J: i18n
+### Phase 38J: Custom Domain Support
+- [x] `getVappUrl()` omits locale prefix for custom domains
+- [x] Middleware handles `/vapp/{token}` on custom domains
+- [x] `vapp-custom` page validates domain ownership
+- [x] Error page works for custom domains
+
+### Phase 38K: i18n
 - [ ] All EN translations present
 - [ ] All AR translations present
 - [ ] RTL layout works on voucher page
@@ -833,8 +881,9 @@ Note: `html2canvas` and `jspdf` were previously used but replaced with Puppeteer
 6. **Phase 38F**: Public VAPP voucher page
 7. **Phase 38G**: PDF download functionality
 8. **Phase 38H**: Guest list VAPP button integration
-9. **Phase 38I**: Email template variables
-10. **Phase 38J**: Translations
+9. **Phase 38I**: Email template variables + VappInserter component
+10. **Phase 38J**: Custom domain support (completed)
+11. **Phase 38K**: Translations
 
 Each phase can be completed and tested independently.
 
