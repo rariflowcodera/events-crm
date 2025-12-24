@@ -27,6 +27,7 @@ import type { EmailTemplateType } from "@/lib/schemas"
 import { getCountryName } from "@/lib/data/countries"
 import { createRoute } from "@/lib/routes"
 import { exportGuestsToExcel } from "@/lib/export-guests"
+import { getVappUrl } from "@/lib/rsvp-url"
 import {
   DEFAULT_VIEW_CONFIG,
   syncViewConfigColumns,
@@ -482,8 +483,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
         const selectedGuestId = Array.from(selectedIds)[0]
         const selectedGuest = guests.find((g) => g.id === selectedGuestId) as any
         if (!selectedGuest) return null
-        const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
-        const vappLink = `${baseUrl}/en/vapp/${selectedGuest.rsvpToken}`
+        const vappLink = getVappUrl(event, selectedGuest.rsvpToken)
         return (
           <VappLinkDialog
             open={isVappLinkDialogOpen}
