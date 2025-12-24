@@ -76,7 +76,11 @@ jobs:
             echo "Installing ALL dependencies (needed for tsx/worker)..."
             # Try to install dependencies, retry once if fails
             pnpm install --frozen-lockfile || { echo "Retry pnpm install..."; pnpm install --frozen-lockfile; }
-            
+
+            echo "Installing Puppeteer Chrome (for PDF generation)..."
+            # This is idempotent - skips if already installed at correct version
+            npx puppeteer browsers install chrome
+
             echo "Restarting application..."
             # Update env to pick up new port configs
             pm2 restart ecosystem.config.js --update-env || pm2 start ecosystem.config.js
