@@ -110,6 +110,7 @@ export const guestCategoriesRouter = createTRPCRouter({
           })
           .optional(),
         defaultEmailTemplateId: z.string().uuid().nullable().optional(),
+        vappAccessCode: z.string().max(10).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -171,6 +172,7 @@ export const guestCategoriesRouter = createTRPCRouter({
           serviceAllocations: input.serviceAllocations,
           rsvpPageConfig: input.rsvpPageConfig,
           defaultEmailTemplateId: input.defaultEmailTemplateId,
+          vappAccessCode: input.vappAccessCode?.toUpperCase(),
         })
         .returning()
 
@@ -221,6 +223,7 @@ export const guestCategoriesRouter = createTRPCRouter({
           .optional(),
         isActive: z.boolean().optional(),
         defaultEmailTemplateId: z.string().uuid().nullable().optional(),
+        vappAccessCode: z.string().max(10).nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -265,10 +268,11 @@ export const guestCategoriesRouter = createTRPCRouter({
 
       const { categoryId, ...updateData } = input
 
-      // Transform code to uppercase if provided
+      // Transform code and vappAccessCode to uppercase if provided
       const finalUpdateData = {
         ...updateData,
         code: updateData.code?.toUpperCase(),
+        vappAccessCode: updateData.vappAccessCode?.toUpperCase(),
         updatedAt: new Date(),
       }
 

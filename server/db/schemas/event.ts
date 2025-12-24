@@ -118,6 +118,7 @@ export type EventBranding = {
   secondaryColorDark?: string // Dark mode secondary color
   backgroundImage?: string // Background image URL for RSVP pages
   backgroundImageMode?: "cover" | "contain" | "repeat" | "center" // How the background image displays
+  vappBackgroundImage?: string // Background image URL for VAPP vouchers
   // Card styling
   cardAccent?: {
     enabled: boolean
@@ -214,6 +215,12 @@ export const events = pgTable(
       reminderDays?: number[]
       emailSettings?: EventEmailSettings
       autoAcknowledgementEmails?: boolean
+      vapp?: {
+        enabled?: boolean // Toggle VAPP feature for this event
+        venueCode?: string // e.g., "KAS"
+        matchCode?: string // e.g., "M21"
+        nextSequence?: number // Auto-increment counter, starts at 1
+      }
     }>(),
 
     createdBy: text("created_by").references(() => users.id, {

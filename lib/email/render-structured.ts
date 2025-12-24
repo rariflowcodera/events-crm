@@ -21,7 +21,7 @@ import {
   englishContentSectionTemplate,
   arabicContentSectionTemplate,
 } from "./master-templates/default"
-import { getRsvpUrl, getRsvpConfirmUrl, getRsvpDeclineUrl } from "@/lib/rsvp-url"
+import { getRsvpUrl, getRsvpConfirmUrl, getRsvpDeclineUrl, getVappUrl } from "@/lib/rsvp-url"
 import { buildStaticMapHtml, buildGoogleMapsLink } from "@/lib/maps"
 
 // ============================================================================
@@ -41,6 +41,7 @@ export interface Guest {
   position: string | null
   entity: string | null
   rsvpToken: string
+  serialNumber?: string | null
   categoryId?: string | null
   category?: {
     name: string
@@ -62,6 +63,13 @@ export interface Event {
   rsvpDeadline: Date | null
   customDomain: string | null
   customDomainVerified: boolean | null
+  settings?: {
+    vapp?: {
+      enabled?: boolean
+      venueCode?: string
+      matchCode?: string
+    }
+  } | null
 }
 
 export interface EventDocument {
@@ -166,6 +174,13 @@ export function buildVariableContext(
     // Category variables
     "category.name": guest.category?.name || "",
     "category.code": guest.category?.code || "",
+
+    // VAPP (Vehicle Access Parking Permit) variables
+    // Note: vapp.link and vappUrl are handled specially in processVappLinkVariables
+    // to support pipe syntax for custom display text
+    "vapp.serialNumber": guest.serialNumber || "",
+    "vapp.venueCode": event.settings?.vapp?.venueCode || "",
+    "vapp.matchCode": event.settings?.vapp?.matchCode || "",
   }
 }
 
@@ -514,10 +529,13 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     html = processFormLinkVariables(html, formTokens, event)
   }
 
-  // 10. Generate plain text version
+  // 10. Handle VAPP link variables in the rendered HTML
+  html = processVappLinkVariables(html, event, guest)
+
+  // 11. Generate plain text version
   const text = generatePlainText(processedEnContent, processedArContent)
 
-  // 11. Build from address
+  // 12. Build from address
   let from: string | undefined
   if (template.fromEmail) {
     from = template.fromName
@@ -639,6 +657,42 @@ function processFormLinkVariables(
   result = result.replace(/\{\{formUrl\.[a-f0-9-]+\}\}/g, "[Form unavailable]")
   result = result.replace(/\{\{formLink\.[a-f0-9-]+\|[^}]+\}\}/g, "[Form unavailable]")
   result = result.replace(/\{\{formLink\.[a-f0-9-]+\}\}/g, "[Form unavailable]")
+
+  return result
+}
+
+// ============================================================================
+// VAPP Link Variable Processing
+// ============================================================================
+
+/**
+ * Process VAPP link variables in rendered HTML.
+ * Supports patterns:
+ * - {{vappUrl}} - URL only
+ * - {{vapp.link|Custom Text}} - link with custom text
+ * - {{vapp.link}} - link with default text
+ */
+function processVappLinkVariables(
+  html: string,
+  event: Event,
+  guest: Guest,
+  language: "en" | "ar" = "en"
+): string {
+  const vappUrl = getVappUrl(event, guest.rsvpToken)
+  const defaultText = language === "ar" ? "عرض تصريح الوقوف" : "View Parking Permit"
+
+  let result = html
+
+  // Pattern 1: {{vappUrl}} - URL only
+  result = result.replace(/\{\{vappUrl\}\}/g, vappUrl)
+
+  // Pattern 2: {{vapp.link|Custom Text}} - link with custom text
+  result = result.replace(/\{\{vapp\.link\|([^}]+)\}\}/g, (_, customText) => {
+    return `<a href="${vappUrl}">${customText.trim()}</a>`
+  })
+
+  // Pattern 3: {{vapp.link}} - link with default text
+  result = result.replace(/\{\{vapp\.link\}\}/g, `<a href="${vappUrl}">${defaultText}</a>`)
 
   return result
 }
@@ -767,6 +821,7 @@ export function getSamplePreviewData(): { guest: Guest; event: Event } {
       position: "CEO",
       entity: "Acme Corporation",
       rsvpToken: "preview-token",
+      serialNumber: "M21-000001",
       categoryId: "cat-1",
       category: {
         name: "VIP",
@@ -787,6 +842,13 @@ export function getSamplePreviewData(): { guest: Guest; event: Event } {
       rsvpDeadline: new Date("2025-03-10T23:59:59"),
       customDomain: null,
       customDomainVerified: null,
+      settings: {
+        vapp: {
+          enabled: true,
+          venueCode: "KAS",
+          matchCode: "M21",
+        },
+      },
     },
   }
 }

@@ -45,3 +45,11 @@ export function getRsvpConfirmUrl(event: EventWithCustomDomain, rsvpToken: strin
 export function getRsvpDeclineUrl(event: EventWithCustomDomain, rsvpToken: string): string {
   return `${getRsvpUrl(event, rsvpToken)}?action=decline`
 }
+
+/**
+ * Get VAPP (Vehicle Access Parking Permit) URL for a guest
+ */
+export function getVappUrl(event: EventWithCustomDomain, rsvpToken: string): string {
+  const baseUrl = getRsvpBaseUrl(event)
+  return `${baseUrl}/en/vapp/${rsvpToken}`
+}

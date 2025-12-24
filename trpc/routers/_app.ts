@@ -20,6 +20,8 @@ import { rsvpReportsRouter } from "@/trpc/routers/rsvp-reports"
 // Custom event forms
 import { eventFormsRouter } from "@/trpc/routers/event-forms"
 import { publicFormsRouter } from "@/trpc/routers/public-forms"
+// VAPP (Vehicle Access Parking Permit)
+import { publicVappRouter } from "@/trpc/routers/public-vapp"
 // Permissions
 import { permissionsRouter } from "@/trpc/routers/permissions"
 // Email master templates
@@ -47,6 +49,8 @@ export const appRouter = createTRPCRouter({
   // Custom event forms
   eventForms: eventFormsRouter,
   publicForms: publicFormsRouter,
+  // VAPP (Vehicle Access Parking Permit)
+  publicVapp: publicVappRouter,
   // Permissions
   permissions: permissionsRouter,
   // Email master templates

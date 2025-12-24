@@ -344,3 +344,28 @@ export const useExportGuests = (eventId: string, eventSlug: string) => {
 
   return { exportGuests, isExporting }
 }
+
+// Generate serial numbers for existing guests (backfill)
+export const useGenerateSerialNumbers = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (data: { generatedCount: number }) => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.guests.generateSerialNumbers.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Serial numbers generated for ${data.generatedCount} guest(s)`)
+      utils.guests.getMany.invalidate()
+      onSuccess?.(data)
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}

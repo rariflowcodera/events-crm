@@ -50,6 +50,7 @@ export type GuestColumnId =
   | "attended" // Attendance toggle
   | "attendedAt" // Attendance timestamp
   | "attendedBy" // Who marked attendance
+  | "serialNumber" // VAPP serial number
   | "actions" // Row actions
 
 // ============================================================================
@@ -353,6 +354,16 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     defaultWidth: 200,
     sortable: false,
     filterable: true,
+    group: "meta",
+  },
+  {
+    id: "serialNumber",
+    label: "Serial Number",
+    labelAr: "الرقم التسلسلي",
+    defaultVisible: false,
+    defaultWidth: 140,
+    sortable: true,
+    filterable: false,
     group: "meta",
   },
 

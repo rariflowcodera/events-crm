@@ -87,6 +87,7 @@ interface Guest {
   hasCompanion: boolean | null
   dietaryRequirements: string | null
   profileImage: string | null
+  serialNumber: string | null
   category: GuestCategory
   createdAt: Date
   rsvpRespondedAt: Date | null
@@ -296,6 +297,18 @@ export function GuestDetailContent({
           </div>
         </div>
       </div>
+
+      {/* Serial Number Section (VAPP) */}
+      {guest.serialNumber && (
+        <div className="rounded-lg border p-4">
+          <div>
+            <p className="text-sm font-medium">Serial Number (VAPP)</p>
+            <p className="text-muted-foreground text-sm mt-1 font-mono">
+              {guest.serialNumber}
+            </p>
+          </div>
+        </div>
+      )}
 
       <Separator />
 

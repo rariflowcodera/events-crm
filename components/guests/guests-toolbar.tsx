@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Filter, X, Check, Search, Settings2, FileText } from "lucide-react"
+import { Filter, X, Check, Search, Settings2, FileText, Car } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -53,7 +53,7 @@ interface GuestCategory {
   sortOrder: number
 }
 
-type BulkAction = "delete" | "send_invitation" | "send_email" | "get_form_link"
+type BulkAction = "delete" | "send_invitation" | "send_email" | "get_form_link" | "get_vapp_link"
 
 interface CountryOption {
   code: string
@@ -99,6 +99,8 @@ interface GuestsToolbarProps {
   // Filter pane visibility (controlled from parent to persist across remounts)
   showFilters: boolean
   onShowFiltersChange: (show: boolean) => void
+  // VAPP feature
+  vappEnabled?: boolean
 }
 
 const STATUS_OPTIONS: { value: GuestStatus; label: string }[] = [
@@ -148,6 +150,7 @@ export function GuestsToolbar({
   filteredCount,
   showFilters,
   onShowFiltersChange,
+  vappEnabled = false,
 }: GuestsToolbarProps) {
   const t = useTranslations("guest")
   const { can } = usePermissions(workspaceSlug)
@@ -318,6 +321,17 @@ export function GuestsToolbar({
                 >
                   <FileText className="mr-1 h-4 w-4" />
                   <span className="hidden lg:inline">{t("formLink")}</span>
+                </Button>
+              )}
+              {selectedCount === 1 && vappEnabled && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7"
+                  onClick={() => onBulkAction("get_vapp_link")}
+                >
+                  <Car className="mr-1 h-4 w-4" />
+                  <span className="hidden lg:inline">VAPP</span>
                 </Button>
               )}
               {canDeleteGuests && (

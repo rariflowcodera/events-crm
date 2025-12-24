@@ -55,6 +55,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
       secondaryColorDark: "",
       backgroundImage: "",
       backgroundImageMode: undefined,
+      vappBackgroundImage: "",
       cardAccent: undefined,
       sectionHeader: undefined,
       emailBranding: undefined,
@@ -79,6 +80,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
         secondaryColorDark: data.eventBranding?.secondaryColorDark || "",
         backgroundImage: data.eventBranding?.backgroundImage || "",
         backgroundImageMode: data.eventBranding?.backgroundImageMode,
+        vappBackgroundImage: data.eventBranding?.vappBackgroundImage || "",
         cardAccent: data.eventBranding?.cardAccent,
         sectionHeader: data.eventBranding?.sectionHeader,
         emailBranding: data.eventBranding?.emailBranding,
@@ -102,6 +104,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
       secondaryColorDark: values.secondaryColorDark || undefined,
       backgroundImage: values.backgroundImage || undefined,
       backgroundImageMode: values.backgroundImageMode || undefined,
+      vappBackgroundImage: values.vappBackgroundImage || undefined,
       cardAccent: values.cardAccent || undefined,
       sectionHeader: values.sectionHeader || undefined,
       emailBranding: values.emailBranding || undefined,
@@ -142,6 +145,7 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
       secondaryColorDark: "",
       backgroundImage: "",
       backgroundImageMode: undefined,
+      vappBackgroundImage: "",
       cardAccent: undefined,
       sectionHeader: undefined,
       emailBranding: undefined,
@@ -377,6 +381,29 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
                     updateBranding({
                       eventId: event.id,
                       branding: buildBrandingPayload({ backgroundImageMode: mode }),
+                    })
+                  }}
+                  disabled={isPending}
+                />
+              </div>
+
+              <Separator />
+
+              {/* VAPP Background Image */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium">VAPP Voucher Background</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Custom background image for parking permit vouchers. Recommended size: 800x1200px
+                  </p>
+                </div>
+                <BackgroundImageUpload
+                  value={watchedValues.vappBackgroundImage || ""}
+                  onChange={(url) => {
+                    form.setValue("vappBackgroundImage", url, { shouldDirty: true })
+                    updateBranding({
+                      eventId: event.id,
+                      branding: buildBrandingPayload({ vappBackgroundImage: url }),
                     })
                   }}
                   disabled={isPending}

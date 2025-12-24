@@ -39,6 +39,7 @@ interface GuestCategory {
   color: string | null
   sortOrder: number
   defaultEmailTemplateId: string | null
+  vappAccessCode: string | null
 }
 
 interface CategoryFormProps {
@@ -58,6 +59,11 @@ const categorySchema = z.object({
   description: z.string().optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
   defaultEmailTemplateId: z.string().uuid().nullable().optional(),
+  vappAccessCode: z
+    .string()
+    .max(10, "Access code must be 10 characters or less")
+    .regex(/^[A-Za-z0-9]*$/, "Access code can only contain letters and numbers")
+    .optional(),
 })
 
 type CategoryFormValues = z.infer<typeof categorySchema>
@@ -98,6 +104,7 @@ export function CategoryForm({
       description: category?.description || "",
       color: category?.color || "#6366f1",
       defaultEmailTemplateId: category?.defaultEmailTemplateId || null,
+      vappAccessCode: category?.vappAccessCode || "",
     },
   })
 
@@ -125,6 +132,7 @@ export function CategoryForm({
         description: values.description || undefined,
         color: values.color,
         defaultEmailTemplateId: values.defaultEmailTemplateId,
+        vappAccessCode: values.vappAccessCode || undefined,
       })
     } else {
       createCategory({
@@ -134,6 +142,7 @@ export function CategoryForm({
         description: values.description || undefined,
         color: values.color,
         defaultEmailTemplateId: values.defaultEmailTemplateId,
+        vappAccessCode: values.vappAccessCode || undefined,
       })
     }
   }
@@ -179,6 +188,29 @@ export function CategoryForm({
               </FormControl>
               <FormDescription>
                 A short code (e.g., AAA, A, B) for quick identification
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="vappAccessCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>VAPP Access Code</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="P1"
+                  disabled={isPending}
+                  maxLength={10}
+                  {...field}
+                  onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                />
+              </FormControl>
+              <FormDescription>
+                Access code shown on parking permit vouchers (e.g., P1, P2)
               </FormDescription>
               <FormMessage />
             </FormItem>

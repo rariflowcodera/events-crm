@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core"
 import { events } from "./event"
 import { guestCategories } from "./guest-category"
@@ -84,6 +85,9 @@ export const guests = pgTable(
     status: guestStatusEnum("status").notNull().default("pending"),
     rsvpRespondedAt: timestamp("rsvp_responded_at", { mode: "date" }),
 
+    // VAPP (Vehicle Access Parking Permit)
+    serialNumber: text("serial_number"), // e.g., "M21-000001"
+
     // Companion
     hasCompanion: boolean("has_companion").default(false),
     companionDetails: json("companion_details").$type<{
@@ -132,6 +136,7 @@ export const guests = pgTable(
     index("guest_rsvp_token_idx").on(table.rsvpToken),
     index("guest_email_idx").on(table.eventId, table.email),
     index("guest_attended_idx").on(table.eventId, table.attendedAt),
+    uniqueIndex("guest_serial_number_event_idx").on(table.eventId, table.serialNumber),
   ]
 )
 

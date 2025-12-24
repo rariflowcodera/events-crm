@@ -396,6 +396,14 @@ export const eventsRouter = createTRPCRouter({
                 fromName: z.string().max(100).optional(),
               })
               .optional(),
+            vapp: z
+              .object({
+                enabled: z.boolean().optional(),
+                venueCode: z.string().max(10).optional(),
+                matchCode: z.string().max(10).optional(),
+                nextSequence: z.number().int().positive().optional(),
+              })
+              .optional(),
           })
           .optional(),
         rsvpFormConfig: z
@@ -464,6 +472,24 @@ export const eventsRouter = createTRPCRouter({
       for (const [key, value] of Object.entries(updateData)) {
         if (value !== undefined) {
           cleanedData[key] = value
+        }
+      }
+
+      // Merge settings with existing settings to prevent overwriting nested objects
+      // (e.g., saving VAPP settings should not wipe out emailSettings)
+      if (updateData.settings !== undefined) {
+        cleanedData.settings = {
+          ...event.settings,
+          ...updateData.settings,
+          // Handle nested objects that need merging
+          vapp:
+            updateData.settings.vapp !== undefined
+              ? { ...event.settings?.vapp, ...updateData.settings.vapp }
+              : event.settings?.vapp,
+          emailSettings:
+            updateData.settings.emailSettings !== undefined
+              ? updateData.settings.emailSettings // Allow explicit override/null
+              : event.settings?.emailSettings,
         }
       }
 

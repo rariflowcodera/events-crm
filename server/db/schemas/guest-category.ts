@@ -40,6 +40,9 @@ export const guestCategories = pgTable(
       custom?: Record<string, unknown>
     }>(),
 
+    // VAPP (Vehicle Access Parking Permit)
+    vappAccessCode: text("vapp_access_code"), // e.g., "P1" for VVIP
+
     defaultEmailTemplateId: text("default_email_template_id"),
 
     rsvpPageConfig: json("rsvp_page_config").$type<{

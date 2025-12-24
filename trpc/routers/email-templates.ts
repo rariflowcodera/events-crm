@@ -466,6 +466,12 @@ export const emailTemplatesRouter = createTRPCRouter({
           { key: "{{event.mapImage}}", description: "Static map image (clickable)" },
           { key: "{{event.mapLink}}", description: "Link to Google Maps" },
         ] : [],
+        vapp: event.settings?.vapp?.enabled ? [
+          { key: "{{vapp.link}}", description: "VAPP voucher link" },
+          { key: "{{vapp.serialNumber}}", description: "Guest's serial number" },
+          { key: "{{vapp.venueCode}}", description: "Venue code" },
+          { key: "{{vapp.matchCode}}", description: "Match code" },
+        ] : [],
         documents: documents.map((doc) => ({
           key: `{{document.${doc.id}}}`,
           description: `${doc.name} (${doc.type})`,

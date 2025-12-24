@@ -341,12 +341,32 @@ export const guestsRouter = createTRPCRouter({
       // Generate unique RSVP token
       const rsvpToken = crypto.randomUUID()
 
+      // Generate serial number if VAPP is enabled
+      let serialNumber: string | undefined
+      const vapp = event.settings?.vapp
+      if (vapp?.enabled && vapp?.matchCode) {
+        const sequence = (vapp.nextSequence ?? 1).toString().padStart(6, "0")
+        serialNumber = `${vapp.matchCode}-${sequence}`
+
+        // Update sequence counter atomically
+        await db
+          .update(events)
+          .set({
+            settings: {
+              ...event.settings,
+              vapp: { ...vapp, nextSequence: (vapp.nextSequence ?? 1) + 1 },
+            },
+          })
+          .where(eq(events.id, input.eventId))
+      }
+
       const [guest] = await db
         .insert(guests)
         .values({
           ...input,
           rsvpToken,
           rsvpTokenExpiresAt: event.rsvpDeadline,
+          serialNumber,
         })
         .returning()
 
@@ -996,14 +1016,40 @@ export const guestsRouter = createTRPCRouter({
       // Generate batch ID if not provided
       const batchId = input.importBatchId || crypto.randomUUID()
 
+      // Check if VAPP is enabled for serial number generation
+      const vapp = event.settings?.vapp
+      const vappEnabled = vapp?.enabled && vapp?.matchCode
+      let currentSequence = vapp?.nextSequence ?? 1
+
       // Prepare guest records
-      const guestRecords = input.guests.map(guest => ({
-        ...guest,
-        eventId: input.eventId,
-        rsvpToken: crypto.randomUUID(),
-        rsvpTokenExpiresAt: event.rsvpDeadline,
-        importBatchId: batchId,
-      }))
+      const guestRecords = input.guests.map((guest) => {
+        let serialNumber: string | undefined
+        if (vappEnabled && vapp?.matchCode) {
+          serialNumber = `${vapp.matchCode}-${currentSequence.toString().padStart(6, "0")}`
+          currentSequence++
+        }
+        return {
+          ...guest,
+          eventId: input.eventId,
+          rsvpToken: crypto.randomUUID(),
+          rsvpTokenExpiresAt: event.rsvpDeadline,
+          importBatchId: batchId,
+          serialNumber,
+        }
+      })
+
+      // Update VAPP sequence counter if serial numbers were generated
+      if (vappEnabled) {
+        await db
+          .update(events)
+          .set({
+            settings: {
+              ...event.settings,
+              vapp: { ...vapp, nextSequence: currentSequence },
+            },
+          })
+          .where(eq(events.id, input.eventId))
+      }
 
       // Insert all guests
       const created = await db
@@ -1167,5 +1213,87 @@ export const guestsRouter = createTRPCRouter({
         categoriesWithoutTemplate,
         allHaveTemplates: categoriesWithoutTemplate.length === 0,
       }
+    }),
+
+  // Generate serial numbers for existing guests (backfill)
+  generateSerialNumbers: protectedProcedure
+    .input(z.object({ eventId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, input.eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_GUESTS,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to manage guests",
+        })
+      }
+
+      // Verify VAPP is configured
+      const vapp = event.settings?.vapp
+      if (!vapp?.enabled || !vapp?.matchCode) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "VAPP is not enabled or matchCode is not configured for this event",
+        })
+      }
+
+      // Get guests without serial numbers, ordered by creation date
+      const guestsWithoutSerial = await db.query.guests.findMany({
+        where: and(
+          eq(guests.eventId, input.eventId),
+          sql`${guests.serialNumber} IS NULL`
+        ),
+        orderBy: [asc(guests.createdAt)],
+        columns: { id: true },
+      })
+
+      if (guestsWithoutSerial.length === 0) {
+        return { generatedCount: 0 }
+      }
+
+      // Generate serial numbers
+      let currentSequence = vapp.nextSequence ?? 1
+      const updates: { id: string; serialNumber: string }[] = []
+
+      for (const guest of guestsWithoutSerial) {
+        const serialNumber = `${vapp.matchCode}-${currentSequence.toString().padStart(6, "0")}`
+        updates.push({ id: guest.id, serialNumber })
+        currentSequence++
+      }
+
+      // Update guests with their serial numbers
+      await Promise.all(
+        updates.map(({ id, serialNumber }) =>
+          db
+            .update(guests)
+            .set({ serialNumber, updatedAt: new Date() })
+            .where(eq(guests.id, id))
+        )
+      )
+
+      // Update the sequence counter
+      await db
+        .update(events)
+        .set({
+          settings: {
+            ...event.settings,
+            vapp: { ...vapp, nextSequence: currentSequence },
+          },
+        })
+        .where(eq(events.id, input.eventId))
+
+      return { generatedCount: updates.length }
     }),
 })

@@ -97,6 +97,7 @@ interface Guest {
   attendedAt: Date | null
   attendedBy: string | null
   attendedByUser?: AttendedByUser | null
+  serialNumber: string | null
   category: GuestCategory
   createdAt: Date
 }
@@ -611,6 +612,20 @@ export function GuestsDataTable({
           )
         },
         size: getColumnWidth("internalNotes"),
+      },
+      {
+        id: "serialNumber",
+        accessorKey: "serialNumber",
+        header: "Serial #",
+        cell: ({ getValue }) => {
+          const value = getValue() as string | null
+          return (
+            <span className="font-mono text-xs" title={value ?? undefined}>
+              {value || ""}
+            </span>
+          )
+        },
+        size: getColumnWidth("serialNumber"),
       },
       {
         id: "lastEmailSentAt",

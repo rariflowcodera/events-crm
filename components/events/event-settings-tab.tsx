@@ -9,6 +9,7 @@ import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { useUpdateEvent } from "@/trpc/hooks/events-hooks"
+import { useGenerateSerialNumbers } from "@/trpc/hooks/guests-hooks"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -77,6 +78,12 @@ interface Event {
       fromEmail?: string
       fromName?: string
     }
+    vapp?: {
+      enabled?: boolean
+      venueCode?: string
+      matchCode?: string
+      nextSequence?: number
+    }
   } | null
   // Custom domain fields
   customDomain: string | null
@@ -126,6 +133,11 @@ const eventSettingsSchema = z.object({
     requireApproval: z.boolean().optional(),
     sendReminders: z.boolean().optional(),
     autoAcknowledgementEmails: z.boolean().optional(),
+    vapp: z.object({
+      enabled: z.boolean().optional(),
+      venueCode: z.string().max(10).optional(),
+      matchCode: z.string().max(10).optional(),
+    }).optional(),
   }).optional(),
 }).refine((data) => {
   // If single day with both times, validate end time > start time
@@ -186,6 +198,11 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
         requireApproval: event.settings?.requireApproval ?? false,
         sendReminders: event.settings?.sendReminders ?? true,
         autoAcknowledgementEmails: event.settings?.autoAcknowledgementEmails ?? true,
+        vapp: {
+          enabled: event.settings?.vapp?.enabled ?? false,
+          venueCode: event.settings?.vapp?.venueCode ?? "",
+          matchCode: event.settings?.vapp?.matchCode ?? "",
+        },
       },
     },
   })
@@ -198,6 +215,8 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
       router.refresh()
     },
   })
+
+  const { mutate: generateSerials, isPending: isGenerating } = useGenerateSerialNumbers()
 
   const onSubmit = (values: EventSettingsFormValues) => {
     mutate({
@@ -735,6 +754,112 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                 </FormItem>
               )}
             />
+          </CardContent>
+        </Card>
+
+        {/* VAPP Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>VAPP Settings</CardTitle>
+            <CardDescription>Configure Vehicle Access Parking Permits for guests</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <FormField
+              control={form.control}
+              name="settings.vapp.enabled"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Enable VAPP</FormLabel>
+                    <FormDescription>
+                      Generate vehicle access parking permits for guests
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isDisabled}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {form.watch("settings.vapp.enabled") && (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="settings.vapp.venueCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Venue Code</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., KAS"
+                            disabled={isDisabled}
+                            maxLength={10}
+                            {...field}
+                            value={field.value || ""}
+                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          3-letter code for the venue (shown on permit)
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="settings.vapp.matchCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Match Code</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., M21"
+                            disabled={isDisabled}
+                            maxLength={10}
+                            {...field}
+                            value={field.value || ""}
+                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Code for this match/session (used in serial numbers)
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {form.watch("settings.vapp.matchCode") && (
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium">Generate Serial Numbers</p>
+                      <p className="text-muted-foreground text-xs">
+                        Assign serial numbers to guests who don&apos;t have one yet
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => generateSerials({ eventId: event.id })}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating && <Icons.loader className="mr-2 h-4 w-4 animate-spin" />}
+                      Generate
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 

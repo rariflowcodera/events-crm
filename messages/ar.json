@@ -238,7 +238,8 @@
       "dietaryRequirements": "المتطلبات الغذائية",
       "accessibilityNeeds": "احتياجات الوصول",
       "internalNotes": "ملاحظات داخلية",
-      "category": "الفئة"
+      "category": "الفئة",
+      "serialNumber": "الرقم التسلسلي"
     },
     "gender": {
       "male": "ذكر",
@@ -974,5 +975,46 @@
       "logistics": "اللوجستيات",
       "metadata": "البيانات الوصفية"
     }
+  },
+  "vapp": {
+    "title": "تصريح دخول مركبة",
+    "settings": "إعدادات تصريح الوقوف",
+    "settingsDescription": "تكوين تصاريح وقوف المركبات للضيوف",
+    "enabled": "تفعيل تصريح الوقوف",
+    "enabledDescription": "السماح للضيوف بالوصول إلى قسائم تصريح الوقوف",
+    "venueCode": "رمز المكان",
+    "venueCodeDescription": "الرمز المعروض على القسيمة (مثال: KAS)",
+    "venueCodePlaceholder": "KAS",
+    "matchCode": "رمز المطابقة",
+    "matchCodeDescription": "بادئة الأرقام التسلسلية (مثال: M21)",
+    "matchCodePlaceholder": "M21",
+    "serialNumber": "الرقم التسلسلي",
+    "accessCode": "رمز الدخول",
+    "accessCodeDescription": "رمز الدخول المعروض على قسيمة تصريح الوقوف (مثال: P1, P2)",
+    "accessCodePlaceholder": "P1",
+    "backgroundImage": "خلفية قسيمة تصريح الوقوف",
+    "backgroundImageDescription": "صورة خلفية مخصصة لقسائم تصريح الوقوف. الحجم الموصى به: 800×1200 بكسل",
+    "downloadPdf": "تحميل PDF",
+    "print": "طباعة",
+    "copyLink": "نسخ رابط التصريح",
+    "linkCopied": "تم نسخ رابط التصريح",
+    "openInNewTab": "فتح في نافذة جديدة",
+    "generateSerials": "إنشاء الأرقام التسلسلية",
+    "generateSerialsDescription": "إنشاء أرقام تسلسلية للضيوف الذين ليس لديهم",
+    "generateSerialsSuccess": "تم إنشاء الأرقام التسلسلية لـ {count} ضيف",
+    "noConfig": "لم يتم تكوين تصريح الوقوف لهذا الحدث",
+    "notAvailable": "تصريح الوقوف غير متوفر لهذا الضيف",
+    "error": {
+      "title": "خطأ في تصريح الوقوف",
+      "noSerial": "لم يتم إنشاء رقم تسلسلي لتصريح الوقوف الخاص بك بعد. يرجى التواصل مع منظم الحدث.",
+      "notEnabled": "لم يتم تفعيل تصاريح الوقوف لهذا الحدث.",
+      "general": "حدث خطأ في تحميل تصريح الوقوف. يرجى المحاولة مرة أخرى أو التواصل مع منظم الحدث.",
+      "contactOrganizer": "إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع منظم الحدث مباشرة."
+    },
+    "insertVapp": "إدراج تصريح الوقوف",
+    "insertVappLink": "إدراج رابط تصريح الوقوف",
+    "insertVappDescription": "إدراج رابط لتصريح الوقوف الخاص بالضيف",
+    "displayTextPlaceholder": "عرض تصريح الوقوف",
+    "displayTextHint": "اتركه فارغاً لاستخدام النص الافتراضي"
   }
 }

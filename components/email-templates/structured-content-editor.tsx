@@ -52,6 +52,7 @@ import { VariableInserter } from "./variable-inserter"
 import { DocumentInserter } from "./document-inserter"
 import { MapInserter } from "./map-inserter"
 import { FormLinkInserter } from "./form-link-inserter"
+import { VappInserter } from "./vapp-inserter"
 import { cn } from "@/lib/utils"
 
 // ============================================================================
@@ -588,6 +589,9 @@ function ParagraphEditor({
                 />
                 <FormLinkInserter
                   eventId={eventId}
+                  onInsert={(v) => insertVariable(contentFieldName, v)}
+                />
+                <VappInserter
                   onInsert={(v) => insertVariable(contentFieldName, v)}
                 />
                 <VariableInserter

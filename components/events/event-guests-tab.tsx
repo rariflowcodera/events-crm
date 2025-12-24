@@ -22,6 +22,7 @@ import { BulkSendEmailDialog } from "@/components/guests/bulk-send-email-dialog"
 import { SendEmailDialog } from "@/components/guests/send-email-dialog"
 import { EditViewDialog, ManageViewsDialog } from "@/components/guests/view-manager"
 import { GetFormLinkDialog } from "@/components/guests/get-form-link-dialog"
+import { VappLinkDialog } from "@/components/guests/vapp-link-dialog"
 import type { EmailTemplateType } from "@/lib/schemas"
 import { getCountryName } from "@/lib/data/countries"
 import { createRoute } from "@/lib/routes"
@@ -50,6 +51,18 @@ interface Event {
   guestCategories: GuestCategory[]
   customDomain: string | null
   customDomainVerified: boolean | null
+  settings?: {
+    allowPlusOne?: boolean
+    maxPlusOnes?: number
+    requireApproval?: boolean
+    sendReminders?: boolean
+    reminderDays?: number[]
+    vapp?: {
+      enabled?: boolean
+      venueCode?: string
+      matchCode?: string
+    }
+  } | null
 }
 
 interface EventGuestsTabProps {
@@ -71,6 +84,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
   const [bulkEmailType, setBulkEmailType] = useState<EmailTemplateType | null>(null)
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false)
   const [isFormLinkDialogOpen, setIsFormLinkDialogOpen] = useState(false)
+  const [isVappLinkDialogOpen, setIsVappLinkDialogOpen] = useState(false)
   const [viewConfig, setViewConfig] = useState<GuestListViewConfig>(DEFAULT_VIEW_CONFIG)
   const [showFilters, setShowFilters] = useState(false)
 
@@ -268,7 +282,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
   }, [])
 
   // Bulk action handlers
-  const handleBulkAction = useCallback((action: "delete" | "send_invitation" | "send_email" | "get_form_link") => {
+  const handleBulkAction = useCallback((action: "delete" | "send_invitation" | "send_email" | "get_form_link" | "get_vapp_link") => {
     if (action === "delete") {
       setIsDeleteDialogOpen(true)
     } else if (action === "send_invitation") {
@@ -277,6 +291,8 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
       setIsSendEmailDialogOpen(true)
     } else if (action === "get_form_link") {
       setIsFormLinkDialogOpen(true)
+    } else if (action === "get_vapp_link") {
+      setIsVappLinkDialogOpen(true)
     }
   }, [])
 
@@ -376,6 +392,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
         filteredCount={hasActiveFilters ? guests.length : undefined}
         showFilters={showFilters}
         onShowFiltersChange={setShowFilters}
+        vappEnabled={event.settings?.vapp?.enabled}
       />
 
       {isLoading ? (
@@ -456,6 +473,24 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
             eventId={event.id}
             guestId={selectedGuestId}
             guestName={`${selectedGuest.firstName} ${selectedGuest.lastName}`}
+          />
+        )
+      })()}
+
+      {/* VAPP Link Dialog */}
+      {isVappLinkDialogOpen && selectedIds.size === 1 && (() => {
+        const selectedGuestId = Array.from(selectedIds)[0]
+        const selectedGuest = guests.find((g) => g.id === selectedGuestId) as any
+        if (!selectedGuest) return null
+        const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
+        const vappLink = `${baseUrl}/en/vapp/${selectedGuest.rsvpToken}`
+        return (
+          <VappLinkDialog
+            open={isVappLinkDialogOpen}
+            onOpenChange={setIsVappLinkDialogOpen}
+            guestName={`${selectedGuest.firstName} ${selectedGuest.lastName || ""}`.trim()}
+            serialNumber={selectedGuest.serialNumber}
+            vappLink={vappLink}
           />
         )
       })()}

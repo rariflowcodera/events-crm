@@ -240,7 +240,8 @@
       "dietaryRequirements": "Dietary Requirements",
       "accessibilityNeeds": "Accessibility Needs",
       "internalNotes": "Internal Notes",
-      "category": "Category"
+      "category": "Category",
+      "serialNumber": "Serial Number"
     },
     "gender": {
       "male": "Male",
@@ -976,5 +977,46 @@
       "logistics": "Logistics",
       "metadata": "Metadata"
     }
+  },
+  "vapp": {
+    "title": "Vehicle Access Parking Permit",
+    "settings": "VAPP Settings",
+    "settingsDescription": "Configure Vehicle Access Parking Permits for guests",
+    "enabled": "Enable VAPP",
+    "enabledDescription": "Allow guests to access their parking permit vouchers",
+    "venueCode": "Venue Code",
+    "venueCodeDescription": "Code displayed on voucher (e.g., KAS)",
+    "venueCodePlaceholder": "KAS",
+    "matchCode": "Match Code",
+    "matchCodeDescription": "Prefix for serial numbers (e.g., M21)",
+    "matchCodePlaceholder": "M21",
+    "serialNumber": "Serial Number",
+    "accessCode": "Access Code",
+    "accessCodeDescription": "Access code shown on parking permit vouchers (e.g., P1, P2)",
+    "accessCodePlaceholder": "P1",
+    "backgroundImage": "VAPP Voucher Background",
+    "backgroundImageDescription": "Custom background image for parking permit vouchers. Recommended size: 800x1200px",
+    "downloadPdf": "Download PDF",
+    "print": "Print",
+    "copyLink": "Copy VAPP Link",
+    "linkCopied": "VAPP link copied",
+    "openInNewTab": "Open in New Tab",
+    "generateSerials": "Generate Serial Numbers",
+    "generateSerialsDescription": "Generate serial numbers for guests without one",
+    "generateSerialsSuccess": "Serial numbers generated for {count} guest(s)",
+    "noConfig": "VAPP not configured for this event",
+    "notAvailable": "VAPP not available for this guest",
+    "error": {
+      "title": "Parking Permit Error",
+      "noSerial": "A serial number for your parking permit has not been generated yet. Please contact the event organizer.",
+      "notEnabled": "Parking permits have not been enabled for this event.",
+      "general": "An error occurred while loading your parking permit. Please try again or contact the event organizer.",
+      "contactOrganizer": "If you believe this is an error, please contact the event organizer directly."
+    },
+    "insertVapp": "Insert VAPP",
+    "insertVappLink": "Insert VAPP Link",
+    "insertVappDescription": "Insert a link to the guest's parking permit",
+    "displayTextPlaceholder": "View Your Parking Permit",
+    "displayTextHint": "Leave empty to use default text"
   }
 }

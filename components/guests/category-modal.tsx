@@ -19,6 +19,7 @@ interface GuestCategory {
   color: string | null
   sortOrder: number
   defaultEmailTemplateId: string | null
+  vappAccessCode: string | null
 }
 
 interface CategoryModalProps {
