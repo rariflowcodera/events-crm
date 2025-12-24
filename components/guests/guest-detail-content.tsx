@@ -131,7 +131,7 @@ const genderOptions: { value: GuestGender; labelKey: string }[] = [
 
 const editGuestSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
-  lastName: z.string().min(1, "Last name is required").max(100),
+  lastName: z.string().max(100).optional(),
   displayNameAr: z.string().optional(),
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   phone: z.string().optional(),
@@ -225,7 +225,7 @@ export function GuestDetailContent({
     updateGuest({
       guestId: guest.id,
       firstName: values.firstName,
-      lastName: values.lastName,
+      lastName: values.lastName || null,
       displayNameAr: values.displayNameAr || undefined,
       email: values.email || undefined,
       phone: values.phone || undefined,
