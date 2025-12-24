@@ -74,6 +74,7 @@ interface Guest {
   gender: "male" | "female" | "unspecified" | null
   title: string | null
   salutation: string | null
+  salutationAr: string | null
   profileImage: string | null
   email: string | null
   phone: string | null
@@ -425,6 +426,20 @@ export function GuestsDataTable({
         header: "Salutation",
         cell: ({ getValue }) => (getValue() as string) || "",
         size: getColumnWidth("salutation"),
+      },
+      {
+        id: "salutationAr",
+        accessorKey: "salutationAr",
+        header: "Arabic Salutation",
+        cell: ({ getValue }) => {
+          const value = getValue() as string | null
+          return (
+            <span className="truncate" dir="rtl" title={value ?? undefined}>
+              {value || ""}
+            </span>
+          )
+        },
+        size: getColumnWidth("salutationAr"),
       },
       {
         id: "email",

@@ -88,7 +88,7 @@ export function GuestDetailPageClient({
     notFound()
   }
 
-  const guestName = `${guest.firstName} ${guest.lastName}`
+  const guestName = [guest.firstName, guest.lastName].filter(Boolean).join(" ")
 
   return (
     <PagePanel

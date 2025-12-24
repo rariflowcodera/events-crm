@@ -184,8 +184,8 @@ export function GuestDetailContent({
   // Permission check
   const canEditGuests = can(PERMISSIONS.MANAGE_GUESTS)
 
-  // Only start in edit mode if user has permission
-  const [isEditing, setIsEditing] = useState(initialEditMode && canEditGuests)
+  // Always start in edit mode if user has permission
+  const [isEditing, setIsEditing] = useState(canEditGuests)
   const [emailHistoryOpen, setEmailHistoryOpen] = useState(false)
 
   const form = useForm<EditGuestFormValues>({
@@ -302,6 +302,26 @@ export function GuestDetailContent({
       {isEditing ? (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Form Header with Save Button */}
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium">Edit Guest</h4>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(false)}
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" disabled={isUpdating}>
+                  {isUpdating && <Icons.loader className="mr-2 h-4 w-4 animate-spin" />}
+                  Save
+                </Button>
+              </div>
+            </div>
+
             {/* Profile Image */}
             <div className="flex justify-center pb-2">
               <FormField
@@ -382,8 +402,22 @@ export function GuestDetailContent({
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("fields.email")}</FormLabel>
+                  <FormControl>
+                    <Input type="email" disabled={isUpdating} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Guest Addressing Section */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="gender"
@@ -430,7 +464,9 @@ export function GuestDetailContent({
                   </FormItem>
                 )}
               />
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="salutation"
@@ -448,40 +484,26 @@ export function GuestDetailContent({
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="salutationAr"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("fields.salutationAr")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        dir="rtl"
+                        placeholder="السيد / سعادة"
+                        disabled={isUpdating}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-
-            <FormField
-              control={form.control}
-              name="salutationAr"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("fields.salutationAr")}</FormLabel>
-                  <FormControl>
-                    <Input
-                      dir="rtl"
-                      placeholder="السيد / سعادة"
-                      disabled={isUpdating}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("fields.email")}</FormLabel>
-                  <FormControl>
-                    <Input type="email" disabled={isUpdating} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -627,25 +649,6 @@ export function GuestDetailContent({
 
             <FormField
               control={form.control}
-              name="hasCompanion"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-sm">Has Companion</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={isUpdating}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="internalNotes"
               render={({ field }) => (
                 <FormItem>
@@ -657,6 +660,30 @@ export function GuestDetailContent({
                 </FormItem>
               )}
             />
+
+            {/* Email History Section */}
+            <Collapsible open={emailHistoryOpen} onOpenChange={setEmailHistoryOpen}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full justify-between px-0 hover:bg-transparent"
+                >
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    <span className="text-sm font-medium">Email History</span>
+                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${
+                      emailHistoryOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-3">
+                <GuestEmailHistory guestId={guest.id} />
+              </CollapsibleContent>
+            </Collapsible>
 
             <div className="flex justify-end gap-2 pt-4">
               <Button
