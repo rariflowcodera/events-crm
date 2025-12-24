@@ -1,7 +1,9 @@
+import { useState } from "react"
 import { trpc } from "@/trpc/client"
 import { toast } from "sonner"
 
 import { GLOBAL_ERROR_MESSAGE } from "@/lib/constants"
+import { exportGuestsToExcel } from "@/lib/export-guests"
 import type { GuestListViewFilterConfig, GuestListViewSortConfig } from "@/lib/guest-columns"
 
 // Query hooks
@@ -297,4 +299,48 @@ export const useBulkMarkAttendance = ({
   })
 
   return { mutate, isPending }
+}
+
+// Export hook - fetches all guests and exports to Excel
+export const useExportGuests = (eventId: string, eventSlug: string) => {
+  const [isExporting, setIsExporting] = useState(false)
+  const utils = trpc.useUtils()
+
+  const exportGuests = async () => {
+    if (!eventId) return
+
+    setIsExporting(true)
+    try {
+      // Fetch guests in batches of 100 (API limit)
+      const allGuests: any[] = []
+      let offset = 0
+      const limit = 100
+
+      while (true) {
+        const data = await utils.guests.getMany.fetch({
+          eventId,
+          limit,
+          offset,
+        })
+        allGuests.push(...data.guests)
+
+        // If we got fewer than limit, we've fetched all guests
+        if (data.guests.length < limit) break
+        offset += limit
+      }
+
+      const guestsForExport = allGuests.map((guest) => ({
+        ...guest,
+        category: guest.category || { id: "", name: "", code: "", color: null },
+      }))
+      exportGuestsToExcel(guestsForExport as any, eventSlug)
+      toast.success("Guests exported successfully")
+    } catch {
+      toast.error("Failed to export guests")
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  return { exportGuests, isExporting }
 }

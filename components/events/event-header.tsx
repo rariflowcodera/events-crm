@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl"
 import { formatEventDateTime } from "@/lib/date-utils"
 import { createRoute } from "@/lib/routes"
 import { useDeleteEvent } from "@/trpc/hooks/events-hooks"
+import { useExportGuests } from "@/trpc/hooks/guests-hooks"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -70,6 +71,7 @@ const statusConfig: Record<
 
 export function EventHeader({ event, workspaceSlug }: EventHeaderProps) {
   const t = useTranslations("event")
+  const tCommon = useTranslations("common")
   const router = useRouter()
   const { label, variant } = statusConfig[event.status]
 
@@ -81,6 +83,8 @@ export function EventHeader({ event, workspaceSlug }: EventHeaderProps) {
       router.push(createRoute("events", { slug: workspaceSlug }).href)
     },
   })
+
+  const { exportGuests, isExporting } = useExportGuests(event.id, event.slug)
 
   const handleDelete = () => {
     deleteEvent({ eventId: event.id })
@@ -137,6 +141,21 @@ export function EventHeader({ event, workspaceSlug }: EventHeaderProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {/* Dedicated Export Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportGuests}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <Icons.loader className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Icons.download className="mr-2 h-4 w-4" />
+            )}
+            {tCommon("export")}
+          </Button>
+
           <AlertDialog>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -149,8 +168,8 @@ export function EventHeader({ event, workspaceSlug }: EventHeaderProps) {
                   <Icons.copy className="mr-2 h-4 w-4" />
                   Duplicate Event
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Icons.upload className="mr-2 h-4 w-4" />
+                <DropdownMenuItem onSelect={exportGuests} disabled={isExporting}>
+                  <Icons.download className="mr-2 h-4 w-4" />
                   Export Guests
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
