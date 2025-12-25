@@ -109,6 +109,7 @@
     "recharts": "^2.15.3",
     "satori": "^0.18.3",
     "server-only": "^0.0.1",
+    "sharp": "^0.34.5",
     "sonner": "^1.7.4",
     "stripe": "^16.12.0",
     "superjson": "^2.2.2",
