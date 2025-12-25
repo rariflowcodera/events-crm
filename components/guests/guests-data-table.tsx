@@ -85,6 +85,7 @@ interface Guest {
   department: string | null
   status: GuestStatus
   rsvpToken: string
+  rsvpShortCode: string | null
   rsvpRespondedAt: Date | null
   hasCompanion: boolean | null
   dietaryRequirements: string | null

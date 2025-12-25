@@ -9,6 +9,14 @@ interface EventWithCustomDomain {
 }
 
 /**
+ * Guest token info - supports both short code and full token
+ */
+interface GuestRsvpTokens {
+  rsvpToken: string
+  rsvpShortCode?: string | null
+}
+
+/**
  * Get the base URL for RSVP links for an event
  * Uses custom domain if verified, otherwise falls back to app URL
  */
@@ -26,10 +34,50 @@ export function getRsvpBaseUrl(event: EventWithCustomDomain): string {
 
 /**
  * Get full RSVP URL for a guest
+ * Accepts either a token string (legacy) or guest object with both tokens
+ * Prefers short code when available for cleaner URLs
  */
-export function getRsvpUrl(event: EventWithCustomDomain, rsvpToken: string): string {
+export function getRsvpUrl(
+  event: EventWithCustomDomain,
+  tokenOrGuest: string | GuestRsvpTokens
+): string {
   const baseUrl = getRsvpBaseUrl(event)
-  return `${baseUrl}/rsvp/${rsvpToken}`
+
+  // Support legacy string format
+  if (typeof tokenOrGuest === "string") {
+    return `${baseUrl}/rsvp/${tokenOrGuest}`
+  }
+
+  // Prefer short code when available
+  const token = tokenOrGuest.rsvpShortCode || tokenOrGuest.rsvpToken
+  return `${baseUrl}/rsvp/${token}`
+}
+
+/**
+ * Get the short RSVP URL specifically (for copy to clipboard)
+ * Returns null if no short code is available
+ */
+export function getShortRsvpUrl(
+  event: EventWithCustomDomain,
+  guest: GuestRsvpTokens
+): string | null {
+  if (!guest.rsvpShortCode) {
+    return null
+  }
+  const baseUrl = getRsvpBaseUrl(event)
+  return `${baseUrl}/rsvp/${guest.rsvpShortCode}`
+}
+
+/**
+ * Get the full (UUID) RSVP URL
+ * Always uses the full UUID token
+ */
+export function getFullRsvpUrl(
+  event: EventWithCustomDomain,
+  guest: GuestRsvpTokens
+): string {
+  const baseUrl = getRsvpBaseUrl(event)
+  return `${baseUrl}/rsvp/${guest.rsvpToken}`
 }
 
 /**

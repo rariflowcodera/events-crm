@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
 import { useDeleteGuest } from "@/trpc/hooks/guests-hooks"
-import { getRsvpUrl } from "@/lib/rsvp-url"
+import { getRsvpUrl, getShortRsvpUrl, getFullRsvpUrl } from "@/lib/rsvp-url"
 import { Button } from "@/components/ui/button"
 import { usePermissions } from "@/hooks/use-permissions"
 import { PERMISSIONS } from "@/lib/permissions"
@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useState } from "react"
+import { toast } from "sonner"
 
 type GuestStatus =
   | "pending"
@@ -47,6 +48,7 @@ interface Guest {
   lastName: string
   email: string | null
   rsvpToken: string
+  rsvpShortCode: string | null
   status: GuestStatus
 }
 
@@ -80,8 +82,17 @@ export function GuestRowActions({ guest, eventId, event, workspaceSlug }: GuestR
   })
 
   const handleCopyRsvpLink = () => {
-    const rsvpUrl = getRsvpUrl(event, guest.rsvpToken)
+    const rsvpUrl = getFullRsvpUrl(event, guest)
     navigator.clipboard.writeText(rsvpUrl)
+    toast.success("RSVP link copied to clipboard")
+  }
+
+  const handleCopyShortRsvpLink = () => {
+    const shortUrl = getShortRsvpUrl(event, guest)
+    if (shortUrl) {
+      navigator.clipboard.writeText(shortUrl)
+      toast.success("Short RSVP link copied to clipboard")
+    }
   }
 
   const handleDelete = () => {
@@ -98,6 +109,12 @@ export function GuestRowActions({ guest, eventId, event, workspaceSlug }: GuestR
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {guest.rsvpShortCode && (
+            <DropdownMenuItem onClick={handleCopyShortRsvpLink}>
+              <Icons.link className="mr-2 h-4 w-4" />
+              Copy Short RSVP Link
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={handleCopyRsvpLink}>
             <Icons.link className="mr-2 h-4 w-4" />
             Copy RSVP Link

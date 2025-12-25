@@ -338,8 +338,12 @@ export const guestsRouter = createTRPCRouter({
         })
       }
 
-      // Generate unique RSVP token
+      // Generate unique RSVP token and short code
       const rsvpToken = crypto.randomUUID()
+      const { generateUniqueRsvpShortCode } = await import(
+        "@/lib/rsvp-short-code"
+      )
+      const rsvpShortCode = await generateUniqueRsvpShortCode(db)
 
       // Generate serial number if VAPP is enabled
       let serialNumber: string | undefined
@@ -365,6 +369,7 @@ export const guestsRouter = createTRPCRouter({
         .values({
           ...input,
           rsvpToken,
+          rsvpShortCode,
           rsvpTokenExpiresAt: event.rsvpDeadline,
           serialNumber,
         })
@@ -717,11 +722,16 @@ export const guestsRouter = createTRPCRouter({
       }
 
       const newToken = crypto.randomUUID()
+      const { generateUniqueRsvpShortCode } = await import(
+        "@/lib/rsvp-short-code"
+      )
+      const newShortCode = await generateUniqueRsvpShortCode(db)
 
       const [updated] = await db
         .update(guests)
         .set({
           rsvpToken: newToken,
+          rsvpShortCode: newShortCode,
           rsvpTokenExpiresAt: guest.event.rsvpDeadline,
           updatedAt: new Date(),
         })
@@ -730,6 +740,7 @@ export const guestsRouter = createTRPCRouter({
 
       return {
         rsvpToken: updated.rsvpToken,
+        rsvpShortCode: updated.rsvpShortCode,
         rsvpTokenExpiresAt: updated.rsvpTokenExpiresAt,
       }
     }),
@@ -1021,8 +1032,14 @@ export const guestsRouter = createTRPCRouter({
       const vappEnabled = vapp?.enabled && vapp?.matchCode
       let currentSequence = vapp?.nextSequence ?? 1
 
+      // Generate short codes for all guests
+      const { generateUniqueRsvpShortCodes } = await import(
+        "@/lib/rsvp-short-code"
+      )
+      const shortCodes = await generateUniqueRsvpShortCodes(db, input.guests.length)
+
       // Prepare guest records
-      const guestRecords = input.guests.map((guest) => {
+      const guestRecords = input.guests.map((guest, index) => {
         let serialNumber: string | undefined
         if (vappEnabled && vapp?.matchCode) {
           serialNumber = `${vapp.matchCode}-${currentSequence.toString().padStart(6, "0")}`
@@ -1032,6 +1049,7 @@ export const guestsRouter = createTRPCRouter({
           ...guest,
           eventId: input.eventId,
           rsvpToken: crypto.randomUUID(),
+          rsvpShortCode: shortCodes[index],
           rsvpTokenExpiresAt: event.rsvpDeadline,
           importBatchId: batchId,
           serialNumber,
@@ -1061,6 +1079,69 @@ export const guestsRouter = createTRPCRouter({
         createdCount: created.length,
         importBatchId: batchId,
       }
+    }),
+
+  // Backfill short codes for existing guests who don't have one
+  backfillShortCodes: protectedProcedure
+    .input(z.object({ eventId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, input.eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_GUESTS,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to manage guests",
+        })
+      }
+
+      // Find all guests without short codes
+      const guestsWithoutShortCodes = await db.query.guests.findMany({
+        where: and(
+          eq(guests.eventId, input.eventId),
+          sql`${guests.rsvpShortCode} IS NULL`
+        ),
+        columns: { id: true },
+      })
+
+      if (guestsWithoutShortCodes.length === 0) {
+        return { updated: 0 }
+      }
+
+      // Generate unique short codes
+      const { generateUniqueRsvpShortCodes } = await import(
+        "@/lib/rsvp-short-code"
+      )
+      const shortCodes = await generateUniqueRsvpShortCodes(
+        db,
+        guestsWithoutShortCodes.length
+      )
+
+      // Update each guest with their new short code
+      let updated = 0
+      for (let i = 0; i < guestsWithoutShortCodes.length; i++) {
+        await db
+          .update(guests)
+          .set({
+            rsvpShortCode: shortCodes[i],
+            updatedAt: new Date(),
+          })
+          .where(eq(guests.id, guestsWithoutShortCodes[i].id))
+        updated++
+      }
+
+      return { updated }
     }),
 
   // Check which emails already exist in the event (for import duplicate detection)

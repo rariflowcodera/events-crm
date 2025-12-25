@@ -247,6 +247,34 @@ export const useBulkCreateGuests = ({
   return { mutate, isPending }
 }
 
+export const useBackfillShortCodes = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (data: { updated: number }) => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, isPending } = trpc.guests.backfillShortCodes.useMutation({
+    onSuccess: (data) => {
+      if (data.updated > 0) {
+        toast.success(`Generated short codes for ${data.updated} guest(s)`)
+      } else {
+        toast.info("All guests already have short codes")
+      }
+      utils.guests.getMany.invalidate()
+      onSuccess?.(data)
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, isPending }
+}
+
 export const useMarkAttendance = ({
   onSuccess,
   onError,

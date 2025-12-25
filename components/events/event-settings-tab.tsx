@@ -9,7 +9,7 @@ import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { useUpdateEvent } from "@/trpc/hooks/events-hooks"
-import { useGenerateSerialNumbers } from "@/trpc/hooks/guests-hooks"
+import { useGenerateSerialNumbers, useBackfillShortCodes } from "@/trpc/hooks/guests-hooks"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -217,6 +217,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
   })
 
   const { mutate: generateSerials, isPending: isGenerating } = useGenerateSerialNumbers()
+  const { mutate: backfillShortCodes, isPending: isBackfilling } = useBackfillShortCodes()
 
   const onSubmit = (values: EventSettingsFormValues) => {
     mutate({
@@ -900,6 +901,34 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
           customDomainVerificationToken={event.customDomainVerificationToken}
         />
       </div>
+
+      {/* Short RSVP Links */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Short RSVP Links</CardTitle>
+          <CardDescription>
+            Generate short, shareable RSVP links for cleaner URLs when sharing on WhatsApp and social media
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="flex-1 text-sm text-muted-foreground">
+              Generate 8-character short codes for all guests who don&apos;t have one yet.
+              New guests automatically get short codes when added.
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => backfillShortCodes({ eventId: event.id })}
+              disabled={isBackfilling}
+            >
+              {isBackfilling && <Icons.loader className="mr-2 h-4 w-4 animate-spin" />}
+              Generate Short Codes
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </Form>
   )
 }

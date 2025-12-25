@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { eq, and, gt, isNull } from "drizzle-orm"
+import { eq, and, gt, isNull, or } from "drizzle-orm"
 import { db } from "@/server/db/config/database"
 import { guests, events, guestCategories, rsvpResponses, workspaces, emailTemplates } from "@/server/db/schemas"
 import { getMaterializedColumn, isStandardField } from "@/lib/rsvp"
@@ -15,10 +15,10 @@ export async function GET(
 ) {
   const { token } = await params
 
-  // Find guest by RSVP token
+  // Find guest by RSVP token (check both UUID and short code)
   const guest = await db.query.guests.findFirst({
     where: and(
-      eq(guests.rsvpToken, token),
+      or(eq(guests.rsvpToken, token), eq(guests.rsvpShortCode, token)),
       // Token not expired (or no expiration set)
       gt(guests.rsvpTokenExpiresAt, new Date())
     ),
@@ -39,9 +39,9 @@ export async function GET(
   })
 
   if (!guest) {
-    // Also check if token exists but is expired
+    // Also check if token exists but is expired (check both token types)
     const expiredGuest = await db.query.guests.findFirst({
-      where: eq(guests.rsvpToken, token),
+      where: or(eq(guests.rsvpToken, token), eq(guests.rsvpShortCode, token)),
     })
 
     if (expiredGuest) {

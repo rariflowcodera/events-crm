@@ -81,6 +81,7 @@ export const guests = pgTable(
 
     // RSVP
     rsvpToken: text("rsvp_token").notNull().unique(),
+    rsvpShortCode: text("rsvp_short_code").unique(),
     rsvpTokenExpiresAt: timestamp("rsvp_token_expires_at", { mode: "date" }),
     status: guestStatusEnum("status").notNull().default("pending"),
     rsvpRespondedAt: timestamp("rsvp_responded_at", { mode: "date" }),
@@ -134,6 +135,7 @@ export const guests = pgTable(
     index("guest_category_idx").on(table.categoryId),
     index("guest_status_idx").on(table.eventId, table.status),
     index("guest_rsvp_token_idx").on(table.rsvpToken),
+    index("guest_rsvp_short_code_idx").on(table.rsvpShortCode),
     index("guest_email_idx").on(table.eventId, table.email),
     index("guest_attended_idx").on(table.eventId, table.attendedAt),
     uniqueIndex("guest_serial_number_event_idx").on(table.eventId, table.serialNumber),
