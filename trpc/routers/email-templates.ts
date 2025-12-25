@@ -811,7 +811,7 @@ export const emailTemplatesRouter = createTRPCRouter({
       return template
     }),
 
-  // Update structured content only
+  // Update structured content and metadata
   updateStructuredContent: protectedProcedure
     .input(
       z.object({
@@ -819,6 +819,15 @@ export const emailTemplatesRouter = createTRPCRouter({
         structuredContent: bilingualStructuredContentSchema,
         masterTemplateId: z.string().uuid().nullable().optional(),
         showBannerFooter: z.boolean().optional(),
+        // Metadata fields
+        name: z.string().min(1).optional(),
+        type: z.enum(emailTemplateTypeValues).optional(),
+        categoryId: z.string().uuid().nullable().optional(),
+        defaultLanguage: z.enum(["en", "ar"]).optional(),
+        fromName: z.string().nullable().optional(),
+        fromEmail: z.string().email().nullable().optional().or(z.literal("")),
+        replyTo: z.string().email().nullable().optional().or(z.literal("")),
+        isDefault: z.boolean().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -858,6 +867,44 @@ export const emailTemplatesRouter = createTRPCRouter({
         }
       }
 
+      // Validate categoryId if changing
+      if (input.categoryId && input.categoryId !== template.categoryId) {
+        const category = await db.query.guestCategories.findFirst({
+          where: and(
+            eq(guestCategories.id, input.categoryId),
+            eq(guestCategories.eventId, template.eventId)
+          ),
+        })
+
+        if (!category) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid category for this event",
+          })
+        }
+      }
+
+      // Handle isDefault logic
+      if (input.isDefault) {
+        const templateType = input.type || template.type
+        const categoryId = input.categoryId !== undefined ? input.categoryId : template.categoryId
+
+        const conditions = [
+          eq(emailTemplates.eventId, template.eventId),
+          eq(emailTemplates.type, templateType),
+          eq(emailTemplates.isDefault, true),
+        ]
+
+        if (categoryId) {
+          conditions.push(eq(emailTemplates.categoryId, categoryId))
+        }
+
+        await db
+          .update(emailTemplates)
+          .set({ isDefault: false, updatedAt: new Date() })
+          .where(and(...conditions))
+      }
+
       const updateData: Record<string, unknown> = {
         structuredContent: input.structuredContent,
         updatedAt: new Date(),
@@ -869,6 +916,39 @@ export const emailTemplatesRouter = createTRPCRouter({
 
       if (input.showBannerFooter !== undefined) {
         updateData.showBannerFooter = input.showBannerFooter
+      }
+
+      // Add metadata fields if provided
+      if (input.name !== undefined) {
+        updateData.name = input.name
+      }
+
+      if (input.type !== undefined) {
+        updateData.type = input.type
+      }
+
+      if (input.categoryId !== undefined) {
+        updateData.categoryId = input.categoryId
+      }
+
+      if (input.defaultLanguage !== undefined) {
+        updateData.defaultLanguage = input.defaultLanguage
+      }
+
+      if (input.fromName !== undefined) {
+        updateData.fromName = input.fromName
+      }
+
+      if (input.fromEmail !== undefined) {
+        updateData.fromEmail = input.fromEmail || null
+      }
+
+      if (input.replyTo !== undefined) {
+        updateData.replyTo = input.replyTo || null
+      }
+
+      if (input.isDefault !== undefined) {
+        updateData.isDefault = input.isDefault
       }
 
       const [updated] = await db

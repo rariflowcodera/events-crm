@@ -288,6 +288,15 @@ export function EmailTemplateForm({
           structuredContent: structuredData.structuredContent,
           masterTemplateId: structuredData.masterTemplateId || undefined,
           showBannerFooter: structuredData.showBannerFooter,
+          // Metadata fields
+          name: structuredData.name,
+          type: structuredData.type,
+          categoryId: structuredData.categoryId || null,
+          defaultLanguage: structuredData.defaultLanguage,
+          fromName: structuredData.fromName || undefined,
+          fromEmail: structuredData.fromEmail || undefined,
+          replyTo: structuredData.replyTo || undefined,
+          isDefault: structuredData.isDefault,
         })
       } else {
         createStructuredTemplate({
