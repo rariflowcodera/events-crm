@@ -985,7 +985,14 @@ export const eventsRouter = createTRPCRouter({
             rsvpFormConfig: sourceEvent.rsvpFormConfig,
             maxGuests: sourceEvent.maxGuests,
             branding: sourceEvent.branding,
-            settings: sourceEvent.settings,
+            settings: sourceEvent.settings
+              ? {
+                  ...sourceEvent.settings,
+                  vapp: sourceEvent.settings.vapp
+                    ? { ...sourceEvent.settings.vapp, nextSequence: 1 }
+                    : undefined,
+                }
+              : sourceEvent.settings,
             status: "draft", // Always start as draft
             customDomain: null, // Reset custom domain
             customDomainVerified: false,
@@ -1015,7 +1022,9 @@ export const eventsRouter = createTRPCRouter({
                 serviceAllocations: category.serviceAllocations,
                 rsvpPageConfig: category.rsvpPageConfig,
                 isActive: category.isActive,
-                // Don't copy defaultEmailTemplateId - it will be remapped later if needed
+                vappAccessCode: category.vappAccessCode,
+                // Copy defaultEmailTemplateId - will be remapped after email templates are duplicated
+                defaultEmailTemplateId: category.defaultEmailTemplateId,
               })
               .returning()
 
@@ -1089,6 +1098,21 @@ export const eventsRouter = createTRPCRouter({
 
             mapping.emailTemplateIdMap.set(template.id, newTemplate.id)
             stats.emailTemplatesCopied++
+          }
+
+          // 4b. Remap category default email template IDs to point to new templates
+          if (options.includeCategories && stats.emailTemplatesCopied > 0) {
+            for (const [oldTemplateId, newTemplateId] of mapping.emailTemplateIdMap) {
+              await tx
+                .update(guestCategories)
+                .set({ defaultEmailTemplateId: newTemplateId })
+                .where(
+                  and(
+                    eq(guestCategories.eventId, newEvent.id),
+                    eq(guestCategories.defaultEmailTemplateId, oldTemplateId)
+                  )
+                )
+            }
           }
         }
 
