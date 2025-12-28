@@ -36,7 +36,7 @@ function formatStatus(status: string): string {
 }
 
 /**
- * Format a date for export
+ * Format a date for export (using UTC to ensure consistency)
  */
 function formatDate(date: Date | null): string {
   if (!date) return ""
@@ -44,6 +44,7 @@ function formatDate(date: Date | null): string {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   })
 }
 

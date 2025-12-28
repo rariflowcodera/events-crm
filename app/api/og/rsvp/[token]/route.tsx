@@ -49,13 +49,14 @@ export async function GET(
     }
     const branding = resolveBranding(workspaceBranding, event.branding)
 
-    // Format date
+    // Format date - use UTC to avoid timezone shifts
     const formattedDate = event.startDate
       ? new Date(event.startDate).toLocaleDateString("en-US", {
           weekday: "long",
           year: "numeric",
           month: "long",
           day: "numeric",
+          timeZone: "UTC",
         })
       : null
 

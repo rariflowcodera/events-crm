@@ -80,7 +80,7 @@ export async function generateMetadata({
   // Bilingual event name
   const eventName = isArabic && event.nameAr ? event.nameAr : event.name
 
-  // Format date for description
+  // Format date for description - use UTC to avoid timezone shifts
   const formatEventDate = () => {
     if (!event.startDate) return ""
     const date = new Date(event.startDate)
@@ -89,6 +89,7 @@ export async function generateMetadata({
       year: "numeric",
       month: "long",
       day: "numeric",
+      timeZone: "UTC", // Use UTC to display the stored date consistently
     }
     return date.toLocaleDateString(isArabic ? "ar-SA" : "en-US", options)
   }

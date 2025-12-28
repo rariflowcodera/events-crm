@@ -71,6 +71,7 @@ export function getAllVariables() {
 
 /**
  * Format a date for display based on locale
+ * Uses UTC timezone to ensure consistent date display across user timezones
  */
 function formatDate(dateStr: string | undefined, locale: "en" | "ar"): string {
   if (!dateStr) return ""
@@ -80,6 +81,7 @@ function formatDate(dateStr: string | undefined, locale: "en" | "ar"): string {
       year: "numeric",
       month: "long",
       day: "numeric",
+      timeZone: "UTC", // Use UTC to display the stored date consistently
     })
   } catch {
     return ""

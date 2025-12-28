@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
+import { parseCalendarDate, formatCalendarDate } from "@/lib/date-utils"
 import { useUpdateEvent } from "@/trpc/hooks/events-hooks"
 import { useGenerateSerialNumbers, useBackfillShortCodes } from "@/trpc/hooks/guests-hooks"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -185,11 +185,11 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
       city: event.city || null,
       country: event.country || null,
       isSingleDay: event.isSingleDay ?? false,
-      startDate: event.startDate ? new Date(event.startDate) : null,
-      endDate: event.endDate ? new Date(event.endDate) : null,
+      startDate: parseCalendarDate(event.startDate),
+      endDate: parseCalendarDate(event.endDate),
       startTime: event.startTime || null,
       endTime: event.endTime || null,
-      rsvpDeadline: event.rsvpDeadline ? new Date(event.rsvpDeadline) : null,
+      rsvpDeadline: parseCalendarDate(event.rsvpDeadline),
       maxGuests: event.maxGuests,
       status: event.status,
       settings: {
@@ -480,7 +480,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                             disabled={isDisabled}
                           >
                             {field.value ? (
-                              format(field.value, "PPP")
+                              formatCalendarDate(field.value, "PPP")
                             ) : (
                               <span>Pick a date</span>
                             )}
@@ -492,7 +492,17 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                         <Calendar
                           mode="single"
                           selected={field.value ?? undefined}
-                          onSelect={field.onChange}
+                          onSelect={(date) => {
+                            if (!date) {
+                              field.onChange(null)
+                              return
+                            }
+                            // Normalize to UTC noon to prevent timezone edge cases
+                            const normalized = new Date(
+                              Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0)
+                            )
+                            field.onChange(normalized)
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
@@ -522,7 +532,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                               disabled={isDisabled}
                             >
                               {field.value ? (
-                                format(field.value, "PPP")
+                                formatCalendarDate(field.value, "PPP")
                               ) : (
                                 <span>Pick a date</span>
                               )}
@@ -534,7 +544,17 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                           <Calendar
                             mode="single"
                             selected={field.value ?? undefined}
-                            onSelect={field.onChange}
+                            onSelect={(date) => {
+                              if (!date) {
+                                field.onChange(null)
+                                return
+                              }
+                              // Normalize to UTC noon to prevent timezone edge cases
+                              const normalized = new Date(
+                                Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0)
+                              )
+                              field.onChange(normalized)
+                            }}
                             initialFocus
                           />
                         </PopoverContent>
@@ -606,7 +626,7 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                           disabled={isDisabled}
                         >
                           {field.value ? (
-                            format(field.value, "PPP")
+                            formatCalendarDate(field.value, "PPP")
                           ) : (
                             <span>Pick a deadline</span>
                           )}
@@ -618,7 +638,17 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
                       <Calendar
                         mode="single"
                         selected={field.value ?? undefined}
-                        onSelect={field.onChange}
+                        onSelect={(date) => {
+                          if (!date) {
+                            field.onChange(null)
+                            return
+                          }
+                          // Normalize to UTC noon to prevent timezone edge cases
+                          const normalized = new Date(
+                            Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0)
+                          )
+                          field.onChange(normalized)
+                        }}
                         initialFocus
                       />
                     </PopoverContent>

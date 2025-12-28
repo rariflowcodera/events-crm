@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense } from "react"
+import { Suspense, useState, useCallback } from "react"
 import { ErrorBoundary } from "react-error-boundary"
 
 import { trpc } from "@/trpc/client"
@@ -14,9 +14,19 @@ interface EventsClientProps {
 }
 
 export function EventsClient({ slug }: EventsClientProps) {
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQuery(query)
+  }, [])
+
   return (
     <div className="space-y-6">
-      <EventsHeader slug={slug} />
+      <EventsHeader
+        slug={slug}
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+      />
       <Suspense fallback={<EventsListSkeleton />}>
         <ErrorBoundary
           fallbackRender={({ error }) => (
@@ -27,15 +37,24 @@ export function EventsClient({ slug }: EventsClientProps) {
             />
           )}
         >
-          <EventsListSuspense slug={slug} />
+          <EventsListSuspense slug={slug} searchQuery={searchQuery} />
         </ErrorBoundary>
       </Suspense>
     </div>
   )
 }
 
-function EventsListSuspense({ slug }: EventsClientProps) {
+interface EventsListSuspenseProps {
+  slug: string
+  searchQuery: string
+}
+
+function EventsListSuspense({ slug, searchQuery }: EventsListSuspenseProps) {
   const [events] = trpc.events.getMany.useSuspenseQuery({ workspaceSlug: slug })
 
-  return <EventsList events={events} slug={slug} />
+  const filteredEvents = events.filter((event) =>
+    event.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  return <EventsList events={filteredEvents} slug={slug} />
 }

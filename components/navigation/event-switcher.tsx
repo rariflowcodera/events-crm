@@ -83,19 +83,23 @@ function EventSwitcherSuspense({ workspaceSlug, currentEventSlug }: EventSwitche
   const [events] = trpc.events.getMany.useSuspenseQuery({ workspaceSlug })
   const { state } = useSidebar()
 
-  // Sort by startDate DESC (upcoming first), then by createdAt
-  const sortedEvents = [...events].sort((a, b) => {
-    // Events with startDate come first
-    if (a.startDate && !b.startDate) return -1
-    if (!a.startDate && b.startDate) return 1
-    if (a.startDate && b.startDate) {
-      return new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
-    }
-    // Fall back to createdAt
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  })
-
   const currentEvent = events.find((e) => e.slug === currentEventSlug)
+
+  // Get start of today for filtering
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  // Filter to upcoming events (startDate >= today), sort ASC (earliest first), limit to 10
+  const upcomingEvents = events
+    .filter((event) => event.startDate && new Date(event.startDate) >= today)
+    .sort((a, b) => new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime())
+    .slice(0, 10)
+
+  // Ensure current event is always included (even if past) so user sees their selection
+  const displayEvents =
+    currentEvent && !upcomingEvents.some((e) => e.id === currentEvent.id)
+      ? [currentEvent, ...upcomingEvents].slice(0, 10)
+      : upcomingEvents
 
   return (
     <SidebarMenu aria-label="Event switcher">
@@ -122,7 +126,7 @@ function EventSwitcherSuspense({ workspaceSlug, currentEventSlug }: EventSwitche
             </DropdownMenuLabel>
             <ScrollArea className="max-h-64 flex-1">
               <div className="flex flex-col gap-y-0.5 py-1">
-                {sortedEvents.map((event) => {
+                {displayEvents.map((event) => {
                   const status = statusConfig[event.status as EventStatus]
                   const isActive = event.slug === currentEventSlug
 

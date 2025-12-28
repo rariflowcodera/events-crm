@@ -127,7 +127,8 @@ export const guestsRouter = createTRPCRouter({
             ilike(guests.lastName, term),
             ilike(guests.email, term),
             ilike(guests.entity, term),
-            ilike(guests.position, term)
+            ilike(guests.position, term),
+            ilike(guests.serialNumber, term)
           )!
         )
       }
