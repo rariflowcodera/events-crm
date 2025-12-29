@@ -80,6 +80,7 @@ interface StructuredTemplate {
   fromName: string | null
   fromEmail: string | null
   replyTo: string | null
+  showBannerFooter?: boolean | null
 }
 
 /** Combined template type - can be legacy or structured */
@@ -180,6 +181,7 @@ function renderStructuredEmailTemplate(
       fromName: template.fromName,
       fromEmail: template.fromEmail,
       replyTo: template.replyTo,
+      showBannerFooter: template.showBannerFooter,
     },
     masterTemplate,
     guest,
