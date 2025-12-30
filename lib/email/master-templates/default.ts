@@ -55,6 +55,8 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light only">
   <title>{{emailSubject}}</title>
   <!--[if mso]>
   <noscript>
@@ -154,9 +156,33 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
       .heading-secondary { font-size: 16px !important; }
       .body-text { font-size: 15px !important; }
     }
+
+    /* Gmail dark mode override */
+    [data-ogsc] .body-text,
+    [data-ogsc] .heading-primary,
+    [data-ogsc] .heading-secondary {
+      color: inherit !important;
+    }
+    u + .body .body-text,
+    u + .body .heading-primary,
+    u + .body .heading-secondary {
+      color: inherit !important;
+    }
+
+    /* Gmail dark mode fix - blend modes */
+    u + .body .gmail-blend-screen { background:#000; mix-blend-mode:screen; }
+    u + .body .gmail-blend-difference { background:#000; mix-blend-mode:difference; }
+    u + .body .gmail-blend-difference .body-text,
+    u + .body .gmail-blend-difference .heading-primary,
+    u + .body .gmail-blend-difference .heading-secondary,
+    u + .body .gmail-blend-difference p,
+    u + .body .gmail-blend-difference h1,
+    u + .body .gmail-blend-difference h2 {
+      color: #FFFFFF !important;
+    }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F5F5F5; min-height: 100vh;" bgcolor="#F5F5F5">
+<body class="body" style="margin: 0; padding: 0; background-color: #F5F5F5; min-height: 100vh;" bgcolor="#F5F5F5">
 
   <!-- Preheader Text (hidden) -->
   <div style="display: none; max-height: 0; overflow: hidden;">
@@ -187,7 +213,9 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
 
             <!-- Content Area -->
             <tr>
-              <td style="background-color: {{contentBackgroundColor}};" bgcolor="{{contentBackgroundColor}}">
+              <td style="background-color: {{contentBackgroundColor}}; background-image: linear-gradient({{contentBackgroundColor}}, {{contentBackgroundColor}});" bgcolor="{{contentBackgroundColor}}">
+                <div class="gmail-blend-screen">
+                <div class="gmail-blend-difference">
 
                 {{#if showLogo}}
                 <!-- Logo Section -->
@@ -272,6 +300,8 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
                 </table>
                 {{/unless}}
 
+                </div>
+                </div>
               </td>
             </tr>
 
@@ -306,7 +336,7 @@ export const englishContentSectionTemplate = `<table role="presentation" cellspa
   {{#if greeting}}
   <tr>
     <td style="padding-bottom: 24px;">
-      <p class="body-text" style="color: {{bodyTextColor}}; font-family: {{{fontFamily}}}; font-size: 16px; line-height: 1.6; margin: 0;">
+      <p class="body-text" style="color: {{bodyTextColor}}; -webkit-text-fill-color: {{bodyTextColor}}; font-family: {{{fontFamily}}}; font-size: 16px; line-height: 1.6; margin: 0;">
         {{{greeting}}}
       </p>
     </td>
@@ -316,7 +346,7 @@ export const englishContentSectionTemplate = `<table role="presentation" cellspa
   {{#if heading}}
   <tr>
     <td style="padding-bottom: 16px;">
-      <h1 class="heading-primary" style="color: {{headingColor}}; font-family: {{{fontFamily}}}; font-weight: 600; font-size: 24px; line-height: 1.3; margin: 0;">
+      <h1 class="heading-primary" style="color: {{headingColor}}; -webkit-text-fill-color: {{headingColor}}; font-family: {{{fontFamily}}}; font-weight: 600; font-size: 24px; line-height: 1.3; margin: 0;">
         {{{heading}}}
       </h1>
     </td>
@@ -326,7 +356,7 @@ export const englishContentSectionTemplate = `<table role="presentation" cellspa
   {{#if subheading}}
   <tr>
     <td style="padding-bottom: 24px;">
-      <h2 class="heading-secondary" style="color: {{headingColor}}; font-family: {{{fontFamily}}}; font-weight: 500; font-size: 18px; line-height: 1.4; margin: 0;">
+      <h2 class="heading-secondary" style="color: {{headingColor}}; -webkit-text-fill-color: {{headingColor}}; font-family: {{{fontFamily}}}; font-weight: 500; font-size: 18px; line-height: 1.4; margin: 0;">
         {{{subheading}}}
       </h2>
     </td>
@@ -336,7 +366,7 @@ export const englishContentSectionTemplate = `<table role="presentation" cellspa
   {{#each bodyParagraphs}}
   <tr>
     <td style="padding-bottom: {{#if @last}}32px{{else}}16px{{/if}};{{#if this.alignment}} text-align: {{this.alignment}};{{/if}}">
-      <p class="body-text" style="color: {{../bodyTextColor}}; font-family: {{{../fontFamily}}}; font-size: {{this.fontSize}}; line-height: 1.6; margin: 0;{{#if this.alignment}} text-align: {{this.alignment}};{{/if}}">
+      <p class="body-text" style="color: {{../bodyTextColor}}; -webkit-text-fill-color: {{../bodyTextColor}}; font-family: {{{../fontFamily}}}; font-size: {{this.fontSize}}; line-height: 1.6; margin: 0;{{#if this.alignment}} text-align: {{this.alignment}};{{/if}}">
         {{{this.content}}}
       </p>
     </td>
@@ -364,7 +394,7 @@ export const englishContentSectionTemplate = `<table role="presentation" cellspa
   {{#if postCtaText}}
   <tr>
     <td style="padding-top: 16px;">
-      <p class="body-text" style="color: {{bodyTextColor}}; font-family: {{{fontFamily}}}; font-size: 16px; line-height: 1.6; margin: 0;">
+      <p class="body-text" style="color: {{bodyTextColor}}; -webkit-text-fill-color: {{bodyTextColor}}; font-family: {{{fontFamily}}}; font-size: 16px; line-height: 1.6; margin: 0;">
         {{{postCtaText}}}
       </p>
     </td>
@@ -382,7 +412,7 @@ export const arabicContentSectionTemplate = `<table role="presentation" cellspac
   {{#if greeting}}
   <tr>
     <td style="padding-bottom: 24px; text-align: right;">
-      <p class="body-text arabic-text" style="color: {{bodyTextColor}}; font-family: {{{arabicFontFamily}}}; font-size: 16px; line-height: 1.8; margin: 0; direction: rtl; text-align: right;">
+      <p class="body-text arabic-text" style="color: {{bodyTextColor}}; -webkit-text-fill-color: {{bodyTextColor}}; font-family: {{{arabicFontFamily}}}; font-size: 16px; line-height: 1.8; margin: 0; direction: rtl; text-align: right;">
         {{{greeting}}}
       </p>
     </td>
@@ -392,7 +422,7 @@ export const arabicContentSectionTemplate = `<table role="presentation" cellspac
   {{#if heading}}
   <tr>
     <td style="padding-bottom: 16px; text-align: right;">
-      <h1 class="heading-primary arabic-text" style="color: {{headingColor}}; font-family: {{{arabicFontFamily}}}; font-weight: 600; font-size: 24px; line-height: 1.4; margin: 0; direction: rtl; text-align: right;">
+      <h1 class="heading-primary arabic-text" style="color: {{headingColor}}; -webkit-text-fill-color: {{headingColor}}; font-family: {{{arabicFontFamily}}}; font-weight: 600; font-size: 24px; line-height: 1.4; margin: 0; direction: rtl; text-align: right;">
         {{{heading}}}
       </h1>
     </td>
@@ -402,7 +432,7 @@ export const arabicContentSectionTemplate = `<table role="presentation" cellspac
   {{#if subheading}}
   <tr>
     <td style="padding-bottom: 24px; text-align: right;">
-      <h2 class="heading-secondary arabic-text" style="color: {{headingColor}}; font-family: {{{arabicFontFamily}}}; font-weight: 500; font-size: 18px; line-height: 1.5; margin: 0; direction: rtl; text-align: right;">
+      <h2 class="heading-secondary arabic-text" style="color: {{headingColor}}; -webkit-text-fill-color: {{headingColor}}; font-family: {{{arabicFontFamily}}}; font-weight: 500; font-size: 18px; line-height: 1.5; margin: 0; direction: rtl; text-align: right;">
         {{{subheading}}}
       </h2>
     </td>
@@ -412,7 +442,7 @@ export const arabicContentSectionTemplate = `<table role="presentation" cellspac
   {{#each bodyParagraphs}}
   <tr>
     <td style="padding-bottom: {{#if @last}}32px{{else}}16px{{/if}}; text-align: {{#if this.alignment}}{{this.alignment}}{{else}}right{{/if}};">
-      <p class="body-text arabic-text" style="color: {{../bodyTextColor}}; font-family: {{{../arabicFontFamily}}}; font-size: {{this.fontSize}}; line-height: 1.8; margin: 0; direction: rtl; text-align: {{#if this.alignment}}{{this.alignment}}{{else}}right{{/if}};">
+      <p class="body-text arabic-text" style="color: {{../bodyTextColor}}; -webkit-text-fill-color: {{../bodyTextColor}}; font-family: {{{../arabicFontFamily}}}; font-size: {{this.fontSize}}; line-height: 1.8; margin: 0; direction: rtl; text-align: {{#if this.alignment}}{{this.alignment}}{{else}}right{{/if}};">
         {{{this.content}}}
       </p>
     </td>
@@ -440,7 +470,7 @@ export const arabicContentSectionTemplate = `<table role="presentation" cellspac
   {{#if postCtaText}}
   <tr>
     <td style="padding-top: 16px; text-align: right;">
-      <p class="body-text arabic-text" style="color: {{bodyTextColor}}; font-family: {{{arabicFontFamily}}}; font-size: 16px; line-height: 1.8; margin: 0; direction: rtl; text-align: right;">
+      <p class="body-text arabic-text" style="color: {{bodyTextColor}}; -webkit-text-fill-color: {{bodyTextColor}}; font-family: {{{arabicFontFamily}}}; font-size: 16px; line-height: 1.8; margin: 0; direction: rtl; text-align: right;">
         {{{postCtaText}}}
       </p>
     </td>
