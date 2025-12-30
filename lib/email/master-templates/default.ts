@@ -249,7 +249,7 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
                 <!-- Arabic Content Section -->
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
                   <tr>
-                    <td class="content-padding" style="padding: {{#if showEnglishSection}}0 48px 24px 48px{{else}}40px 48px 24px 48px{{/if}};">
+                    <td class="content-padding" style="padding: {{#if showDivider}}0 48px 24px 48px{{else}}40px 48px 24px 48px{{/if}};">
                       {{{arContent}}}
                     </td>
                   </tr>
