@@ -76,7 +76,7 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
       margin: 0 !important;
       padding: 0 !important;
       width: 100% !important;
-      background: linear-gradient(180deg, #F5F5F5 0%, #E8E8E8 100%);
+      background-color: #F5F5F5;
     }
 
     .email-container {
@@ -156,14 +156,14 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background: linear-gradient(180deg, #F5F5F5 0%, #E8E8E8 100%); min-height: 100vh;">
+<body style="margin: 0; padding: 0; background-color: #F5F5F5; min-height: 100vh;" bgcolor="#F5F5F5">
 
   <!-- Preheader Text (hidden) -->
   <div style="display: none; max-height: 0; overflow: hidden;">
     {{preheaderText}}
   </div>
 
-  <center style="width: 100%; background: linear-gradient(180deg, #F5F5F5 0%, #E8E8E8 100%);">
+  <center style="width: 100%; background-color: #F5F5F5;" bgcolor="#F5F5F5">
 
     <!-- Email Container -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" class="email-container" style="margin: 0 auto; max-width: {{contentWidth}}px; width: 100%;">
@@ -181,13 +181,13 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
             {{#if showAccentStrip}}
             <!-- Gold Accent Strip -->
             <tr>
-              <td style="background-color: {{accentStripColor}}; height: {{accentStripHeight}};"></td>
+              <td style="background-color: {{accentStripColor}}; height: {{accentStripHeight}};" bgcolor="{{accentStripColor}}"></td>
             </tr>
             {{/if}}
 
             <!-- Content Area -->
             <tr>
-              <td style="background-color: {{contentBackgroundColor}};">
+              <td style="background-color: {{contentBackgroundColor}};" bgcolor="{{contentBackgroundColor}}">
 
                 {{#if showLogo}}
                 <!-- Logo Section -->
