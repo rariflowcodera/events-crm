@@ -1048,5 +1048,16 @@
     "insertVappDescription": "Insert a link to the guest's parking permit",
     "displayTextPlaceholder": "View Your Parking Permit",
     "displayTextHint": "Leave empty to use default text"
+  },
+  "hyperlink": {
+    "insertLink": "Insert Link",
+    "insertHyperlink": "Insert Hyperlink",
+    "insertLinkDescription": "Add a clickable link to your email",
+    "urlLabel": "URL",
+    "urlPlaceholder": "https://example.com",
+    "urlRequired": "URL is required",
+    "urlInvalid": "Please enter a valid URL (http://, https://, mailto:, or tel:)",
+    "displayTextPlaceholder": "Click here",
+    "displayTextHint": "Leave empty to use URL as link text"
   }
 }

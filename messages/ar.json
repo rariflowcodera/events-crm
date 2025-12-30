@@ -1046,5 +1046,16 @@
     "insertVappDescription": "إدراج رابط لتصريح الوقوف الخاص بالضيف",
     "displayTextPlaceholder": "عرض تصريح الوقوف",
     "displayTextHint": "اتركه فارغاً لاستخدام النص الافتراضي"
+  },
+  "hyperlink": {
+    "insertLink": "إدراج رابط",
+    "insertHyperlink": "إدراج رابط تشعبي",
+    "insertLinkDescription": "إضافة رابط قابل للنقر إلى بريدك الإلكتروني",
+    "urlLabel": "الرابط",
+    "urlPlaceholder": "https://example.com",
+    "urlRequired": "الرابط مطلوب",
+    "urlInvalid": "يرجى إدخال رابط صالح (http:// أو https:// أو mailto: أو tel:)",
+    "displayTextPlaceholder": "انقر هنا",
+    "displayTextHint": "اتركه فارغاً لاستخدام الرابط كنص"
   }
 }

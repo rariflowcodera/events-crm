@@ -189,13 +189,11 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
             <tr>
               <td style="background-color: {{contentBackgroundColor}};">
 
-                <!-- Content Padding -->
+                {{#if showLogo}}
+                <!-- Logo Section -->
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
                   <tr>
-                    <td class="content-padding" style="padding: {{contentPadding}};">
-
-                      {{#if showLogo}}
-                      <!-- Logo -->
+                    <td style="padding: 40px 48px 0 48px;">
                       <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin-bottom: 32px;">
                         <tr>
                           <td align="center">
@@ -209,44 +207,73 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
                           </td>
                         </tr>
                       </table>
-                      {{/if}}
+                    </td>
+                  </tr>
+                </table>
+                {{/if}}
 
-                      {{#if showEnglishSection}}
-                      <!-- ENGLISH SECTION -->
+                {{#if showEnglishSection}}
+                <!-- English Content Section -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
+                  <tr>
+                    <td class="content-padding" style="padding: {{#if showLogo}}0 48px 24px 48px{{else}}40px 48px 24px 48px{{/if}};">
                       {{{enContent}}}
-                      {{/if}}
-
-                      {{#if showDivider}}
-                      {{#if showEnglishSection}}
-                      {{#if showArabicSection}}
-                      <!-- Divider -->
-                      <hr class="divider" style="border: none; border-top: 1px solid #D1D5DB; margin: 40px 0;">
-                      {{/if}}
-                      {{/if}}
-                      {{/if}}
-
-                      {{#if showArabicSection}}
-                      <!-- ARABIC SECTION -->
-                      {{{arContent}}}
-                      {{/if}}
-
                     </td>
                   </tr>
                 </table>
 
-              </td>
-            </tr>
-
-            {{#if showBannerFooter}}
-            {{#if bannerFooterImageUrl}}
-            <!-- Banner Footer Image -->
-            <tr>
-              <td style="padding: 0;">
+                {{#if showBannerFooter}}
+                {{#if bannerFooterImageUrl}}
+                <!-- English Section Banner - Full Width -->
                 <img src="{{bannerFooterImageUrl}}" alt="" style="width: 100%; height: auto; display: block;" />
+                {{/if}}
+                {{/if}}
+                {{/if}}
+
+                {{#if showDivider}}
+                {{#if showEnglishSection}}
+                {{#if showArabicSection}}
+                <!-- Divider Section -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
+                  <tr>
+                    <td style="padding: 24px 48px;">
+                      <hr class="divider" style="border: none; border-top: 1px solid #D1D5DB; margin: 0;">
+                    </td>
+                  </tr>
+                </table>
+                {{/if}}
+                {{/if}}
+                {{/if}}
+
+                {{#if showArabicSection}}
+                <!-- Arabic Content Section -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
+                  <tr>
+                    <td class="content-padding" style="padding: {{#if showEnglishSection}}0 48px 24px 48px{{else}}40px 48px 24px 48px{{/if}};">
+                      {{{arContent}}}
+                    </td>
+                  </tr>
+                </table>
+
+                {{#if showBannerFooter}}
+                {{#if bannerFooterImageUrl}}
+                <!-- Arabic Section Banner - Full Width -->
+                <img src="{{bannerFooterImageUrl}}" alt="" style="width: 100%; height: auto; display: block;" />
+                {{/if}}
+                {{/if}}
+                {{/if}}
+
+                {{#unless showBannerFooter}}
+                <!-- Bottom padding when no banner -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
+                  <tr>
+                    <td style="padding: 16px 0 0 0;"></td>
+                  </tr>
+                </table>
+                {{/unless}}
+
               </td>
             </tr>
-            {{/if}}
-            {{/if}}
 
           </table>
         </td>

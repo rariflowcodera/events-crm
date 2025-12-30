@@ -305,7 +305,7 @@ function processStructuredContent(
  */
 function renderEnglishSection(
   content: StructuredEmailContent,
-  brandingContext: Record<string, string>
+  brandingContext: Record<string, string | boolean>
 ): string {
   const template = Handlebars.compile(englishContentSectionTemplate)
   return template({
@@ -319,7 +319,7 @@ function renderEnglishSection(
  */
 function renderArabicSection(
   content: Partial<StructuredEmailContent>,
-  brandingContext: Record<string, string>
+  brandingContext: Record<string, string | boolean>
 ): string {
   const template = Handlebars.compile(arabicContentSectionTemplate)
   return template({
@@ -400,7 +400,28 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     arVariables
   )
 
-  // 4. Build branding context for templates
+  // 4. Prepare banner footer image URL early (needed for section templates)
+  const rawBannerUrl = resolvedEmailBranding.bannerFooterImage
+  let bannerFooterImageUrl: string | null = null
+  if (rawBannerUrl) {
+    if (rawBannerUrl.startsWith("http://") || rawBannerUrl.startsWith("https://")) {
+      bannerFooterImageUrl = rawBannerUrl
+    } else if (rawBannerUrl.startsWith("/")) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || ""
+      bannerFooterImageUrl = baseUrl ? `${baseUrl}${rawBannerUrl}` : null
+    } else {
+      bannerFooterImageUrl = rawBannerUrl
+    }
+  }
+
+  // 4b. Get structure settings for banner (needed before rendering sections)
+  const baseStructure = masterTemplate?.structure || defaultMasterTemplateStructure
+  const overrides = template.structureOverrides || {}
+  const showBannerFooter =
+    (overrides.showBannerFooter ?? template.showBannerFooter ?? baseStructure.showBannerFooter ?? true) &&
+    !!bannerFooterImageUrl
+
+  // 5. Build branding context for templates (including banner for section templates)
   const brandingContext = {
     headingColor: resolvedEmailBranding.headingColor,
     bodyTextColor: resolvedEmailBranding.bodyTextColor,
@@ -409,17 +430,18 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     ctaBorderRadius: getCtaBorderRadius(resolvedEmailBranding.ctaButtonStyle),
     fontFamily: getFontStack(resolvedEmailBranding.fontFamily),
     arabicFontFamily: getArabicFontStack(resolvedEmailBranding.arabicFontFamily),
+    // Banner variables for section templates
+    showBannerFooter,
+    bannerFooterImageUrl: bannerFooterImageUrl || "",
   }
 
-  // 5. Render content sections
+  // 6. Render content sections
   const enSectionHtml = renderEnglishSection(processedEnContent, brandingContext)
   const arSectionHtml = processedArContent
     ? renderArabicSection(processedArContent, brandingContext)
     : ""
 
-  // 6. Build master template context
-  const baseStructure = masterTemplate?.structure || defaultMasterTemplateStructure
-  const overrides = template.structureOverrides || {}
+  // 7. Build master template context
   const masterHtml = masterTemplate?.htmlTemplate || defaultMasterTemplate
 
   // DEBUG: Log which master template is being used
@@ -446,20 +468,6 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     } else {
       // Some other format, try to use as-is
       logoUrl = rawLogoUrl
-    }
-  }
-
-  // Get banner footer image URL - ensure it's absolute for email clients
-  const rawBannerUrl = resolvedEmailBranding.bannerFooterImage
-  let bannerFooterImageUrl: string | null = null
-  if (rawBannerUrl) {
-    if (rawBannerUrl.startsWith("http://") || rawBannerUrl.startsWith("https://")) {
-      bannerFooterImageUrl = rawBannerUrl
-    } else if (rawBannerUrl.startsWith("/")) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || ""
-      bannerFooterImageUrl = baseUrl ? `${baseUrl}${rawBannerUrl}` : null
-    } else {
-      bannerFooterImageUrl = rawBannerUrl
     }
   }
 
@@ -501,10 +509,8 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     showArabicSection: (overrides.showArabicSection ?? baseStructure.showArabicSection) && !!processedArContent,
     showDivider: overrides.showDivider ?? baseStructure.showDivider,
     showFooter: overrides.showFooter ?? baseStructure.showFooter ?? false,
-    // Banner footer: structureOverrides > legacy showBannerFooter > master template > default
-    showBannerFooter:
-      (overrides.showBannerFooter ?? template.showBannerFooter ?? baseStructure.showBannerFooter ?? true) &&
-      !!bannerFooterImageUrl,
+    // Banner footer: use pre-computed value from step 4b
+    showBannerFooter,
 
     // Footer
     bannerFooterImageUrl,
@@ -538,6 +544,9 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
 
   // 10. Handle VAPP link variables in the rendered HTML
   html = processVappLinkVariables(html, event, guest)
+
+  // 10b. Handle hyperlink variables in the rendered HTML
+  html = processHyperlinkVariables(html)
 
   // 11. Generate plain text version
   const text = generatePlainText(processedEnContent, processedArContent)
@@ -759,6 +768,41 @@ function processVappLinkVariables(
 
   // Pattern 3: {{vapp.link}} - link with default text
   result = result.replace(/\{\{vapp\.link\}\}/g, `<a href="${vappUrl}">${defaultText}</a>`)
+
+  return result
+}
+
+// ============================================================================
+// Hyperlink Variable Processing
+// ============================================================================
+
+/**
+ * Process hyperlink variables in rendered HTML.
+ * Supports patterns:
+ * - {{hyperlinkUrl|URL}} - URL only
+ * - {{hyperlink|URL|Custom Text}} - link with custom text
+ * - {{hyperlink|URL}} - link with URL as display text
+ */
+function processHyperlinkVariables(html: string): string {
+  let result = html
+
+  // Pattern 1: {{hyperlinkUrl|URL}} - URL only
+  result = result.replace(
+    /\{\{hyperlinkUrl\|([^}]+)\}\}/g,
+    (_, url) => url.trim()
+  )
+
+  // Pattern 2: {{hyperlink|URL|Custom Text}} - link with custom text
+  result = result.replace(
+    /\{\{hyperlink\|([^|]+)\|([^}]+)\}\}/g,
+    (_, url, displayText) => `<a href="${url.trim()}">${displayText.trim()}</a>`
+  )
+
+  // Pattern 3: {{hyperlink|URL}} - link with URL as display text
+  result = result.replace(
+    /\{\{hyperlink\|([^}]+)\}\}/g,
+    (_, url) => `<a href="${url.trim()}">${url.trim()}</a>`
+  )
 
   return result
 }
