@@ -180,6 +180,11 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
     u + .body .gmail-blend-difference h2 {
       color: #FFFFFF !important;
     }
+    /* Exclude images from blend mode effect */
+    u + .body .gmail-blend-screen img,
+    u + .body .gmail-blend-difference img {
+      isolation: isolate;
+    }
   </style>
 </head>
 <body class="body" style="margin: 0; padding: 0; background-color: #F5F5F5; min-height: 100vh;" bgcolor="#F5F5F5">
