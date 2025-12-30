@@ -219,11 +219,9 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
             <!-- Content Area -->
             <tr>
               <td style="background-color: {{contentBackgroundColor}}; background-image: linear-gradient({{contentBackgroundColor}}, {{contentBackgroundColor}});" bgcolor="{{contentBackgroundColor}}">
-                <div class="gmail-blend-screen">
-                <div class="gmail-blend-difference">
 
                 {{#if showLogo}}
-                <!-- Logo Section -->
+                <!-- Logo Section - OUTSIDE blend mode -->
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
                   <tr>
                     <td style="padding: 40px 48px 0 48px;">
@@ -246,7 +244,9 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
                 {{/if}}
 
                 {{#if showEnglishSection}}
-                <!-- English Content Section -->
+                <!-- English Content Section - INSIDE blend mode -->
+                <div class="gmail-blend-screen">
+                <div class="gmail-blend-difference">
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
                   <tr>
                     <td class="content-padding" style="padding: {{#if showLogo}}0 48px 24px 48px{{else}}40px 48px 24px 48px{{/if}};">
@@ -254,10 +254,12 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
                     </td>
                   </tr>
                 </table>
+                </div>
+                </div>
 
                 {{#if showBannerFooter}}
                 {{#if bannerFooterImageUrl}}
-                <!-- English Section Banner - Full Width -->
+                <!-- English Section Banner - OUTSIDE blend mode -->
                 <img src="{{bannerFooterImageUrl}}" alt="" style="width: 100%; height: auto; display: block;" />
                 {{/if}}
                 {{/if}}
@@ -266,7 +268,7 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
                 {{#if showDivider}}
                 {{#if showEnglishSection}}
                 {{#if showArabicSection}}
-                <!-- Divider Section -->
+                <!-- Divider Section - OUTSIDE blend mode -->
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
                   <tr>
                     <td style="padding: 24px 48px;">
@@ -279,7 +281,9 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
                 {{/if}}
 
                 {{#if showArabicSection}}
-                <!-- Arabic Content Section -->
+                <!-- Arabic Content Section - INSIDE blend mode -->
+                <div class="gmail-blend-screen">
+                <div class="gmail-blend-difference">
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
                   <tr>
                     <td class="content-padding" style="padding: {{#if showDivider}}0 48px 24px 48px{{else}}40px 48px 24px 48px{{/if}};">
@@ -287,10 +291,12 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
                     </td>
                   </tr>
                 </table>
+                </div>
+                </div>
 
                 {{#if showBannerFooter}}
                 {{#if bannerFooterImageUrl}}
-                <!-- Arabic Section Banner - Full Width -->
+                <!-- Arabic Section Banner - OUTSIDE blend mode -->
                 <img src="{{bannerFooterImageUrl}}" alt="" style="width: 100%; height: auto; display: block;" />
                 {{/if}}
                 {{/if}}
@@ -305,8 +311,6 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
                 </table>
                 {{/unless}}
 
-                </div>
-                </div>
               </td>
             </tr>
 
