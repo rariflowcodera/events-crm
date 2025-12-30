@@ -18,6 +18,7 @@ export const eventDocumentTypeEnum = pgEnum("event_document_type", [
   "brochure",
   "invitation",
   "other",
+  "image",
 ])
 
 export const eventDocumentTypeValues = [
@@ -27,6 +28,7 @@ export const eventDocumentTypeValues = [
   "brochure",
   "invitation",
   "other",
+  "image",
 ] as const
 
 export type EventDocumentType = (typeof eventDocumentTypeValues)[number]

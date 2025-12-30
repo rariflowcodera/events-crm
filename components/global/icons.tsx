@@ -49,6 +49,7 @@ import {
   HashIcon,
   HelpCircleIcon,
   HomeIcon,
+  ImageIcon,
   InfinityIcon,
   InfoIcon,
   KeyRoundIcon,
@@ -259,4 +260,5 @@ export const Icons = {
   edit2: Edit2Icon,
   squareMousePointer: SquareMousePointerIcon,
   book: BookOpenIcon,
+  image: ImageIcon,
 }

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."event_document_type" ADD VALUE 'image';

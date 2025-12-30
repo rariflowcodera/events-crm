@@ -51,8 +51,13 @@ function formatDate(date: Date | null): string {
 /**
  * Export guests to Excel file
  */
-export function exportGuestsToExcel(guests: Guest[], eventSlug: string): void {
+export function exportGuestsToExcel(
+  guests: Guest[],
+  eventSlug: string,
+  eventName: string
+): void {
   const headers = [
+    "Event",
     "First Name",
     "Last Name",
     "Email",
@@ -68,6 +73,7 @@ export function exportGuestsToExcel(guests: Guest[], eventSlug: string): void {
   ]
 
   const rows = guests.map((guest) => [
+    eventName,
     guest.firstName,
     guest.lastName,
     guest.email || "",
@@ -86,6 +92,7 @@ export function exportGuestsToExcel(guests: Guest[], eventSlug: string): void {
 
   // Set column widths for better readability
   ws["!cols"] = [
+    { wch: 25 }, // Event
     { wch: 15 }, // First Name
     { wch: 15 }, // Last Name
     { wch: 25 }, // Email

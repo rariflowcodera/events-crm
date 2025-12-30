@@ -53,6 +53,7 @@ const documentTypeColors: Record<EventDocumentType, string> = {
   brochure: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
   invitation: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300",
   other: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+  image: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300",
 }
 
 interface GuestCategory {
@@ -267,6 +268,7 @@ export function DocumentRow({ document, categories }: DocumentRowProps) {
                   <SelectItem value="policy">{t("types.policy")}</SelectItem>
                   <SelectItem value="brochure">{t("types.brochure")}</SelectItem>
                   <SelectItem value="invitation">{t("types.invitation")}</SelectItem>
+                  <SelectItem value="image">{t("types.image")}</SelectItem>
                   <SelectItem value="other">{t("types.other")}</SelectItem>
                 </SelectContent>
               </Select>

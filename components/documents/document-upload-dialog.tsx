@@ -228,6 +228,7 @@ export function DocumentUploadDialog({
                 <SelectItem value="policy">{t("types.policy")}</SelectItem>
                 <SelectItem value="brochure">{t("types.brochure")}</SelectItem>
                 <SelectItem value="invitation">{t("types.invitation")}</SelectItem>
+                <SelectItem value="image">{t("types.image")}</SelectItem>
                 <SelectItem value="other">{t("types.other")}</SelectItem>
               </SelectContent>
             </Select>

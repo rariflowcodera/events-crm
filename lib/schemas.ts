@@ -501,6 +501,20 @@ export const masterTemplateStructureSchema = z.object({
 
 export type MasterTemplateStructureInput = z.infer<typeof masterTemplateStructureSchema>
 
+/** Per-template structure overrides schema (partial - only set fields override master template) */
+export const templateStructureOverridesSchema = z.object({
+  showLogo: z.boolean().optional(),
+  showAccentStrip: z.boolean().optional(),
+  showEnglishSection: z.boolean().optional(),
+  showArabicSection: z.boolean().optional(),
+  showDivider: z.boolean().optional(),
+  showFooter: z.boolean().optional(),
+  showBannerFooter: z.boolean().optional(),
+  sectionOrder: z.array(z.enum(["en", "ar"])).optional(),
+})
+
+export type TemplateStructureOverridesInput = z.infer<typeof templateStructureOverridesSchema>
+
 /** Create master template schema */
 export const createMasterTemplateSchema = z.object({
   workspaceId: z.string().uuid("Invalid workspace ID"),

@@ -1,6 +1,6 @@
 import type { BilingualEmailContentInput } from "@/lib/schemas"
 import type { BilingualStructuredContent } from "@/server/db/schemas/email-template"
-import type { MasterTemplateStructure } from "@/server/db/schemas/email-master-template"
+import type { MasterTemplateStructure, TemplateStructureOverrides } from "@/server/db/schemas/email-master-template"
 import type { WorkspaceBranding, EventBranding } from "@/server/db/schemas"
 import { getRsvpUrl, getRsvpConfirmUrl, getRsvpDeclineUrl } from "@/lib/rsvp-url"
 import { buildStaticMapHtml, buildGoogleMapsLink } from "@/lib/maps"
@@ -54,6 +54,7 @@ interface EventDocument {
   id: string
   name: string
   url: string
+  type: string
   categoryIds: string[] | null
 }
 
@@ -81,6 +82,7 @@ interface StructuredTemplate {
   fromEmail: string | null
   replyTo: string | null
   showBannerFooter?: boolean | null
+  structureOverrides?: TemplateStructureOverrides | null
 }
 
 /** Combined template type - can be legacy or structured */
@@ -182,6 +184,7 @@ function renderStructuredEmailTemplate(
       fromEmail: template.fromEmail,
       replyTo: template.replyTo,
       showBannerFooter: template.showBannerFooter,
+      structureOverrides: template.structureOverrides,
     },
     masterTemplate,
     guest,

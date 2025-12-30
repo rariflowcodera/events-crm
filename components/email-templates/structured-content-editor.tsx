@@ -50,6 +50,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { VariableInserter } from "./variable-inserter"
 import { DocumentInserter } from "./document-inserter"
+import { ImageInserter } from "./image-inserter"
 import { MapInserter } from "./map-inserter"
 import { FormLinkInserter } from "./form-link-inserter"
 import { VappInserter } from "./vapp-inserter"
@@ -584,6 +585,10 @@ function ParagraphEditor({
                   onInsert={(v) => insertVariable(contentFieldName, v)}
                 />
                 <DocumentInserter
+                  eventId={eventId}
+                  onInsert={(v) => insertVariable(contentFieldName, v)}
+                />
+                <ImageInserter
                   eventId={eventId}
                   onInsert={(v) => insertVariable(contentFieldName, v)}
                 />

@@ -307,8 +307,8 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
       ...guest,
       category: guest.category || { id: "", name: "", code: "", color: null },
     }))
-    exportGuestsToExcel(guestsForExport as any, event.slug)
-  }, [guests, event.slug])
+    exportGuestsToExcel(guestsForExport as any, event.slug, event.name)
+  }, [guests, event.slug, event.name])
 
   // Filter change handlers for toolbar (must be before early returns)
   const handleSearchChange = useCallback((query: string) => {

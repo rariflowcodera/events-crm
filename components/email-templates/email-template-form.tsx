@@ -21,6 +21,7 @@ import {
   bilingualEmailContentSchema,
   bilingualStructuredContentSchema,
   emailTemplateTypeValues,
+  templateStructureOverridesSchema,
 } from "@/lib/schemas"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,6 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -94,7 +96,8 @@ const structuredFormSchema = z.object({
   categoryId: z.string().nullable().optional(),
   structuredContent: bilingualStructuredContentSchema,
   masterTemplateId: z.string().nullable().optional(),
-  showBannerFooter: z.boolean().default(true),
+  showBannerFooter: z.boolean().default(true), // DEPRECATED: Use structureOverrides
+  structureOverrides: templateStructureOverridesSchema.nullable().optional(),
   defaultLanguage: z.enum(["en", "ar"]),
   fromName: z.string().max(100).optional(),
   fromEmail: z.string().email().optional().or(z.literal("")),
@@ -227,6 +230,7 @@ export function EmailTemplateForm({
           structuredContent: template.structuredContent,
           masterTemplateId: template.masterTemplateId || null,
           showBannerFooter: template.showBannerFooter ?? true,
+          structureOverrides: template.structureOverrides || {},
           defaultLanguage: (template.defaultLanguage as "en" | "ar") || "en",
           fromName: template.fromName || "",
           fromEmail: template.fromEmail || "",
@@ -288,6 +292,7 @@ export function EmailTemplateForm({
           structuredContent: structuredData.structuredContent,
           masterTemplateId: structuredData.masterTemplateId || undefined,
           showBannerFooter: structuredData.showBannerFooter,
+          structureOverrides: structuredData.structureOverrides,
           // Metadata fields
           name: structuredData.name,
           type: structuredData.type,
@@ -307,6 +312,7 @@ export function EmailTemplateForm({
           structuredContent: structuredData.structuredContent,
           masterTemplateId: structuredData.masterTemplateId || undefined,
           showBannerFooter: structuredData.showBannerFooter,
+          structureOverrides: structuredData.structureOverrides || undefined,
           defaultLanguage: structuredData.defaultLanguage,
           fromName: structuredData.fromName || undefined,
           fromEmail: structuredData.fromEmail || undefined,
@@ -773,25 +779,173 @@ export function EmailTemplateForm({
                       )}
                     />
 
-                    {/* Banner Footer Toggle */}
-                    <FormField
-                      control={form.control}
-                      name="showBannerFooter"
-                      render={({ field }) => (
-                        <div className="flex items-center justify-between pt-4 border-t">
-                          <div className="space-y-0.5">
-                            <Label className="font-normal">{t("showBannerFooter")}</Label>
-                            <p className="text-xs text-muted-foreground">
-                              {t("showBannerFooterDescription")}
-                            </p>
-                          </div>
-                          <Switch
-                            checked={field.value ?? true}
-                            onCheckedChange={field.onChange}
-                          />
-                        </div>
-                      )}
-                    />
+                    {/* Layout Overrides - Collapsible Section */}
+                    <Collapsible className="pt-4 border-t">
+                      <CollapsibleTrigger className="flex items-center gap-2 w-full text-left text-sm font-medium hover:text-primary transition-colors [&[data-state=open]>svg]:rotate-180">
+                        <Icons.settings className="h-4 w-4" />
+                        <span>{t("layoutOverrides")}</span>
+                        <Icons.chevronDown className="h-4 w-4 ml-auto transition-transform" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-3 pt-3">
+                        <p className="text-xs text-muted-foreground mb-3">
+                          {t("layoutOverridesDescription")}
+                        </p>
+
+                        {/* Show Logo Override */}
+                        <FormField
+                          control={form.control}
+                          name="structureOverrides.showLogo"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between py-2">
+                              <div className="space-y-0.5">
+                                <Label className="font-normal text-sm">{t("showLogo")}</Label>
+                                <p className="text-xs text-muted-foreground">{t("showLogoDescription")}</p>
+                              </div>
+                              <Switch
+                                checked={field.value ?? true}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
+                        />
+
+                        {/* Show Accent Strip Override */}
+                        <FormField
+                          control={form.control}
+                          name="structureOverrides.showAccentStrip"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between py-2">
+                              <div className="space-y-0.5">
+                                <Label className="font-normal text-sm">{t("showAccentStrip")}</Label>
+                                <p className="text-xs text-muted-foreground">{t("showAccentStripDescription")}</p>
+                              </div>
+                              <Switch
+                                checked={field.value ?? true}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
+                        />
+
+                        {/* Show English Section Override */}
+                        <FormField
+                          control={form.control}
+                          name="structureOverrides.showEnglishSection"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between py-2">
+                              <div className="space-y-0.5">
+                                <Label className="font-normal text-sm">{t("showEnglishSection")}</Label>
+                                <p className="text-xs text-muted-foreground">{t("showEnglishSectionDescription")}</p>
+                              </div>
+                              <Switch
+                                checked={field.value ?? true}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
+                        />
+
+                        {/* Show Arabic Section Override */}
+                        <FormField
+                          control={form.control}
+                          name="structureOverrides.showArabicSection"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between py-2">
+                              <div className="space-y-0.5">
+                                <Label className="font-normal text-sm">{t("showArabicSection")}</Label>
+                                <p className="text-xs text-muted-foreground">{t("showArabicSectionDescription")}</p>
+                              </div>
+                              <Switch
+                                checked={field.value ?? true}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
+                        />
+
+                        {/* Show Divider Override */}
+                        <FormField
+                          control={form.control}
+                          name="structureOverrides.showDivider"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between py-2">
+                              <div className="space-y-0.5">
+                                <Label className="font-normal text-sm">{t("showDivider")}</Label>
+                                <p className="text-xs text-muted-foreground">{t("showDividerDescription")}</p>
+                              </div>
+                              <Switch
+                                checked={field.value ?? true}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
+                        />
+
+                        {/* Show Footer Override */}
+                        <FormField
+                          control={form.control}
+                          name="structureOverrides.showFooter"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between py-2">
+                              <div className="space-y-0.5">
+                                <Label className="font-normal text-sm">{t("showFooter")}</Label>
+                                <p className="text-xs text-muted-foreground">{t("showFooterDescription")}</p>
+                              </div>
+                              <Switch
+                                checked={field.value ?? false}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
+                        />
+
+                        {/* Show Banner Footer Override */}
+                        <FormField
+                          control={form.control}
+                          name="structureOverrides.showBannerFooter"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between py-2">
+                              <div className="space-y-0.5">
+                                <Label className="font-normal text-sm">{t("showBannerFooter")}</Label>
+                                <p className="text-xs text-muted-foreground">{t("showBannerFooterDescription")}</p>
+                              </div>
+                              <Switch
+                                checked={field.value ?? true}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
+                        />
+
+                        {/* Section Order Override */}
+                        <FormField
+                          control={form.control}
+                          name="structureOverrides.sectionOrder"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between py-2">
+                              <div className="space-y-0.5">
+                                <Label className="font-normal text-sm">{t("sectionOrder")}</Label>
+                                <p className="text-xs text-muted-foreground">{t("sectionOrderDescription")}</p>
+                              </div>
+                              <Select
+                                value={field.value?.join("-") || "en-ar"}
+                                onValueChange={(value) => {
+                                  field.onChange(value === "en-ar" ? ["en", "ar"] : ["ar", "en"])
+                                }}
+                              >
+                                <SelectTrigger className="w-[140px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="en-ar">{t("enFirst")}</SelectItem>
+                                  <SelectItem value="ar-en">{t("arFirst")}</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        />
+                      </CollapsibleContent>
+                    </Collapsible>
                   </div>
                 )}
               </CardContent>

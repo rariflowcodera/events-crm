@@ -330,7 +330,7 @@ export const useBulkMarkAttendance = ({
 }
 
 // Export hook - fetches all guests and exports to Excel
-export const useExportGuests = (eventId: string, eventSlug: string) => {
+export const useExportGuests = (eventId: string, eventSlug: string, eventName: string) => {
   const [isExporting, setIsExporting] = useState(false)
   const utils = trpc.useUtils()
 
@@ -361,7 +361,7 @@ export const useExportGuests = (eventId: string, eventSlug: string) => {
         ...guest,
         category: guest.category || { id: "", name: "", code: "", color: null },
       }))
-      exportGuestsToExcel(guestsForExport as any, eventSlug)
+      exportGuestsToExcel(guestsForExport as any, eventSlug, eventName)
       toast.success("Guests exported successfully")
     } catch {
       toast.error("Failed to export guests")

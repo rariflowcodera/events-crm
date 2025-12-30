@@ -200,7 +200,7 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
                         <tr>
                           <td align="center">
                             {{#if logoUrl}}
-                            <img src="{{logoUrl}}" alt="{{logoAlt}}" style="max-width: 200px; max-height: 140px; height: auto;">
+                            <img src="{{logoUrl}}" alt="{{logoAlt}}" width="200" style="max-width: 200px; max-height: 140px; width: auto; height: auto;">
                             {{else}}
                             <div style="width: 120px; height: 60px; background-color: #F3F4F6; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
                               <span style="color: #9CA3AF; font-size: 12px; font-family: sans-serif;">LOGO</span>
@@ -319,9 +319,17 @@ export const englishContentSectionTemplate = `<table role="presentation" cellspa
   {{#if cta}}
   <tr>
     <td align="center" style="padding-bottom: 16px;">
+      <!--[if mso]>
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{cta.url}}" style="height:48px;v-text-anchor:middle;width:220px;" arcsize="10%" strokecolor="{{ctaButtonColor}}" fillcolor="{{ctaButtonColor}}">
+        <w:anchorlock/>
+        <center style="color:{{ctaButtonTextColor}};font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">{{{cta.text}}}</center>
+      </v:roundrect>
+      <![endif]-->
+      <!--[if !mso]><!-->
       <a href="{{cta.url}}" class="btn-primary" style="background-color: {{ctaButtonColor}}; color: {{ctaButtonTextColor}}; font-family: {{{fontFamily}}}; font-weight: 600; font-size: 16px; text-decoration: none; padding: 14px 32px; border-radius: {{ctaBorderRadius}}; display: inline-block;">
         {{{cta.text}}}
       </a>
+      <!--<![endif]-->
     </td>
   </tr>
   {{/if}}
@@ -387,9 +395,17 @@ export const arabicContentSectionTemplate = `<table role="presentation" cellspac
   {{#if cta}}
   <tr>
     <td align="center" style="padding-bottom: 16px;">
+      <!--[if mso]>
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{cta.url}}" style="height:48px;v-text-anchor:middle;width:220px;" arcsize="10%" strokecolor="{{ctaButtonColor}}" fillcolor="{{ctaButtonColor}}">
+        <w:anchorlock/>
+        <center style="color:{{ctaButtonTextColor}};font-family:Tahoma,Arial,sans-serif;font-size:16px;font-weight:bold;">{{{cta.text}}}</center>
+      </v:roundrect>
+      <![endif]-->
+      <!--[if !mso]><!-->
       <a href="{{cta.url}}" class="btn-primary-ar" style="background-color: {{ctaButtonColor}}; color: {{ctaButtonTextColor}}; font-family: {{{arabicFontFamily}}}; font-weight: 600; font-size: 16px; text-decoration: none; padding: 14px 32px; border-radius: {{ctaBorderRadius}}; display: inline-block;">
         {{{cta.text}}}
       </a>
+      <!--<![endif]-->
     </td>
   </tr>
   {{/if}}

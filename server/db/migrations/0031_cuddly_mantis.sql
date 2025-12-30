@@ -1,0 +1,1 @@
+ALTER TABLE "email_template" ADD COLUMN "structure_overrides" jsonb;

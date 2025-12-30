@@ -4,7 +4,7 @@ import type {
   StructuredEmailContent,
   BodyParagraph,
 } from "@/server/db/schemas/email-template"
-import type { MasterTemplateStructure } from "@/server/db/schemas/email-master-template"
+import type { MasterTemplateStructure, TemplateStructureOverrides } from "@/server/db/schemas/email-master-template"
 import type { WorkspaceBranding, EventBranding } from "@/server/db/schemas"
 import {
   resolveEmailBranding,
@@ -76,6 +76,7 @@ export interface EventDocument {
   id: string
   name: string
   url: string
+  type: string
   categoryIds: string[] | null
 }
 
@@ -92,7 +93,8 @@ export interface TemplateWithStructuredContent {
   fromName: string | null
   fromEmail: string | null
   replyTo: string | null
-  showBannerFooter?: boolean | null
+  showBannerFooter?: boolean | null // DEPRECATED: Use structureOverrides.showBannerFooter
+  structureOverrides?: TemplateStructureOverrides | null
 }
 
 export interface MasterTemplate {
@@ -416,7 +418,8 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     : ""
 
   // 6. Build master template context
-  const structure = masterTemplate?.structure || defaultMasterTemplateStructure
+  const baseStructure = masterTemplate?.structure || defaultMasterTemplateStructure
+  const overrides = template.structureOverrides || {}
   const masterHtml = masterTemplate?.htmlTemplate || defaultMasterTemplate
 
   // DEBUG: Log which master template is being used
@@ -426,6 +429,7 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     masterTemplateName: masterTemplate?.name,
     hasContentBgInTemplate: masterHtml.includes("{{contentBackgroundColor}}"),
     hasBannerFooterInTemplate: masterHtml.includes("{{bannerFooterImageUrl}}"),
+    structureOverrides: overrides,
   })
 
   // Get logo URL - ensure it's absolute for email clients
@@ -490,17 +494,17 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
     enContent: enSectionHtml,
     arContent: arSectionHtml,
 
-    // Structure flags
-    showLogo: structure.showLogo && !!logoUrl,
-    showAccentStrip: structure.showAccentStrip,
-    showEnglishSection: structure.showEnglishSection,
-    showArabicSection: structure.showArabicSection && !!processedArContent,
-    showDivider: structure.showDivider,
-    // Per-template showBannerFooter overrides master template setting
+    // Structure flags - per-template overrides take precedence over master template
+    showLogo: (overrides.showLogo ?? baseStructure.showLogo) && !!logoUrl,
+    showAccentStrip: overrides.showAccentStrip ?? baseStructure.showAccentStrip,
+    showEnglishSection: overrides.showEnglishSection ?? baseStructure.showEnglishSection,
+    showArabicSection: (overrides.showArabicSection ?? baseStructure.showArabicSection) && !!processedArContent,
+    showDivider: overrides.showDivider ?? baseStructure.showDivider,
+    showFooter: overrides.showFooter ?? baseStructure.showFooter ?? false,
+    // Banner footer: structureOverrides > legacy showBannerFooter > master template > default
     showBannerFooter:
-      (template.showBannerFooter ?? structure.showBannerFooter ?? true) &&
+      (overrides.showBannerFooter ?? template.showBannerFooter ?? baseStructure.showBannerFooter ?? true) &&
       !!bannerFooterImageUrl,
-    showFooter: structure.showFooter ?? false,
 
     // Footer
     bannerFooterImageUrl,
@@ -523,6 +527,9 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
 
   // 8. Handle document variables in the rendered HTML
   html = processDocumentVariables(html, documents, guest, event)
+
+  // 8b. Handle image variables in the rendered HTML
+  html = processImageVariables(html, documents, guest, event)
 
   // 9. Handle form link variables in the rendered HTML
   if (formTokens.length > 0) {
@@ -607,6 +614,65 @@ function processDocumentVariables(
   result = result.replace(/\{\{documentUrl\.[a-f0-9-]+\}\}/g, "[Document unavailable]")
   result = result.replace(/\{\{document\.[a-f0-9-]+\|[^}]+\}\}/g, "[Document unavailable]")
   result = result.replace(/\{\{document\.[a-f0-9-]+\}\}/g, "[Document unavailable]")
+
+  return result
+}
+
+// ============================================================================
+// Image Variable Processing
+// ============================================================================
+
+/**
+ * Process image variables in rendered HTML.
+ * Images are stored as event documents with type="image".
+ * Supports patterns:
+ * - {{image.UUID|Alt Text}} - image with custom alt text
+ * - {{image.UUID}} - image with document name as alt text
+ */
+function processImageVariables(
+  html: string,
+  documents: EventDocument[],
+  guest: Guest,
+  event: Event
+): string {
+  // Filter to only image type documents visible to this guest's category
+  const images = documents.filter(
+    (doc) =>
+      doc.type === "image" &&
+      (!doc.categoryIds ||
+        doc.categoryIds.length === 0 ||
+        (guest.categoryId && doc.categoryIds.includes(guest.categoryId)))
+  )
+
+  let result = html
+
+  for (const img of images) {
+    // Use the direct document URL for images
+    const imageUrl = img.url
+
+    // Pattern 1: {{image.UUID|Alt Text}} - with custom alt
+    const customAltPattern = new RegExp(
+      `\\{\\{image\\.${img.id}\\|([^}]+)\\}\\}`,
+      "g"
+    )
+    result = result.replace(customAltPattern, (_, altText) => {
+      return `<img src="${imageUrl}" alt="${altText.trim()}" style="max-width: 100%; height: auto; display: block;" />`
+    })
+
+    // Pattern 2: {{image.UUID}} - default alt (image name)
+    const defaultPattern = new RegExp(`\\{\\{image\\.${img.id}\\}\\}`, "g")
+    result = result.replace(
+      defaultPattern,
+      `<img src="${imageUrl}" alt="${img.name}" style="max-width: 100%; height: auto; display: block;" />`
+    )
+  }
+
+  // Handle missing/deleted images
+  result = result.replace(
+    /\{\{image\.[a-f0-9-]+\|[^}]+\}\}/g,
+    "[Image unavailable]"
+  )
+  result = result.replace(/\{\{image\.[a-f0-9-]+\}\}/g, "[Image unavailable]")
 
   return result
 }

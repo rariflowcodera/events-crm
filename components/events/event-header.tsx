@@ -84,7 +84,7 @@ export function EventHeader({ event, workspaceSlug }: EventHeaderProps) {
     },
   })
 
-  const { exportGuests, isExporting } = useExportGuests(event.id, event.slug)
+  const { exportGuests, isExporting } = useExportGuests(event.id, event.slug, event.name)
 
   const handleDelete = () => {
     deleteEvent({ eventId: event.id })

@@ -15,6 +15,7 @@ import {
   emailTemplateTypeValues,
   bilingualEmailContentSchema,
   bilingualStructuredContentSchema,
+  templateStructureOverridesSchema,
 } from "@/lib/schemas"
 import { DEFAULT_EMAIL_TEMPLATES } from "@/lib/email/default-templates"
 import {
@@ -385,6 +386,7 @@ export const emailTemplatesRouter = createTRPCRouter({
           structuredContent: template.structuredContent,
           masterTemplateId: template.masterTemplateId,
           showBannerFooter: template.showBannerFooter,
+          structureOverrides: template.structureOverrides,
           defaultLanguage: template.defaultLanguage,
           fromName: template.fromName,
           fromEmail: template.fromEmail,
@@ -701,7 +703,8 @@ export const emailTemplatesRouter = createTRPCRouter({
         categoryId: z.string().uuid().optional(),
         structuredContent: bilingualStructuredContentSchema,
         masterTemplateId: z.string().uuid().optional(),
-        showBannerFooter: z.boolean().default(true),
+        showBannerFooter: z.boolean().default(true), // DEPRECATED: Use structureOverrides
+        structureOverrides: templateStructureOverridesSchema.optional(),
         defaultLanguage: z.enum(["en", "ar"]).default("en"),
         fromName: z.string().optional(),
         fromEmail: z.string().email().optional().or(z.literal("")),
@@ -799,6 +802,7 @@ export const emailTemplatesRouter = createTRPCRouter({
           structuredContent: input.structuredContent,
           masterTemplateId: input.masterTemplateId,
           showBannerFooter: input.showBannerFooter,
+          structureOverrides: input.structureOverrides,
           defaultLanguage: input.defaultLanguage,
           fromName: input.fromName || null,
           fromEmail: input.fromEmail || null,
@@ -818,7 +822,8 @@ export const emailTemplatesRouter = createTRPCRouter({
         templateId: z.string().uuid(),
         structuredContent: bilingualStructuredContentSchema,
         masterTemplateId: z.string().uuid().nullable().optional(),
-        showBannerFooter: z.boolean().optional(),
+        showBannerFooter: z.boolean().optional(), // DEPRECATED: Use structureOverrides
+        structureOverrides: templateStructureOverridesSchema.nullable().optional(),
         // Metadata fields
         name: z.string().min(1).optional(),
         type: z.enum(emailTemplateTypeValues).optional(),
@@ -916,6 +921,10 @@ export const emailTemplatesRouter = createTRPCRouter({
 
       if (input.showBannerFooter !== undefined) {
         updateData.showBannerFooter = input.showBannerFooter
+      }
+
+      if (input.structureOverrides !== undefined) {
+        updateData.structureOverrides = input.structureOverrides
       }
 
       // Add metadata fields if provided
@@ -1114,6 +1123,8 @@ export const emailTemplatesRouter = createTRPCRouter({
           fromName: template.fromName,
           fromEmail: template.fromEmail,
           replyTo: template.replyTo,
+          showBannerFooter: template.showBannerFooter,
+          structureOverrides: template.structureOverrides,
         },
         masterTemplate,
         guest,
@@ -1124,6 +1135,7 @@ export const emailTemplatesRouter = createTRPCRouter({
           id: d.id,
           name: d.name,
           url: d.url,
+          type: d.type,
           categoryIds: d.categoryIds,
         })),
       })
@@ -1235,7 +1247,8 @@ export const emailTemplatesRouter = createTRPCRouter({
         masterTemplateId: z.string().uuid().optional().nullable(),
         language: z.enum(["en", "ar"]).optional(),
         guestId: z.string().uuid().optional(), // Use real guest data if provided
-        showBannerFooter: z.boolean().optional(), // Per-template toggle for banner footer
+        showBannerFooter: z.boolean().optional(), // DEPRECATED: Use structureOverrides
+        structureOverrides: templateStructureOverridesSchema.optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -1363,6 +1376,7 @@ export const emailTemplatesRouter = createTRPCRouter({
           fromEmail: null,
           replyTo: null,
           showBannerFooter: input.showBannerFooter,
+          structureOverrides: input.structureOverrides,
         },
         masterTemplate: masterTemplate
           ? {
@@ -1394,6 +1408,7 @@ export const emailTemplatesRouter = createTRPCRouter({
           id: d.id,
           name: d.name,
           url: d.url,
+          type: d.type,
           categoryIds: d.categoryIds,
         })),
       })

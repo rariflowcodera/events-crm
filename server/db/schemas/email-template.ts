@@ -11,7 +11,7 @@ import {
 import { events } from "./event"
 import { guestCategories } from "./guest-category"
 import { users } from "./user"
-import { emailMasterTemplates } from "./email-master-template"
+import { emailMasterTemplates, type TemplateStructureOverrides } from "./email-master-template"
 
 export const emailTemplateTypeEnum = pgEnum("email_template_type", [
   "invitation",
@@ -96,7 +96,11 @@ export const emailTemplates = pgTable(
     ),
 
     // Per-template toggle for banner footer image (overrides master template setting)
+    // DEPRECATED: Use structureOverrides.showBannerFooter instead. Kept for backwards compatibility.
     showBannerFooter: boolean("show_banner_footer").default(true),
+
+    // Per-template structure overrides (partial override of master template settings)
+    structureOverrides: jsonb("structure_overrides").$type<TemplateStructureOverrides>(),
 
     // Default language for this template
     defaultLanguage: text("default_language").notNull().default("en"),

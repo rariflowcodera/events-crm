@@ -26,6 +26,9 @@ export type MasterTemplateStructure = {
   sectionOrder: ("en" | "ar")[]
 }
 
+// Per-template structure overrides (partial - only set fields override master template)
+export type TemplateStructureOverrides = Partial<MasterTemplateStructure>
+
 // ============================================================================
 // Email Master Template Schema
 // ============================================================================
