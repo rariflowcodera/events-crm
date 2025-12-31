@@ -33,6 +33,9 @@ export * from "@/server/db/schemas/event-form"
 export * from "@/server/db/schemas/form-response"
 export * from "@/server/db/schemas/guest-form-token"
 
+// Email Preview Tokens
+export * from "@/server/db/schemas/email-preview-token"
+
 // Future Phases (schema only)
 export * from "@/server/db/schemas/inventory"
 export * from "@/server/db/schemas/itinerary"

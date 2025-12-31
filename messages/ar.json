@@ -497,6 +497,32 @@
     "done": "تم",
     "pleaseWait": "يرجى الانتظار..."
   },
+  "emailPreview": {
+    "generateLink": "إنشاء رابط البريد",
+    "generateLinkDescription": "إنشاء رابط قابل للمشاركة لعرض هذا البريد لـ {name}",
+    "selectTemplate": "قالب البريد الإلكتروني",
+    "selectTemplatePlaceholder": "اختر قالبًا",
+    "noTemplates": "لا توجد قوالب بريد إلكتروني متاحة لهذه الفعالية",
+    "generateButton": "إنشاء الرابط",
+    "generatedLink": "الرابط المُنشأ",
+    "subjectLabel": "الموضوع",
+    "linkCopied": "تم نسخ الرابط إلى الحافظة",
+    "copyFailed": "فشل نسخ الرابط"
+  },
+  "guestActions": {
+    "actions": "الإجراءات",
+    "sendInvitation": "إرسال دعوة",
+    "sendEmail": "إرسال بريد",
+    "generateEmailLink": "إنشاء رابط البريد",
+    "getFormLink": "الحصول على رابط النموذج",
+    "vappLink": "رابط تصريح الدخول",
+    "copyRsvpLink": "نسخ رابط الحضور",
+    "copyShortRsvpLink": "نسخ الرابط القصير",
+    "delete": "حذف",
+    "selectOneGuest": "اختر ضيف واحد فقط",
+    "noEmailPermission": "لا يوجد إذن لإرسال البريد",
+    "noDeletePermission": "لا يوجد إذن لحذف الضيوف"
+  },
   "dashboard": {
     "title": "لوحة التحكم",
     "overview": "نظرة عامة",

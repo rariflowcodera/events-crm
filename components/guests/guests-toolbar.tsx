@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Filter, X, Check, Search, Settings2, FileText, Car } from "lucide-react"
+import { Filter, X, Check, Search, Settings2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { Icons } from "@/components/global/icons"
 import { usePermissions } from "@/hooks/use-permissions"
 import { PERMISSIONS } from "@/lib/permissions"
 import { ColumnPicker, SaveViewDialog, ViewSelector } from "@/components/guests/view-manager"
+import { GuestActionsDropdown } from "@/components/guests/guest-actions-dropdown"
 import {
   Collapsible,
   CollapsibleContent,
@@ -53,7 +54,15 @@ interface GuestCategory {
   sortOrder: number
 }
 
-type BulkAction = "delete" | "send_invitation" | "send_email" | "get_form_link" | "get_vapp_link"
+type BulkAction =
+  | "delete"
+  | "send_invitation"
+  | "send_email"
+  | "get_form_link"
+  | "get_vapp_link"
+  | "generate_email_link"
+  | "copy_rsvp_link"
+  | "copy_short_rsvp_link"
 
 interface CountryOption {
   code: string
@@ -101,6 +110,8 @@ interface GuestsToolbarProps {
   onShowFiltersChange: (show: boolean) => void
   // VAPP feature
   vappEnabled?: boolean
+  // RSVP link
+  hasShortRsvpCode?: boolean
 }
 
 const STATUS_OPTIONS: { value: GuestStatus; label: string }[] = [
@@ -151,6 +162,7 @@ export function GuestsToolbar({
   showFilters,
   onShowFiltersChange,
   vappEnabled = false,
+  hasShortRsvpCode = false,
 }: GuestsToolbarProps) {
   const t = useTranslations("guest")
   const { can } = usePermissions(workspaceSlug)
@@ -285,66 +297,14 @@ export function GuestsToolbar({
 
           {/* Center zone: Selection actions (only when items selected) */}
           {selectedCount > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-primary/10 border border-primary/20">
-              <span className="text-sm font-medium whitespace-nowrap">
-                {selectedCount} selected
-              </span>
-              <div className="h-4 w-px bg-border" />
-              {canSendEmails && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7"
-                  onClick={() => onBulkAction("send_invitation")}
-                >
-                  <Icons.mail className="mr-1 h-4 w-4" />
-                  <span className="hidden lg:inline">Invite</span>
-                </Button>
-              )}
-              {canSendEmails && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7"
-                  onClick={() => onBulkAction("send_email")}
-                >
-                  <Icons.mail className="mr-1 h-4 w-4" />
-                  <span className="hidden lg:inline">Email</span>
-                </Button>
-              )}
-              {selectedCount === 1 && canSendEmails && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7"
-                  onClick={() => onBulkAction("get_form_link")}
-                >
-                  <FileText className="mr-1 h-4 w-4" />
-                  <span className="hidden lg:inline">{t("formLink")}</span>
-                </Button>
-              )}
-              {selectedCount === 1 && vappEnabled && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7"
-                  onClick={() => onBulkAction("get_vapp_link")}
-                >
-                  <Car className="mr-1 h-4 w-4" />
-                  <span className="hidden lg:inline">VAPP</span>
-                </Button>
-              )}
-              {canDeleteGuests && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-destructive hover:text-destructive"
-                  onClick={() => onBulkAction("delete")}
-                >
-                  <Icons.trash className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+            <GuestActionsDropdown
+              selectedCount={selectedCount}
+              onAction={onBulkAction}
+              canSendEmails={canSendEmails}
+              canDeleteGuests={canDeleteGuests}
+              vappEnabled={vappEnabled}
+              hasShortRsvpCode={hasShortRsvpCode}
+            />
           )}
 
           {/* Right zone: Primary actions */}

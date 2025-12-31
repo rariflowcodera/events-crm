@@ -23,11 +23,13 @@ import { SendEmailDialog } from "@/components/guests/send-email-dialog"
 import { EditViewDialog, ManageViewsDialog } from "@/components/guests/view-manager"
 import { GetFormLinkDialog } from "@/components/guests/get-form-link-dialog"
 import { VappLinkDialog } from "@/components/guests/vapp-link-dialog"
+import { GenerateEmailLinkDialog } from "@/components/guests/generate-email-link-dialog"
 import type { EmailTemplateType } from "@/lib/schemas"
 import { getCountryName } from "@/lib/data/countries"
 import { createRoute } from "@/lib/routes"
 import { exportGuestsToExcel } from "@/lib/export-guests"
-import { getVappUrl } from "@/lib/rsvp-url"
+import { getVappUrl, getFullRsvpUrl, getShortRsvpUrl } from "@/lib/rsvp-url"
+import { toast } from "sonner"
 import {
   DEFAULT_VIEW_CONFIG,
   syncViewConfigColumns,
@@ -86,6 +88,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false)
   const [isFormLinkDialogOpen, setIsFormLinkDialogOpen] = useState(false)
   const [isVappLinkDialogOpen, setIsVappLinkDialogOpen] = useState(false)
+  const [isGenerateEmailLinkDialogOpen, setIsGenerateEmailLinkDialogOpen] = useState(false)
   const [viewConfig, setViewConfig] = useState<GuestListViewConfig>(DEFAULT_VIEW_CONFIG)
   const [showFilters, setShowFilters] = useState(false)
 
@@ -283,19 +286,56 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
   }, [])
 
   // Bulk action handlers
-  const handleBulkAction = useCallback((action: "delete" | "send_invitation" | "send_email" | "get_form_link" | "get_vapp_link") => {
-    if (action === "delete") {
-      setIsDeleteDialogOpen(true)
-    } else if (action === "send_invitation") {
-      setBulkEmailType("invitation")
-    } else if (action === "send_email") {
-      setIsSendEmailDialogOpen(true)
-    } else if (action === "get_form_link") {
-      setIsFormLinkDialogOpen(true)
-    } else if (action === "get_vapp_link") {
-      setIsVappLinkDialogOpen(true)
-    }
-  }, [])
+  const handleBulkAction = useCallback(
+    (
+      action:
+        | "delete"
+        | "send_invitation"
+        | "send_email"
+        | "get_form_link"
+        | "get_vapp_link"
+        | "generate_email_link"
+        | "copy_rsvp_link"
+        | "copy_short_rsvp_link"
+    ) => {
+      if (action === "delete") {
+        setIsDeleteDialogOpen(true)
+      } else if (action === "send_invitation") {
+        setBulkEmailType("invitation")
+      } else if (action === "send_email") {
+        setIsSendEmailDialogOpen(true)
+      } else if (action === "get_form_link") {
+        setIsFormLinkDialogOpen(true)
+      } else if (action === "get_vapp_link") {
+        setIsVappLinkDialogOpen(true)
+      } else if (action === "generate_email_link") {
+        setIsGenerateEmailLinkDialogOpen(true)
+      } else if (action === "copy_rsvp_link") {
+        if (selectedIds.size === 1) {
+          const selectedGuestId = Array.from(selectedIds)[0]
+          const selectedGuest = guests.find((g) => g.id === selectedGuestId)
+          if (selectedGuest) {
+            const rsvpUrl = getFullRsvpUrl(event, selectedGuest as any)
+            navigator.clipboard.writeText(rsvpUrl)
+            toast.success("RSVP link copied to clipboard")
+          }
+        }
+      } else if (action === "copy_short_rsvp_link") {
+        if (selectedIds.size === 1) {
+          const selectedGuestId = Array.from(selectedIds)[0]
+          const selectedGuest = guests.find((g) => g.id === selectedGuestId) as any
+          if (selectedGuest?.rsvpShortCode) {
+            const shortUrl = getShortRsvpUrl(event, selectedGuest)
+            if (shortUrl) {
+              navigator.clipboard.writeText(shortUrl)
+              toast.success("Short RSVP link copied to clipboard")
+            }
+          }
+        }
+      }
+    },
+    [selectedIds, guests, event]
+  )
 
   const handleBulkDeleteSuccess = useCallback(() => {
     setSelectedIds(new Set())
@@ -338,6 +378,14 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
       (filters.tags && filters.tags.length > 0)
     )
   }, [viewConfig.filters])
+
+  // Check if selected guest has a short RSVP code (for showing the copy short link option)
+  const hasShortRsvpCode = useMemo(() => {
+    if (selectedIds.size !== 1) return false
+    const selectedGuestId = Array.from(selectedIds)[0]
+    const selectedGuest = guests.find((g) => g.id === selectedGuestId) as any
+    return !!selectedGuest?.rsvpShortCode
+  }, [selectedIds, guests])
 
   // Error state
   if (error) {
@@ -394,6 +442,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
         showFilters={showFilters}
         onShowFiltersChange={setShowFilters}
         vappEnabled={event.settings?.vapp?.enabled}
+        hasShortRsvpCode={hasShortRsvpCode}
       />
 
       {isLoading ? (
@@ -491,6 +540,22 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
             guestName={`${selectedGuest.firstName} ${selectedGuest.lastName || ""}`.trim()}
             serialNumber={selectedGuest.serialNumber}
             vappLink={vappLink}
+          />
+        )
+      })()}
+
+      {/* Generate Email Link Dialog */}
+      {isGenerateEmailLinkDialogOpen && selectedIds.size === 1 && (() => {
+        const selectedGuestId = Array.from(selectedIds)[0]
+        const selectedGuest = guests.find((g) => g.id === selectedGuestId)
+        if (!selectedGuest) return null
+        return (
+          <GenerateEmailLinkDialog
+            open={isGenerateEmailLinkDialogOpen}
+            onOpenChange={setIsGenerateEmailLinkDialogOpen}
+            eventId={event.id}
+            guestId={selectedGuestId}
+            guestName={`${selectedGuest.firstName} ${selectedGuest.lastName || ""}`.trim()}
           />
         )
       })()}

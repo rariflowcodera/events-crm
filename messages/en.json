@@ -499,6 +499,32 @@
     "done": "Done",
     "pleaseWait": "Please wait..."
   },
+  "emailPreview": {
+    "generateLink": "Generate Email Link",
+    "generateLinkDescription": "Generate a shareable link to view this email for {name}",
+    "selectTemplate": "Email Template",
+    "selectTemplatePlaceholder": "Choose a template",
+    "noTemplates": "No email templates available for this event",
+    "generateButton": "Generate Link",
+    "generatedLink": "Generated Link",
+    "subjectLabel": "Subject",
+    "linkCopied": "Link copied to clipboard",
+    "copyFailed": "Failed to copy link"
+  },
+  "guestActions": {
+    "actions": "Actions",
+    "sendInvitation": "Send Invitation",
+    "sendEmail": "Send Email",
+    "generateEmailLink": "Generate Email Link",
+    "getFormLink": "Get Form Link",
+    "vappLink": "VAPP Link",
+    "copyRsvpLink": "Copy RSVP Link",
+    "copyShortRsvpLink": "Copy Short RSVP Link",
+    "delete": "Delete",
+    "selectOneGuest": "Select exactly 1 guest",
+    "noEmailPermission": "No permission to send emails",
+    "noDeletePermission": "No permission to delete guests"
+  },
   "dashboard": {
     "title": "Dashboard",
     "overview": "Overview",

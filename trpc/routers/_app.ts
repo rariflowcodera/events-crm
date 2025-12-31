@@ -26,6 +26,8 @@ import { publicVappRouter } from "@/trpc/routers/public-vapp"
 import { permissionsRouter } from "@/trpc/routers/permissions"
 // Email master templates
 import { emailMasterTemplatesRouter } from "@/trpc/routers/email-master-templates"
+// Email preview tokens
+import { emailPreviewTokensRouter } from "@/trpc/routers/email-preview-tokens"
 
 export const appRouter = createTRPCRouter({
   users: usersRouter,
@@ -55,6 +57,8 @@ export const appRouter = createTRPCRouter({
   permissions: permissionsRouter,
   // Email master templates
   emailMasterTemplates: emailMasterTemplatesRouter,
+  // Email preview tokens
+  emailPreviewTokens: emailPreviewTokensRouter,
 })
 
 // export type definition of API
