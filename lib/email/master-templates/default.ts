@@ -179,6 +179,7 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
     u + .body .gmail-blend-difference h1,
     u + .body .gmail-blend-difference h2 {
       color: #FFFFFF !important;
+      -webkit-text-fill-color: #FFFFFF !important;
     }
     /* Exclude images from blend mode effect */
     u + .body .gmail-blend-screen img,
