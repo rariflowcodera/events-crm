@@ -649,12 +649,12 @@ function processDocumentVariables(
     // Pattern 2: {{document.UUID|Custom Text}}
     const customTextPattern = new RegExp(`\\{\\{document\\.${doc.id}\\|([^}]+)\\}\\}`, "g")
     result = result.replace(customTextPattern, (_, customText) => {
-      return `<a href="${brandedUrl}" style="color: #FF9933; text-decoration: underline;">${customText.trim()}</a>`
+      return `<a href="${brandedUrl}" style="color: #0066CC; text-decoration: underline;">${customText.trim()}</a>`
     })
 
     // Pattern 3: {{document.UUID}}
     const defaultPattern = new RegExp(`\\{\\{document\\.${doc.id}\\}\\}`, "g")
-    result = result.replace(defaultPattern, `<a href="${brandedUrl}" style="color: #FF9933; text-decoration: underline;">${doc.name}</a>`)
+    result = result.replace(defaultPattern, `<a href="${brandedUrl}" style="color: #0066CC; text-decoration: underline;">${doc.name}</a>`)
   }
 
   // Handle missing/deleted documents
@@ -758,12 +758,12 @@ function processFormLinkVariables(
     // Pattern 2: {{formLink.UUID|Custom Text}} - link with custom text
     const customTextPattern = new RegExp(`\\{\\{formLink\\.${form.id}\\|([^}]+)\\}\\}`, "g")
     result = result.replace(customTextPattern, (_, customText) => {
-      return `<a href="${formUrl}" style="color: #FF9933; text-decoration: underline;">${customText.trim()}</a>`
+      return `<a href="${formUrl}" style="color: #0066CC; text-decoration: underline;">${customText.trim()}</a>`
     })
 
     // Pattern 3: {{formLink.UUID}} - link with form name
     const defaultPattern = new RegExp(`\\{\\{formLink\\.${form.id}\\}\\}`, "g")
-    result = result.replace(defaultPattern, `<a href="${formUrl}" style="color: #FF9933; text-decoration: underline;">${form.name}</a>`)
+    result = result.replace(defaultPattern, `<a href="${formUrl}" style="color: #0066CC; text-decoration: underline;">${form.name}</a>`)
   }
 
   // Handle missing/unavailable form links (forms not in token mode or deleted)
@@ -801,11 +801,11 @@ function processVappLinkVariables(
 
   // Pattern 2: {{vapp.link|Custom Text}} - link with custom text
   result = result.replace(/\{\{vapp\.link\|([^}]+)\}\}/g, (_, customText) => {
-    return `<a href="${vappUrl}" style="color: #FF9933; text-decoration: underline;">${customText.trim()}</a>`
+    return `<a href="${vappUrl}" style="color: #0066CC; text-decoration: underline;">${customText.trim()}</a>`
   })
 
   // Pattern 3: {{vapp.link}} - link with default text
-  result = result.replace(/\{\{vapp\.link\}\}/g, `<a href="${vappUrl}" style="color: #FF9933; text-decoration: underline;">${defaultText}</a>`)
+  result = result.replace(/\{\{vapp\.link\}\}/g, `<a href="${vappUrl}" style="color: #0066CC; text-decoration: underline;">${defaultText}</a>`)
 
   return result
 }
@@ -833,13 +833,13 @@ function processHyperlinkVariables(html: string): string {
   // Pattern 2: {{hyperlink|URL|Custom Text}} - link with custom text
   result = result.replace(
     /\{\{hyperlink\|([^|]+)\|([^}]+)\}\}/g,
-    (_, url, displayText) => `<a href="${url.trim()}" style="color: #FF9933; text-decoration: underline;">${displayText.trim()}</a>`
+    (_, url, displayText) => `<a href="${url.trim()}" style="color: #0066CC; text-decoration: underline;">${displayText.trim()}</a>`
   )
 
   // Pattern 3: {{hyperlink|URL}} - link with URL as display text
   result = result.replace(
     /\{\{hyperlink\|([^}]+)\}\}/g,
-    (_, url) => `<a href="${url.trim()}" style="color: #FF9933; text-decoration: underline;">${url.trim()}</a>`
+    (_, url) => `<a href="${url.trim()}" style="color: #0066CC; text-decoration: underline;">${url.trim()}</a>`
   )
 
   return result
