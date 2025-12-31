@@ -186,7 +186,7 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
       isolation: isolate;
     }
     /* Link colors for Gmail dark mode - pre-inverted to appear blue after blend */
-    u + .body .gmail-blend-difference a {
+    [data-ogsc] .gmail-blend-difference a {
       color: #FF9933 !important;
     }
   </style>
