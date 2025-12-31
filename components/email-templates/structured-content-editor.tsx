@@ -267,7 +267,6 @@ export function StructuredContentEditor({
                 language={language}
                 isRtl={isRtl}
                 onRemove={() => remove(index)}
-                insertVariable={insertVariable}
               />
             ))}
           </div>
@@ -390,7 +389,6 @@ interface ParagraphEditorProps {
   language: "en" | "ar"
   isRtl: boolean
   onRemove: () => void
-  insertVariable: (fieldName: string, variable: string) => void
 }
 
 function ParagraphEditor({
@@ -400,7 +398,6 @@ function ParagraphEditor({
   language,
   isRtl,
   onRemove,
-  insertVariable,
 }: ParagraphEditorProps) {
   const form = useFormContext()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -455,6 +452,31 @@ function ParagraphEditor({
     setTimeout(() => {
       textarea.focus()
       const cursorPos = start + hrText.length
+      textarea.setSelectionRange(cursorPos, cursorPos)
+    }, 0)
+  }
+
+  // Insert text at cursor position (for variables, documents, images, etc.)
+  const insertAtCursor = (text: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) {
+      // Fallback: append at end if textarea ref not available
+      const currentValue = form.getValues(contentFieldName) || ""
+      form.setValue(contentFieldName, currentValue + text, { shouldDirty: true })
+      return
+    }
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const currentText = textarea.value
+
+    const newText = currentText.substring(0, start) + text + currentText.substring(end)
+    form.setValue(contentFieldName, newText, { shouldDirty: true })
+
+    // Set cursor position after inserted text
+    setTimeout(() => {
+      textarea.focus()
+      const cursorPos = start + text.length
       textarea.setSelectionRange(cursorPos, cursorPos)
     }, 0)
   }
@@ -583,29 +605,29 @@ function ParagraphEditor({
               <div className="flex gap-2">
                 <MapInserter
                   eventId={eventId}
-                  onInsert={(v) => insertVariable(contentFieldName, v)}
+                  onInsert={insertAtCursor}
                 />
                 <DocumentInserter
                   eventId={eventId}
-                  onInsert={(v) => insertVariable(contentFieldName, v)}
+                  onInsert={insertAtCursor}
                 />
                 <ImageInserter
                   eventId={eventId}
-                  onInsert={(v) => insertVariable(contentFieldName, v)}
+                  onInsert={insertAtCursor}
                 />
                 <FormLinkInserter
                   eventId={eventId}
-                  onInsert={(v) => insertVariable(contentFieldName, v)}
+                  onInsert={insertAtCursor}
                 />
                 <HyperlinkInserter
-                  onInsert={(v) => insertVariable(contentFieldName, v)}
+                  onInsert={insertAtCursor}
                 />
                 <VappInserter
-                  onInsert={(v) => insertVariable(contentFieldName, v)}
+                  onInsert={insertAtCursor}
                 />
                 <VariableInserter
                   eventId={eventId}
-                  onInsert={(v) => insertVariable(contentFieldName, v)}
+                  onInsert={insertAtCursor}
                 />
               </div>
             </div>

@@ -187,6 +187,10 @@ export function EmailTemplateForm({
 
   const isLoading = isCreating || isUpdating || isCreatingStructured || isUpdatingStructured
 
+  // Track form initialization to prevent unnecessary resets after save
+  const hasInitializedRef = useRef(false)
+  const currentTemplateIdRef = useRef<string | null>(null)
+
   // Form - using legacy mode as default
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -215,9 +219,21 @@ export function EmailTemplateForm({
     } as LegacyFormValues,
   })
 
-  // Load template data when editing
+  // Load template data when editing - only on initial load or template ID change
   useEffect(() => {
     if (template && templateId) {
+      // Only reset if:
+      // 1. We haven't initialized yet, OR
+      // 2. The templateId has changed (user navigated to different template)
+      const shouldReset = !hasInitializedRef.current || currentTemplateIdRef.current !== templateId
+
+      if (!shouldReset) {
+        return
+      }
+
+      hasInitializedRef.current = true
+      currentTemplateIdRef.current = templateId
+
       // Check if template has structured content
       const hasStructuredContent = template.structuredContent && Object.keys(template.structuredContent).length > 0
 
@@ -254,7 +270,8 @@ export function EmailTemplateForm({
         } as LegacyFormValues)
       }
     }
-  }, [template, templateId, form])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template, templateId])
 
   // Handle form submission
   const onSubmit = (data: FormValues) => {

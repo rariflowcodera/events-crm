@@ -185,6 +185,10 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
     u + .body .gmail-blend-difference img {
       isolation: isolate;
     }
+    /* Link colors for Gmail dark mode - pre-inverted to appear blue after blend */
+    u + .body .gmail-blend-difference a {
+      color: #FF9933 !important;
+    }
   </style>
 </head>
 <body class="body" style="margin: 0; padding: 0; background-color: #F5F5F5; min-height: 100vh;" bgcolor="#F5F5F5">
@@ -257,12 +261,8 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
                 </div>
                 </div>
 
-                {{#if showBannerFooter}}
-                {{#if bannerFooterImageUrl}}
-                <!-- English Section Banner - OUTSIDE blend mode -->
-                <img src="{{bannerFooterImageUrl}}" alt="" style="width: 100%; height: auto; display: block;" />
-                {{/if}}
-                {{/if}}
+                <!-- English CTA - OUTSIDE blend mode -->
+                {{{enCta}}}
                 {{/if}}
 
                 {{#if showDivider}}
@@ -294,11 +294,14 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
                 </div>
                 </div>
 
+                <!-- Arabic CTA - OUTSIDE blend mode -->
+                {{{arCta}}}
+                {{/if}}
+
                 {{#if showBannerFooter}}
                 {{#if bannerFooterImageUrl}}
-                <!-- Arabic Section Banner - OUTSIDE blend mode -->
+                <!-- Banner Footer - appears once at the bottom -->
                 <img src="{{bannerFooterImageUrl}}" alt="" style="width: 100%; height: auto; display: block;" />
-                {{/if}}
                 {{/if}}
                 {{/if}}
 
@@ -382,24 +385,6 @@ export const englishContentSectionTemplate = `<table role="presentation" cellspa
   </tr>
   {{/each}}
 
-  {{#if cta}}
-  <tr>
-    <td align="center" style="padding-bottom: 16px;">
-      <!--[if mso]>
-      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{cta.url}}" style="height:48px;v-text-anchor:middle;width:220px;" arcsize="10%" strokecolor="{{ctaButtonColor}}" fillcolor="{{ctaButtonColor}}">
-        <w:anchorlock/>
-        <center style="color:{{ctaButtonTextColor}};font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">{{{cta.text}}}</center>
-      </v:roundrect>
-      <![endif]-->
-      <!--[if !mso]><!-->
-      <a href="{{cta.url}}" class="btn-primary" style="background-color: {{ctaButtonColor}}; color: {{ctaButtonTextColor}}; font-family: {{{fontFamily}}}; font-weight: 600; font-size: 16px; text-decoration: none; padding: 14px 32px; border-radius: {{ctaBorderRadius}}; display: inline-block;">
-        {{{cta.text}}}
-      </a>
-      <!--<![endif]-->
-    </td>
-  </tr>
-  {{/if}}
-
   {{#if postCtaText}}
   <tr>
     <td style="padding-top: 16px;">
@@ -458,9 +443,48 @@ export const arabicContentSectionTemplate = `<table role="presentation" cellspac
   </tr>
   {{/each}}
 
-  {{#if cta}}
+  {{#if postCtaText}}
   <tr>
-    <td align="center" style="padding-bottom: 16px;">
+    <td style="padding-top: 16px; text-align: right;">
+      <p class="body-text arabic-text" style="color: {{bodyTextColor}}; -webkit-text-fill-color: {{bodyTextColor}}; font-family: {{{arabicFontFamily}}}; font-size: 16px; line-height: 1.8; margin: 0; direction: rtl; text-align: right;">
+        {{{postCtaText}}}
+      </p>
+    </td>
+  </tr>
+  {{/if}}
+
+</table>`
+
+/**
+ * Template for rendering English CTA button (outside blend mode).
+ */
+export const englishCtaTemplate = `{{#if cta}}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
+  <tr>
+    <td align="center" style="padding: 0 48px 24px 48px;">
+      <!--[if mso]>
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{cta.url}}" style="height:48px;v-text-anchor:middle;width:220px;" arcsize="10%" strokecolor="{{ctaButtonColor}}" fillcolor="{{ctaButtonColor}}">
+        <w:anchorlock/>
+        <center style="color:{{ctaButtonTextColor}};font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">{{{cta.text}}}</center>
+      </v:roundrect>
+      <![endif]-->
+      <!--[if !mso]><!-->
+      <a href="{{cta.url}}" class="btn-primary" style="background-color: {{ctaButtonColor}}; color: {{ctaButtonTextColor}}; font-family: {{{fontFamily}}}; font-weight: 600; font-size: 16px; text-decoration: none; padding: 14px 32px; border-radius: {{ctaBorderRadius}}; display: inline-block;">
+        {{{cta.text}}}
+      </a>
+      <!--<![endif]-->
+    </td>
+  </tr>
+</table>
+{{/if}}`
+
+/**
+ * Template for rendering Arabic CTA button (outside blend mode).
+ */
+export const arabicCtaTemplate = `{{#if cta}}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
+  <tr>
+    <td align="center" style="padding: 0 48px 24px 48px;">
       <!--[if mso]>
       <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{cta.url}}" style="height:48px;v-text-anchor:middle;width:220px;" arcsize="10%" strokecolor="{{ctaButtonColor}}" fillcolor="{{ctaButtonColor}}">
         <w:anchorlock/>
@@ -474,16 +498,5 @@ export const arabicContentSectionTemplate = `<table role="presentation" cellspac
       <!--<![endif]-->
     </td>
   </tr>
-  {{/if}}
-
-  {{#if postCtaText}}
-  <tr>
-    <td style="padding-top: 16px; text-align: right;">
-      <p class="body-text arabic-text" style="color: {{bodyTextColor}}; -webkit-text-fill-color: {{bodyTextColor}}; font-family: {{{arabicFontFamily}}}; font-size: 16px; line-height: 1.8; margin: 0; direction: rtl; text-align: right;">
-        {{{postCtaText}}}
-      </p>
-    </td>
-  </tr>
-  {{/if}}
-
-</table>`
+</table>
+{{/if}}`
