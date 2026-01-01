@@ -697,22 +697,37 @@ function processImageVariables(
     // Use the direct document URL for images
     const imageUrl = img.url
 
+    // Break out of blend mode containers for images
+    // The structure is:
+    //   div.gmail-blend-screen > div.gmail-blend-difference > table (master) > tr > td.content-padding
+    //     > table (content section) > tr > td > p.body-text > {{image.UUID}}
+    // We need to close ALL of this to break out of the blend mode, then reopen
+    const closeStructure = `</p></td></tr></table></td></tr></table></div></div>`
+    const imageTable = (src: string, alt: string) => `
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
+  <tr>
+    <td style="padding: 0 48px 16px 48px; text-align: center;">
+      <img src="${src}" alt="${alt}" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" />
+    </td>
+  </tr>
+</table>`
+    // Reopen the structure - note: we use minimal padding since we're in the middle of content
+    const reopenStructure = `<div class="gmail-blend-screen"><div class="gmail-blend-difference"><table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;"><tr><td class="content-padding" style="padding: 0 48px;"><table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;"><tr><td><p class="body-text" style="margin: 0;">`
+
     // Pattern 1: {{image.UUID|Alt Text}} - with custom alt
-    // Wrap in table with mix-blend-mode: normal to isolate from Gmail dark mode blend workaround
     const customAltPattern = new RegExp(
       `\\{\\{image\\.${img.id}\\|([^}]+)\\}\\}`,
       "g"
     )
     result = result.replace(customAltPattern, (_, altText) => {
-      return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="email-image-reset" style="mix-blend-mode: normal; width: 100%; margin: 0 auto;"><tr><td style="text-align: center;"><img src="${imageUrl}" alt="${altText.trim()}" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" /></td></tr></table>`
+      return `${closeStructure}${imageTable(imageUrl, altText.trim())}${reopenStructure}`
     })
 
     // Pattern 2: {{image.UUID}} - default alt (image name)
-    // Wrap in table with mix-blend-mode: normal to isolate from Gmail dark mode blend workaround
     const defaultPattern = new RegExp(`\\{\\{image\\.${img.id}\\}\\}`, "g")
     result = result.replace(
       defaultPattern,
-      `<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="email-image-reset" style="mix-blend-mode: normal; width: 100%; margin: 0 auto;"><tr><td style="text-align: center;"><img src="${imageUrl}" alt="${img.name}" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" /></td></tr></table>`
+      `${closeStructure}${imageTable(imageUrl, img.name)}${reopenStructure}`
     )
   }
 
