@@ -181,10 +181,14 @@ export const defaultMasterTemplate = `<!DOCTYPE html>
       color: #FFFFFF !important;
       -webkit-text-fill-color: #FFFFFF !important;
     }
-    /* Exclude images from blend mode effect */
-    u + .body .gmail-blend-screen img,
-    u + .body .gmail-blend-difference img {
-      isolation: isolate;
+    /* Reset blend mode for image containers to prevent Gmail dark mode tinting */
+    u + .body .gmail-blend-screen .email-image-reset,
+    u + .body .gmail-blend-difference .email-image-reset {
+      mix-blend-mode: normal !important;
+    }
+    u + .body .gmail-blend-screen .email-image-reset img,
+    u + .body .gmail-blend-difference .email-image-reset img {
+      mix-blend-mode: normal !important;
     }
     /* Link colors for Gmail dark mode - pre-inverted to appear blue after blend */
     [data-ogsc] .gmail-blend-difference a {

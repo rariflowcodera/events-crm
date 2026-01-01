@@ -698,19 +698,21 @@ function processImageVariables(
     const imageUrl = img.url
 
     // Pattern 1: {{image.UUID|Alt Text}} - with custom alt
+    // Wrap in table with mix-blend-mode: normal to isolate from Gmail dark mode blend workaround
     const customAltPattern = new RegExp(
       `\\{\\{image\\.${img.id}\\|([^}]+)\\}\\}`,
       "g"
     )
     result = result.replace(customAltPattern, (_, altText) => {
-      return `<img src="${imageUrl}" alt="${altText.trim()}" style="max-width: 100%; height: auto; display: block;" />`
+      return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="email-image-reset" style="mix-blend-mode: normal; width: 100%; margin: 0 auto;"><tr><td style="text-align: center;"><img src="${imageUrl}" alt="${altText.trim()}" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" /></td></tr></table>`
     })
 
     // Pattern 2: {{image.UUID}} - default alt (image name)
+    // Wrap in table with mix-blend-mode: normal to isolate from Gmail dark mode blend workaround
     const defaultPattern = new RegExp(`\\{\\{image\\.${img.id}\\}\\}`, "g")
     result = result.replace(
       defaultPattern,
-      `<img src="${imageUrl}" alt="${img.name}" style="max-width: 100%; height: auto; display: block;" />`
+      `<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="email-image-reset" style="mix-blend-mode: normal; width: 100%; margin: 0 auto;"><tr><td style="text-align: center;"><img src="${imageUrl}" alt="${img.name}" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" /></td></tr></table>`
     )
   }
 
