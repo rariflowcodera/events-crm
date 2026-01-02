@@ -90,7 +90,7 @@ export function VappVoucher({
           }}
         >
           <p style={{
-            fontSize: "clamp(32px, 14vw, 68px)",
+            fontSize: "clamp(24px, 10vw, 50px)",
             fontWeight: 900,
             color: "#000000",
             textAlign: "center",
@@ -115,7 +115,7 @@ export function VappVoucher({
           }}
         >
           <p style={{
-            fontSize: "clamp(40px, 17vw, 80px)",
+            fontSize: "clamp(32px, 12vw, 60px)",
             fontWeight: 900,
             color: "#000000",
             textAlign: "center",
@@ -141,7 +141,7 @@ export function VappVoucher({
           }}
         >
           <p style={{
-            fontSize: "clamp(40px, 17vw, 80px)",
+            fontSize: "clamp(24px, 10vw, 50px)",
             fontWeight: 900,
             color: "#000000",
             textAlign: "center",
