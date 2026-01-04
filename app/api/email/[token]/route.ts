@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server"
-import { eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { db } from "@/server/db/config/database"
 import {
   emailPreviewTokens,
   eventDocuments,
+  eventForms,
+  guestFormTokens,
   workspaces,
 } from "@/server/db/schemas"
 import { renderStructuredEmail } from "@/lib/email/render-structured"
@@ -134,6 +136,69 @@ export async function GET(
     where: eq(eventDocuments.eventId, event.id),
   })
 
+  // Extract form IDs from template content for form link variable processing
+  const formIdPattern = /\{\{form(?:Link|Url)\.([a-f0-9-]{36})/g
+  const templateContent = JSON.stringify(template.structuredContent)
+  const formIds: string[] = []
+  let match
+  while ((match = formIdPattern.exec(templateContent)) !== null) {
+    if (!formIds.includes(match[1])) {
+      formIds.push(match[1])
+    }
+  }
+
+  // Get or create form tokens for referenced forms
+  let formTokens: Array<{
+    form: { id: string; name: { en: string; ar?: string } }
+    token: string
+  }> = []
+
+  if (formIds.length > 0) {
+    // Get forms that are token-mode and published
+    const tokenModeForms = await db.query.eventForms.findMany({
+      where: and(
+        inArray(eventForms.id, formIds),
+        eq(eventForms.eventId, event.id),
+        eq(eventForms.accessType, "token"),
+        eq(eventForms.isPublished, true)
+      ),
+      columns: { id: true, name: true, expiresAt: true },
+    })
+
+    // Get or create tokens for each form
+    formTokens = await Promise.all(
+      tokenModeForms.map(async (form) => {
+        let existingToken = await db.query.guestFormTokens.findFirst({
+          where: and(
+            eq(guestFormTokens.guestId, guest.id),
+            eq(guestFormTokens.formId, form.id)
+          ),
+        })
+
+        if (!existingToken) {
+          const [newToken] = await db
+            .insert(guestFormTokens)
+            .values({
+              guestId: guest.id,
+              formId: form.id,
+              token: crypto.randomUUID(),
+              expiresAt: form.expiresAt,
+            })
+            .returning()
+          existingToken = newToken
+        }
+
+        return {
+          form: {
+            id: form.id,
+            name: form.name as { en: string; ar?: string },
+          },
+          token: existingToken!.token,
+        }
+      })
+    )
+  }
+
   // Use built-in default master template (consistent with email processor)
   // This ensures preview matches what's actually sent via email
   const masterTemplate = {
@@ -207,6 +272,7 @@ export async function GET(
       type: d.type,
       categoryIds: d.categoryIds,
     })),
+    formTokens,
   })
 
   // Return the rendered HTML directly

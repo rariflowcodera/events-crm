@@ -994,10 +994,10 @@ export const eventsRouter = createTRPCRouter({
                 }
               : sourceEvent.settings,
             status: "draft", // Always start as draft
-            customDomain: null, // Reset custom domain
-            customDomainVerified: false,
-            customDomainVerifiedAt: null,
-            customDomainVerificationToken: null,
+            customDomain: sourceEvent.customDomain, // Copy custom domain (multiple events can share)
+            customDomainVerified: sourceEvent.customDomainVerified,
+            customDomainVerifiedAt: sourceEvent.customDomainVerifiedAt,
+            customDomainVerificationToken: null, // Don't copy token - not needed if already verified
             createdBy: ctx.user.id,
           })
           .returning()

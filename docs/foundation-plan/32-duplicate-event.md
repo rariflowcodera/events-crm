@@ -216,10 +216,7 @@ duplicateEvent: protectedProcedure
 | `id` | New UUID |
 | `status` | `"draft"` |
 | `slug` | Generate unique |
-| `customDomain` | `null` |
-| `customDomainVerified` | `false` |
-| `customDomainVerifiedAt` | `null` |
-| `customDomainVerificationToken` | `null` |
+| `customDomainVerificationToken` | `null` (token not needed if already verified) |
 | `createdBy` | Current user |
 | `createdAt` | Now |
 | `updatedAt` | Now |
@@ -239,6 +236,9 @@ duplicateEvent: protectedProcedure
 - `maxGuests`
 - `branding`
 - `settings`
+- `customDomain` (shared domains are supported - multiple events can use the same domain)
+- `customDomainVerified`
+- `customDomainVerifiedAt`
 
 ---
 
