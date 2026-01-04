@@ -906,7 +906,7 @@ export function GuestsDataTable({
         <div
           ref={parentRef}
           className={cn(
-            "overflow-y-auto",
+            "overflow-y-auto overflow-x-hidden",
             fillHeight && "flex-1"
           )}
           style={{
