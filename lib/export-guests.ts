@@ -10,8 +10,10 @@ interface GuestCategory {
 
 interface Guest {
   id: string
+  serialNumber: string | null
   firstName: string
   lastName: string
+  displayNameAr: string | null
   email: string | null
   phone: string | null
   country: string | null
@@ -58,8 +60,10 @@ export function exportGuestsToExcel(
 ): void {
   const headers = [
     "Event",
+    "Serial Number",
     "First Name",
     "Last Name",
+    "Arabic Name",
     "Email",
     "Phone",
     "Position",
@@ -74,8 +78,10 @@ export function exportGuestsToExcel(
 
   const rows = guests.map((guest) => [
     eventName,
+    guest.serialNumber || "",
     guest.firstName,
     guest.lastName,
+    guest.displayNameAr || "",
     guest.email || "",
     guest.phone || "",
     guest.position || "",
@@ -93,8 +99,10 @@ export function exportGuestsToExcel(
   // Set column widths for better readability
   ws["!cols"] = [
     { wch: 25 }, // Event
+    { wch: 15 }, // Serial Number
     { wch: 15 }, // First Name
     { wch: 15 }, // Last Name
+    { wch: 25 }, // Arabic Name
     { wch: 25 }, // Email
     { wch: 15 }, // Phone
     { wch: 20 }, // Position
