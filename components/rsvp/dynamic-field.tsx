@@ -272,13 +272,13 @@ export function DynamicField({
                   onValueChange={field.onChange}
                   value={field.value || ""}
                   disabled={disabled}
-                  className="flex flex-col gap-1"
+                  className="flex flex-col"
                 >
                   {options?.map((option) => (
                     <div
                       key={option.value}
                       className={cn(
-                        "flex items-center gap-3 min-h-[44px]",
+                        "flex items-center gap-3 py-2",
                         isRtl && "flex-row-reverse"
                       )}
                     >
@@ -324,12 +324,12 @@ export function DynamicField({
                   {description && (
                     <p className="text-sm text-muted-foreground">{description}</p>
                   )}
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col">
                     {options?.map((option) => (
                       <div
                         key={option.value}
                         className={cn(
-                          "flex items-center gap-3 min-h-[44px]",
+                          "flex items-center gap-3 py-2",
                           isRtl && "flex-row-reverse"
                         )}
                       >

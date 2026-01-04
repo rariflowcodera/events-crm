@@ -89,10 +89,10 @@ export const eventForms = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
 
-    // Form Identity
-    name: text("name").notNull(),
+    // Form Identity (bilingual)
+    name: json("name").$type<BilingualText>().notNull(),
     slug: text("slug").notNull(),
-    description: text("description"),
+    description: json("description").$type<BilingualText | null>(),
     purpose: text("purpose").$type<FormPurpose>().default("custom"),
 
     // Form Configuration

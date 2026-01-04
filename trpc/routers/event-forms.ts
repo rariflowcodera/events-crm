@@ -22,6 +22,10 @@ import {
   formAccessTypeValues,
 } from "@/lib/schemas"
 import type { FormConfig } from "@/server/db/schemas/event-form"
+import {
+  remapCategoryIdsByName,
+  remapFormConfigCategories,
+} from "@/lib/event-duplication"
 
 // Helper to generate a short code
 function generateShortCode(length = 8): string {
@@ -388,7 +392,7 @@ export const eventFormsRouter = createTRPCRouter({
 
   // Duplicate form
   duplicate: protectedProcedure
-    .input(z.object({ formId: z.string().uuid(), name: z.string().optional() }))
+    .input(z.object({ formId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const form = await db.query.eventForms.findFirst({
         where: eq(eventForms.id, input.formId),
@@ -443,12 +447,19 @@ export const eventFormsRouter = createTRPCRouter({
         attempts++
       }
 
+      // Handle bilingual name for copy
+      const originalName = form.name as { en: string; ar?: string }
+      const copyName = {
+        en: `${originalName.en} (Copy)`,
+        ar: originalName.ar ? `${originalName.ar} (نسخة)` : undefined,
+      }
+
       const [newForm] = await db
         .insert(eventForms)
         .values({
           eventId: form.eventId,
           workspaceId: form.workspaceId,
-          name: input.name || `${form.name} (Copy)`,
+          name: copyName,
           slug: newSlug,
           description: form.description,
           purpose: form.purpose,
@@ -465,6 +476,178 @@ export const eventFormsRouter = createTRPCRouter({
         .returning()
 
       return newForm
+    }),
+
+  // Copy form to other events
+  copyToEvents: protectedProcedure
+    .input(
+      z.object({
+        formId: z.string().uuid(),
+        targetEventIds: z.array(z.string().uuid()).min(1),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // 1. Get the source form
+      const sourceForm = await db.query.eventForms.findFirst({
+        where: eq(eventForms.id, input.formId),
+      })
+
+      if (!sourceForm) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Form not found" })
+      }
+
+      // 2. Get the source event and verify permissions
+      const sourceEvent = await db.query.events.findFirst({
+        where: eq(events.id, sourceForm.eventId),
+      })
+
+      if (!sourceEvent) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Source event not found" })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: sourceEvent.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_EVENT,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to manage events in this workspace",
+        })
+      }
+
+      // 3. Get source event categories for name-based remapping
+      const sourceCategories = await db.query.guestCategories.findMany({
+        where: eq(guestCategories.eventId, sourceForm.eventId),
+      })
+
+      // 4. Verify all target events belong to the same workspace and not the source event
+      const targetEvents = await db.query.events.findMany({
+        where: sql`${events.id} IN (${sql.join(
+          input.targetEventIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`,
+      })
+
+      if (targetEvents.length !== input.targetEventIds.length) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "One or more target events not found",
+        })
+      }
+
+      for (const targetEvent of targetEvents) {
+        if (targetEvent.workspaceId !== sourceEvent.workspaceId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "All target events must belong to the same workspace",
+          })
+        }
+
+        // Cannot copy to the source event
+        if (targetEvent.id === sourceForm.eventId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Cannot copy form to its own event. Use duplicate instead.",
+          })
+        }
+      }
+
+      // 5. Copy form to each target event
+      const results: Array<{
+        eventId: string
+        eventName: string
+        formId: string
+        formSlug: string
+      }> = []
+
+      for (const targetEvent of targetEvents) {
+        // Get target event categories for remapping
+        const targetCategories = await db.query.guestCategories.findMany({
+          where: eq(guestCategories.eventId, targetEvent.id),
+        })
+
+        // Generate unique slug for the target event
+        let newSlug = sourceForm.slug
+        let counter = 1
+        while (true) {
+          const existing = await db.query.eventForms.findFirst({
+            where: and(
+              eq(eventForms.eventId, targetEvent.id),
+              eq(eventForms.slug, newSlug)
+            ),
+          })
+          if (!existing) break
+          newSlug = `${sourceForm.slug}-${counter}`
+          counter++
+          if (counter > 100) {
+            newSlug = `${sourceForm.slug}-${crypto.randomUUID().slice(0, 8)}`
+            break
+          }
+        }
+
+        // Generate unique short code
+        let shortCode = generateShortCode()
+        let attempts = 0
+        while (attempts < 10) {
+          const existing = await db.query.eventForms.findFirst({
+            where: eq(eventForms.shortCode, shortCode),
+          })
+          if (!existing) break
+          shortCode = generateShortCode()
+          attempts++
+        }
+
+        // Remap category IDs by name
+        const remappedVisibleToCategories = remapCategoryIdsByName(
+          sourceForm.visibleToCategories,
+          sourceCategories.map((c) => ({ id: c.id, name: c.name })),
+          targetCategories.map((c) => ({ id: c.id, name: c.name }))
+        )
+
+        // Remap categories within formConfig
+        const remappedFormConfig = remapFormConfigCategories(
+          sourceForm.formConfig as FormConfig,
+          sourceCategories.map((c) => ({ id: c.id, name: c.name })),
+          targetCategories.map((c) => ({ id: c.id, name: c.name }))
+        )
+
+        // Insert the new form
+        const [newForm] = await db
+          .insert(eventForms)
+          .values({
+            eventId: targetEvent.id,
+            workspaceId: targetEvent.workspaceId,
+            name: sourceForm.name,
+            slug: newSlug,
+            description: sourceForm.description,
+            purpose: sourceForm.purpose,
+            formConfig: remappedFormConfig,
+            accessType: sourceForm.accessType,
+            visibleToCategories: remappedVisibleToCategories,
+            allowMultipleSubmissions: sourceForm.allowMultipleSubmissions,
+            allowAmendments: sourceForm.allowAmendments,
+            expiresAt: sourceForm.expiresAt,
+            shortCode,
+            isPublished: false, // Always create as draft
+            createdBy: ctx.user.id,
+          })
+          .returning()
+
+        results.push({
+          eventId: targetEvent.id,
+          eventName: targetEvent.name,
+          formId: newForm.id,
+          formSlug: newForm.slug,
+        })
+      }
+
+      return {
+        copiedCount: results.length,
+        results,
+      }
     }),
 
   // Publish form

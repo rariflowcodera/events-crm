@@ -196,6 +196,100 @@ export function remapMasterTemplateId(
 }
 
 // ============================================================================
+// Cross-Event Category Remapping (by Name)
+// ============================================================================
+
+/**
+ * Remaps category IDs by matching category names between source and target events.
+ * Used for copying forms between events where category IDs differ but names may match.
+ *
+ * @param sourceCategoryIds - Array of category IDs from the source form
+ * @param sourceCategories - Categories from the source event (with id and name)
+ * @param targetCategories - Categories from the target event (with id and name)
+ * @returns Array of mapped target category IDs (only those with matching names), or null if empty
+ */
+export function remapCategoryIdsByName(
+  sourceCategoryIds: string[] | null | undefined,
+  sourceCategories: Array<{ id: string; name: string }>,
+  targetCategories: Array<{ id: string; name: string }>
+): string[] | null {
+  if (!sourceCategoryIds || sourceCategoryIds.length === 0) return null
+
+  // Build a map from source category ID to name
+  const sourceIdToName = new Map(sourceCategories.map((c) => [c.id, c.name]))
+
+  // Build a map from target category name (lowercase) to ID for case-insensitive matching
+  const targetNameToId = new Map(
+    targetCategories.map((c) => [c.name.toLowerCase(), c.id])
+  )
+
+  const mappedIds = sourceCategoryIds
+    .map((sourceId) => {
+      const sourceName = sourceIdToName.get(sourceId)
+      if (!sourceName) return null
+      return targetNameToId.get(sourceName.toLowerCase())
+    })
+    .filter((id): id is string => id !== null)
+
+  return mappedIds.length > 0 ? mappedIds : null
+}
+
+/**
+ * Remaps category IDs within formConfig.sections[].fields[].visibleToCategories
+ * for cross-event form copying.
+ *
+ * @param formConfig - The form configuration to process
+ * @param sourceCategories - Categories from the source event
+ * @param targetCategories - Categories from the target event
+ * @returns New formConfig with remapped category IDs
+ */
+export function remapFormConfigCategories<
+  T extends {
+    sections: Array<{
+      id: string
+      title: unknown
+      description?: unknown
+      enabled: boolean
+      sortOrder: number
+      fields: Array<{
+        id: string
+        type: string
+        label: unknown
+        description?: unknown
+        placeholder?: unknown
+        required: boolean
+        visibleToCategories?: string[]
+        options?: unknown
+        validation?: unknown
+        conditionalOn?: unknown
+        sortOrder: number
+      }>
+    }>
+    settings: unknown
+  }
+>(
+  formConfig: T,
+  sourceCategories: Array<{ id: string; name: string }>,
+  targetCategories: Array<{ id: string; name: string }>
+): T {
+  return {
+    ...formConfig,
+    sections: formConfig.sections.map((section) => ({
+      ...section,
+      fields: section.fields.map((field) => ({
+        ...field,
+        visibleToCategories:
+          remapCategoryIdsByName(
+            field.visibleToCategories,
+            sourceCategories,
+            targetCategories
+          ) ?? undefined,
+      })),
+    })),
+  } as T
+}
+
+// ============================================================================
 // Slug Generation
 // ============================================================================
 

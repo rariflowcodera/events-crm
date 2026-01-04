@@ -232,6 +232,13 @@
       "when": 1767196672672,
       "tag": "0032_absent_quicksilver",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1767382126777,
+      "tag": "0033_living_chimera",
+      "breakpoints": true
     }
   ]
 }

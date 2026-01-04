@@ -25,6 +25,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "sonner"
 
 import { useTokenModeForms, useGetGuestFormToken } from "@/trpc/hooks/event-forms-hooks"
+import type { BilingualText } from "@/server/db/schemas/event-form"
+import { getFormUrl } from "@/lib/rsvp-url"
+
+// Helper to get localized text (default to English)
+function getLocalizedText(text: BilingualText | null | undefined): string {
+  if (!text) return ""
+  return text.en || ""
+}
 
 interface GetFormLinkDialogProps {
   open: boolean
@@ -32,6 +40,10 @@ interface GetFormLinkDialogProps {
   eventId: string
   guestId: string
   guestName: string
+  event: {
+    customDomain: string | null
+    customDomainVerified: boolean | null
+  }
 }
 
 export function GetFormLinkDialog({
@@ -40,6 +52,7 @@ export function GetFormLinkDialog({
   eventId,
   guestId,
   guestName,
+  event,
 }: GetFormLinkDialogProps) {
   const t = useTranslations()
   const [selectedFormId, setSelectedFormId] = useState<string>("")
@@ -52,8 +65,7 @@ export function GetFormLinkDialog({
   // Get/create token mutation
   const { mutate: getToken, isPending: isGenerating } = useGetGuestFormToken({
     onSuccess: (data) => {
-      const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
-      const url = `${baseUrl}/forms/t/${data.token}`
+      const url = getFormUrl(event, data.token)
       setGeneratedUrl(url)
     },
   })
@@ -123,7 +135,7 @@ export function GetFormLinkDialog({
                 <SelectContent>
                   {forms.map((form) => (
                     <SelectItem key={form.id} value={form.id}>
-                      {form.name}
+                      {getLocalizedText(form.name as BilingualText)}
                     </SelectItem>
                   ))}
                 </SelectContent>

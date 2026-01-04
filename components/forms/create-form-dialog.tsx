@@ -26,7 +26,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -35,18 +34,27 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Icons } from "@/components/global/icons"
+import { BilingualInput } from "@/components/rsvp-form-builder/bilingual-input"
 import { useCreateEventForm } from "@/trpc/hooks/event-forms-hooks"
 import { formPurposeValues } from "@/lib/schemas"
 import type { FormConfig } from "@/server/db/schemas/event-form"
 
+const bilingualTextSchema = z.object({
+  en: z.string().min(1, "English name is required").max(100),
+  ar: z.string().max(100).optional(),
+})
+
 const createFormSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
+  name: bilingualTextSchema,
   slug: z
     .string()
     .min(1, "Slug is required")
     .max(100)
     .regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens only"),
-  description: z.string().max(500).optional(),
+  description: z.object({
+    en: z.string().max(500),
+    ar: z.string().max(500).optional(),
+  }).optional(),
   purpose: z.enum(formPurposeValues).optional(),
 })
 
@@ -101,9 +109,9 @@ export function CreateFormDialog({
   const form = useForm<CreateFormValues>({
     resolver: zodResolver(createFormSchema),
     defaultValues: {
-      name: "",
+      name: { en: "", ar: "" },
       slug: "",
-      description: "",
+      description: { en: "", ar: "" },
       purpose: "custom",
     },
   })
@@ -124,7 +132,7 @@ export function CreateFormDialog({
       eventId,
       name: values.name,
       slug: values.slug,
-      description: values.description || undefined,
+      description: values.description?.en ? values.description : null,
       purpose: values.purpose,
       formConfig: createDefaultFormConfig(),
       accessType: "email",
@@ -133,12 +141,12 @@ export function CreateFormDialog({
     })
   }
 
-  // Auto-generate slug from name
-  const handleNameChange = (name: string) => {
+  // Auto-generate slug from English name
+  const handleNameChange = (name: { en: string; ar?: string }) => {
     form.setValue("name", name)
     // Only auto-generate if user hasn't manually edited slug
     if (!form.formState.dirtyFields.slug) {
-      const slug = name
+      const slug = name.en
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, "")
         .replace(/\s+/g, "-")
@@ -163,12 +171,13 @@ export function CreateFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t("forms.formName")}</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder={t("forms.formNamePlaceholder")}
-                      {...field}
-                      onChange={(e) => handleNameChange(e.target.value)}
+                    <BilingualInput
+                      label={t("forms.formName")}
+                      value={field.value || { en: "", ar: "" }}
+                      onChange={(value) => handleNameChange(value)}
+                      placeholder={{ en: t("forms.formNamePlaceholder") }}
+                      required
                     />
                   </FormControl>
                   <FormMessage />
@@ -227,13 +236,14 @@ export function CreateFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t("forms.formDescription")}</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder={t("forms.formDescriptionPlaceholder")}
-                      className="resize-none"
+                    <BilingualInput
+                      label={t("forms.formDescription")}
+                      value={field.value || { en: "", ar: "" }}
+                      onChange={field.onChange}
+                      placeholder={{ en: t("forms.formDescriptionPlaceholder") }}
+                      multiline
                       rows={3}
-                      {...field}
                     />
                   </FormControl>
                   <FormMessage />

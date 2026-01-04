@@ -54,7 +54,7 @@ export default async function FormPage({ params }: TokenFormPageProps) {
 }
 
 export async function generateMetadata({ params }: TokenFormPageProps) {
-  const { token } = await params
+  const { token, locale } = await params
 
   const tokenRecord = await db.query.guestFormTokens.findFirst({
     where: eq(guestFormTokens.token, token),
@@ -76,13 +76,16 @@ export async function generateMetadata({ params }: TokenFormPageProps) {
 
   const event = await db.query.events.findFirst({
     where: eq(events.id, form.eventId),
-    columns: { name: true },
+    columns: { name: true, nameAr: true },
   })
 
-  const eventName = event?.name || "Event"
+  // Extract localized names
+  const formName = form.name as { en?: string; ar?: string } | null
+  const formTitle = locale === "ar" && formName?.ar ? formName.ar : formName?.en || "Form"
+  const eventName = locale === "ar" && event?.nameAr ? event.nameAr : event?.name || "Event"
 
   return {
-    title: `${form.name} - ${eventName}`,
+    title: `${formTitle} - ${eventName}`,
     description: "Complete this form",
     robots: "noindex, nofollow",
   }

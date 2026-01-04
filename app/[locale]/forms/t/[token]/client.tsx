@@ -206,13 +206,20 @@ export function TokenFormPage({ token, locale }: TokenFormPageProps) {
           {logoUrl && (
             <img
               src={logoUrl}
-              alt={event.name}
-              className="mx-auto mb-4 h-16 object-contain"
+              alt={displayLocale === "ar" && event.nameAr ? event.nameAr : event.name}
+              className="mx-auto mb-4 h-40 object-contain"
             />
           )}
-          <CardTitle className="text-xl sm:text-2xl">{formData.name}</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl">
+            {displayLocale === "ar" && event.nameAr ? event.nameAr : event.name}
+          </CardTitle>
+          <p className="text-base text-muted-foreground">
+            {getLocalizedText(formData.name as BilingualText, displayLocale)}
+          </p>
           {formData.description && (
-            <CardDescription>{formData.description}</CardDescription>
+            <CardDescription>
+              {getLocalizedText(formData.description as BilingualText, displayLocale)}
+            </CardDescription>
           )}
         </CardHeader>
 
@@ -397,17 +404,6 @@ function FormStep({
 
   return (
     <div className="space-y-6">
-      {/* Guest info */}
-      <div className="rounded-lg bg-muted p-4">
-        <p className="text-sm text-muted-foreground">
-          {t("publicForms.submittingAs")}
-        </p>
-        <p className="font-medium">
-          {guestData.guest.firstName} {guestData.guest.lastName}
-        </p>
-        <p className="text-sm text-muted-foreground">{guestData.guest.email}</p>
-      </div>
-
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -539,18 +535,25 @@ function FormSectionRenderer({
 
   if (visibleFields.length === 0) return null
 
+  const sectionTitle = getLocalizedText(section.title, locale)
+  const sectionDescription = section.description ? getLocalizedText(section.description, locale) : null
+
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">
-          {getLocalizedText(section.title, locale)}
-        </h3>
-        {section.description && (
-          <p className="text-sm text-muted-foreground mt-1">
-            {getLocalizedText(section.description, locale)}
-          </p>
-        )}
-      </div>
+      {(sectionTitle || sectionDescription) && (
+        <div>
+          {sectionTitle && (
+            <h3 className="text-lg font-medium">
+              {sectionTitle}
+            </h3>
+          )}
+          {sectionDescription && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {sectionDescription}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4">
         {visibleFields.map((field) => (
@@ -654,57 +657,21 @@ function FormFieldRenderer({ field, locale, value, onChange }: FormFieldRenderer
 
       case "radio":
         return (
-          <RadioGroup
-            value={(value as string) || ""}
-            onValueChange={onChange}
-            required={field.required}
-          >
-            {field.options?.map((option) => (
-              <div
-                key={option.value}
-                className={cn(
-                  "flex items-center space-y-0 min-h-[44px]",
-                  isRtl ? "space-x-reverse space-x-2" : "space-x-2"
-                )}
-              >
-                <RadioGroupItem value={option.value} id={`${field.id}-${option.value}`} />
-                <label
-                  htmlFor={`${field.id}-${option.value}`}
-                  className="text-sm font-normal cursor-pointer"
-                >
-                  {getLocalizedText(option.label, locale)}
-                </label>
-              </div>
-            ))}
-          </RadioGroup>
-        )
-
-      case "checkbox":
-        // For checkbox, handle both single and multiple selection
-        if (field.options && field.options.length > 0) {
-          // Multiple checkboxes
-          const selectedValues = Array.isArray(value) ? value : []
-          return (
-            <div className="space-y-2">
-              {field.options.map((option) => (
+          <div className={cn(isRtl && "w-fit ml-auto")}>
+            <RadioGroup
+              value={(value as string) || ""}
+              onValueChange={onChange}
+              required={field.required}
+            >
+              {field.options?.map((option) => (
                 <div
                   key={option.value}
                   className={cn(
-                    "flex items-center space-y-0 min-h-[44px]",
-                    isRtl ? "space-x-reverse space-x-2" : "space-x-2"
+                    "flex items-center py-1 gap-4",
+                    isRtl && "flex-row-reverse"
                   )}
                 >
-                  <Checkbox
-                    id={`${field.id}-${option.value}`}
-                    checked={selectedValues.includes(option.value)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        onChange([...selectedValues, option.value])
-                      } else {
-                        onChange(selectedValues.filter((v: string) => v !== option.value))
-                      }
-                    }}
-                  />
+                  <RadioGroupItem value={option.value} id={`${field.id}-${option.value}`} />
                   <label
                     htmlFor={`${field.id}-${option.value}`}
                     className="text-sm font-normal cursor-pointer"
@@ -713,14 +680,54 @@ function FormFieldRenderer({ field, locale, value, onChange }: FormFieldRenderer
                   </label>
                 </div>
               ))}
+            </RadioGroup>
+          </div>
+        )
+
+      case "checkbox":
+        // For checkbox, handle both single and multiple selection
+        if (field.options && field.options.length > 0) {
+          // Multiple checkboxes
+          const selectedValues = Array.isArray(value) ? value : []
+          return (
+            <div className={cn(isRtl && "w-fit ml-auto")}>
+              <div className="flex flex-col">
+                {field.options.map((option) => (
+                  <div
+                    key={option.value}
+                    className={cn(
+                      "flex items-center py-1 gap-4",
+                      isRtl && "flex-row-reverse"
+                    )}
+                  >
+                    <Checkbox
+                      id={`${field.id}-${option.value}`}
+                      checked={selectedValues.includes(option.value)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          onChange([...selectedValues, option.value])
+                        } else {
+                          onChange(selectedValues.filter((v: string) => v !== option.value))
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor={`${field.id}-${option.value}`}
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {getLocalizedText(option.label, locale)}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
           )
         } else {
           // Single checkbox (boolean)
           return (
             <div className={cn(
-              "flex items-center space-y-0 min-h-[44px]",
-              isRtl ? "space-x-reverse space-x-2" : "space-x-2"
+              "flex items-center py-1 gap-4",
+              isRtl && "flex-row-reverse"
             )}>
               <Checkbox
                 id={field.id}

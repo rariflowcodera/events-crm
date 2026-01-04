@@ -358,7 +358,7 @@ export function CustomFieldEditor({
 
       {/* Field Editor Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingFieldId ? t("editCustomField") : t("addCustomField")}
@@ -458,33 +458,33 @@ export function CustomFieldEditor({
 
               {/* Options (for select/radio/checkbox) */}
               {needsOptions && (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <Label>{t("fieldOptions")}</Label>
                   {options.map((option, index) => (
-                    <div key={index} className="flex items-start gap-2">
-                      <div className="flex-1 space-y-2">
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center gap-2">
                         <Input
                           value={option.value}
                           onChange={(e) => updateOption(index, "value", e.target.value)}
                           placeholder={t("optionValue")}
-                          className="h-8"
+                          className="h-8 flex-1"
                         />
-                        <BilingualInput
-                          label={`${t("optionLabel")} ${index + 1}`}
-                          value={option.label}
-                          onChange={(value) => updateOption(index, "label", value)}
-                          placeholder={{ en: "Option label", ar: "تسمية الخيار" }}
-                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeOption(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => removeOption(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                      <BilingualInput
+                        label={`${t("optionLabel")} ${index + 1}`}
+                        value={option.label}
+                        onChange={(value) => updateOption(index, "label", value)}
+                        placeholder={{ en: "Option label", ar: "تسمية الخيار" }}
+                      />
                     </div>
                   ))}
                   <Button type="button" variant="outline" size="sm" onClick={addOption}>

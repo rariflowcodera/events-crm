@@ -134,6 +134,45 @@ export const useDuplicateEventForm = ({
   return { mutate, isPending }
 }
 
+export const useCopyFormToEvents = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (data: {
+    copiedCount: number
+    results: Array<{
+      eventId: string
+      eventName: string
+      formId: string
+      formSlug: string
+    }>
+  }) => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, mutateAsync, isPending } = trpc.eventForms.copyToEvents.useMutation({
+    onSuccess: (data) => {
+      // Invalidate forms for all target events
+      data.results.forEach((result) => {
+        utils.eventForms.getMany.invalidate({ eventId: result.eventId })
+      })
+      toast.success(
+        data.copiedCount === 1
+          ? "Form copied successfully"
+          : `Form copied to ${data.copiedCount} events`
+      )
+      onSuccess?.(data)
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, mutateAsync, isPending }
+}
+
 export const usePublishEventForm = ({
   onSuccess,
   onError,
@@ -227,7 +266,7 @@ export const useGetGuestFormToken = ({
     token: string
     expiresAt: Date | null
     guest: { id: string; firstName: string; lastName: string | null; email: string | null }
-    form: { id: string; name: string }
+    form: { id: string; name: { en: string; ar?: string } }
   }) => void
   onError?: () => void
 } = {}) => {

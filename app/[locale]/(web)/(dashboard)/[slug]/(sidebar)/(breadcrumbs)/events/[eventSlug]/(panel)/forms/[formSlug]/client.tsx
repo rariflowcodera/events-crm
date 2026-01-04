@@ -31,12 +31,19 @@ import { Icons } from "@/components/global/icons"
 import { useUpdateEventForm, useEventFormBySlug, useFormResponseSummary, usePublishEventForm, useUnpublishEventForm } from "@/trpc/hooks/event-forms-hooks"
 import { GenericFormBuilder } from "@/components/forms/generic-form-builder"
 import { FormLinksPanel } from "@/components/forms/form-links-panel"
+import { BilingualInput } from "@/components/rsvp-form-builder/bilingual-input"
 import type { FormConfig, BilingualText } from "@/server/db/schemas/event-form"
 
 // Helper to clean empty bilingual text fields (empty en string fails validation)
 function cleanBilingualText(text: BilingualText | undefined): BilingualText | undefined {
   if (!text || !text.en) return undefined
   return text
+}
+
+// Helper to get localized text (default to English)
+function getLocalizedText(text: BilingualText | null | undefined, locale: string = "en"): string {
+  if (!text) return ""
+  return (locale === "ar" ? text.ar : text.en) || text.en || ""
 }
 
 // Clean form config to remove empty optional bilingual fields before saving
@@ -158,10 +165,14 @@ export function FormDetailPageClient({
 
   const config = localConfig || (form.formConfig as FormConfig)
 
+  // Get localized display text for header (use English for admin interface)
+  const displayName = getLocalizedText(form.name as BilingualText, "en")
+  const displayDescription = getLocalizedText(form.description as BilingualText | null, "en") || t("forms.editFormDescription")
+
   return (
     <PagePanel
-      title={form.name}
-      description={form.description || t("forms.editFormDescription")}
+      title={displayName}
+      description={displayDescription}
       backHref={backHref}
     >
       <div className="space-y-4">
@@ -255,7 +266,8 @@ export function FormDetailPageClient({
             <FormSettingsPanel
               form={{
                 id: form.id,
-                name: form.name,
+                name: form.name as BilingualText,
+                description: form.description as BilingualText | null,
                 accessType: (form.accessType as "email" | "token") || "email",
                 allowMultipleSubmissions: form.allowMultipleSubmissions,
                 allowAmendments: form.allowAmendments,
@@ -270,6 +282,12 @@ export function FormDetailPageClient({
                   accessType,
                 })
               }}
+              onMetadataChange={(metadata) => {
+                updateForm({
+                  formId: form.id,
+                  ...metadata,
+                })
+              }}
             />
           </TabsContent>
 
@@ -278,7 +296,7 @@ export function FormDetailPageClient({
             <FormLinksPanel
               form={{
                 id: form.id,
-                name: form.name,
+                name: displayName,
                 slug: form.slug,
                 shortCode: form.shortCode,
                 isPublished: form.isPublished,
@@ -351,7 +369,8 @@ export function FormDetailPageClient({
 interface FormSettingsPanelProps {
   form: {
     id: string
-    name: string
+    name: BilingualText
+    description: BilingualText | null
     accessType: "email" | "token"
     allowMultipleSubmissions: boolean
     allowAmendments: boolean
@@ -361,16 +380,35 @@ interface FormSettingsPanelProps {
   categories: { id: string; name: string; color: string | null }[]
   onConfigChange: (config: FormConfig) => void
   onAccessTypeChange: (accessType: "email" | "token") => void
+  onMetadataChange: (metadata: { name?: BilingualText; description?: BilingualText | null }) => void
 }
 
-function FormSettingsPanel({ form, config, categories, onConfigChange, onAccessTypeChange }: FormSettingsPanelProps) {
+function FormSettingsPanel({ form, config, categories, onConfigChange, onAccessTypeChange, onMetadataChange }: FormSettingsPanelProps) {
   const t = useTranslations()
+
+  // Local state for form metadata (bilingual)
+  const [formName, setFormName] = useState<BilingualText>(form.name)
+  const [formDescription, setFormDescription] = useState<BilingualText>(form.description || { en: "" })
 
   const handleSettingsChange = (settings: Partial<FormConfig["settings"]>) => {
     onConfigChange({
       ...config,
       settings: { ...config.settings, ...settings },
     })
+  }
+
+  const handleSaveMetadata = () => {
+    const updates: { name?: BilingualText; description?: BilingualText | null } = {}
+    if (formName.en !== form.name.en || formName.ar !== form.name.ar) {
+      updates.name = formName
+    }
+    const currentDesc = form.description || { en: "" }
+    if (formDescription.en !== currentDesc.en || formDescription.ar !== currentDesc.ar) {
+      updates.description = formDescription.en ? formDescription : null
+    }
+    if (Object.keys(updates).length > 0) {
+      onMetadataChange(updates)
+    }
   }
 
   return (
@@ -380,6 +418,33 @@ function FormSettingsPanel({ form, config, categories, onConfigChange, onAccessT
         <CardDescription>{t("rsvpFormBuilder.formSettingsDescription")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Form Details */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">{t("forms.formDetails")}</Label>
+          <div className="space-y-4">
+            <div onBlur={handleSaveMetadata}>
+              <BilingualInput
+                label={t("forms.formName")}
+                value={formName}
+                onChange={setFormName}
+                required
+              />
+            </div>
+            <div onBlur={handleSaveMetadata}>
+              <BilingualInput
+                label={t("forms.formDescription")}
+                value={formDescription}
+                onChange={setFormDescription}
+                placeholder={{ en: t("forms.formDescriptionPlaceholder") }}
+                multiline
+                rows={2}
+              />
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
         {/* Access Type */}
         <div className="space-y-3">
           <Label>{t("forms.accessType")}</Label>

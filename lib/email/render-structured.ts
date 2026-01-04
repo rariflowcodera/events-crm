@@ -6,6 +6,7 @@ import type {
 } from "@/server/db/schemas/email-template"
 import type { MasterTemplateStructure, TemplateStructureOverrides } from "@/server/db/schemas/email-master-template"
 import type { WorkspaceBranding, EventBranding } from "@/server/db/schemas"
+import type { BilingualText } from "@/server/db/schemas/event-form"
 import {
   resolveEmailBranding,
   resolveBranding,
@@ -83,7 +84,7 @@ export interface EventDocument {
 }
 
 export interface FormToken {
-  form: { id: string; name: string }
+  form: { id: string; name: BilingualText }
   token: string
 }
 
@@ -575,9 +576,9 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
   // 8b. Handle image variables in the rendered HTML
   html = processImageVariables(html, documents, guest, event)
 
-  // 9. Handle form link variables in the rendered HTML
+  // 9. Handle form link variables in the rendered HTML (uses English as default for form names)
   if (formTokens.length > 0) {
-    html = processFormLinkVariables(html, formTokens, event)
+    html = processFormLinkVariables(html, formTokens, event, "en")
   }
 
   // 10. Handle VAPP link variables in the rendered HTML
@@ -755,7 +756,8 @@ function processImageVariables(
 function processFormLinkVariables(
   html: string,
   formTokens: FormToken[],
-  event: Event
+  event: Event,
+  language: "en" | "ar" = "en"
 ): string {
   // Determine base URL for form links
   const baseUrl =
@@ -780,7 +782,8 @@ function processFormLinkVariables(
 
     // Pattern 3: {{formLink.UUID}} - link with form name
     const defaultPattern = new RegExp(`\\{\\{formLink\\.${form.id}\\}\\}`, "g")
-    result = result.replace(defaultPattern, `<a href="${formUrl}" style="color: #0066CC; -webkit-text-fill-color: #0066CC; text-decoration: underline;">${form.name}</a>`)
+    const formName = (language === "ar" ? form.name.ar : form.name.en) || form.name.en || ""
+    result = result.replace(defaultPattern, `<a href="${formUrl}" style="color: #0066CC; -webkit-text-fill-color: #0066CC; text-decoration: underline;">${formName}</a>`)
   }
 
   // Handle missing/unavailable form links (forms not in token mode or deleted)

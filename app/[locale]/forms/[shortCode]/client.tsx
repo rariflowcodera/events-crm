@@ -237,13 +237,20 @@ export function PublicFormPage({ shortCode, locale }: PublicFormPageProps) {
           {logoUrl && (
             <img
               src={logoUrl}
-              alt={event.name}
-              className="mx-auto mb-4 h-16 object-contain"
+              alt={displayLocale === "ar" && event.nameAr ? event.nameAr : event.name}
+              className="mx-auto mb-4 h-40 object-contain"
             />
           )}
-          <CardTitle className="text-xl sm:text-2xl">{formData.name}</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl">
+            {displayLocale === "ar" && event.nameAr ? event.nameAr : event.name}
+          </CardTitle>
+          <p className="text-base text-muted-foreground">
+            {getLocalizedText(formData.name as BilingualText, displayLocale)}
+          </p>
           {formData.description && (
-            <CardDescription>{formData.description}</CardDescription>
+            <CardDescription>
+              {getLocalizedText(formData.description as BilingualText, displayLocale)}
+            </CardDescription>
           )}
         </CardHeader>
 
@@ -406,6 +413,12 @@ function FormStep({
 }: FormStepProps) {
   const t = useTranslations()
   const isRtl = locale === "ar"
+
+  // Local translations for buttons (respects displayLocale, not URL locale)
+  const buttonLabels = {
+    back: locale === "ar" ? "رجوع" : "Back",
+    next: locale === "ar" ? "التالي" : "Next",
+  }
 
   // Build form values state
   const [formValues, setFormValues] = useState<Record<string, unknown>>(
@@ -575,7 +588,7 @@ function FormStep({
             className="min-h-[44px] flex items-center gap-2"
           >
             {!isRtl && <ChevronLeft className="h-4 w-4" />}
-            {t("publicForms.back")}
+            {buttonLabels.back}
             {isRtl && <ChevronRight className="h-4 w-4" />}
           </Button>
 
@@ -602,7 +615,7 @@ function FormStep({
               className="flex-1 min-h-[44px] flex items-center justify-center gap-2"
               style={primaryButtonStyle}
             >
-              {t("publicForms.next")}
+              {buttonLabels.next}
               {!isRtl && <ChevronRight className="h-4 w-4" />}
               {isRtl && <ChevronLeft className="h-4 w-4" />}
             </Button>
@@ -641,18 +654,25 @@ function FormSectionRenderer({
 
   if (visibleFields.length === 0) return null
 
+  const sectionTitle = getLocalizedText(section.title, locale)
+  const sectionDescription = section.description ? getLocalizedText(section.description, locale) : null
+
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">
-          {getLocalizedText(section.title, locale)}
-        </h3>
-        {section.description && (
-          <p className="text-sm text-muted-foreground mt-1">
-            {getLocalizedText(section.description, locale)}
-          </p>
-        )}
-      </div>
+      {(sectionTitle || sectionDescription) && (
+        <div>
+          {sectionTitle && (
+            <h3 className="text-lg font-medium">
+              {sectionTitle}
+            </h3>
+          )}
+          {sectionDescription && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {sectionDescription}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4">
         {visibleFields.map((field) => (
@@ -756,57 +776,21 @@ function FormFieldRenderer({ field, locale, value, onChange }: FormFieldRenderer
 
       case "radio":
         return (
-          <RadioGroup
-            value={(value as string) || ""}
-            onValueChange={onChange}
-            required={field.required}
-          >
-            {field.options?.map((option) => (
-              <div
-                key={option.value}
-                className={cn(
-                  "flex items-center space-y-0 min-h-[44px]",
-                  isRtl ? "space-x-reverse space-x-2" : "space-x-2"
-                )}
-              >
-                <RadioGroupItem value={option.value} id={`${field.id}-${option.value}`} />
-                <label
-                  htmlFor={`${field.id}-${option.value}`}
-                  className="text-sm font-normal cursor-pointer"
-                >
-                  {getLocalizedText(option.label, locale)}
-                </label>
-              </div>
-            ))}
-          </RadioGroup>
-        )
-
-      case "checkbox":
-        // For checkbox, handle both single and multiple selection
-        if (field.options && field.options.length > 0) {
-          // Multiple checkboxes
-          const selectedValues = Array.isArray(value) ? value : []
-          return (
-            <div className="space-y-2">
-              {field.options.map((option) => (
+          <div className={cn(isRtl && "w-fit ml-auto")}>
+            <RadioGroup
+              value={(value as string) || ""}
+              onValueChange={onChange}
+              required={field.required}
+            >
+              {field.options?.map((option) => (
                 <div
                   key={option.value}
                   className={cn(
-                    "flex items-center space-y-0 min-h-[44px]",
-                    isRtl ? "space-x-reverse space-x-2" : "space-x-2"
+                    "flex items-center py-1 gap-4",
+                    isRtl && "flex-row-reverse"
                   )}
                 >
-                  <Checkbox
-                    id={`${field.id}-${option.value}`}
-                    checked={selectedValues.includes(option.value)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        onChange([...selectedValues, option.value])
-                      } else {
-                        onChange(selectedValues.filter((v: string) => v !== option.value))
-                      }
-                    }}
-                  />
+                  <RadioGroupItem value={option.value} id={`${field.id}-${option.value}`} />
                   <label
                     htmlFor={`${field.id}-${option.value}`}
                     className="text-sm font-normal cursor-pointer"
@@ -815,23 +799,65 @@ function FormFieldRenderer({ field, locale, value, onChange }: FormFieldRenderer
                   </label>
                 </div>
               ))}
+            </RadioGroup>
+          </div>
+        )
+
+      case "checkbox":
+        // For checkbox, handle both single and multiple selection
+        if (field.options && field.options.length > 0) {
+          // Multiple checkboxes
+          const selectedValues = Array.isArray(value) ? value : []
+          return (
+            <div className={cn(isRtl && "w-fit ml-auto")}>
+              <div className="flex flex-col">
+                {field.options.map((option) => (
+                  <div
+                    key={option.value}
+                    className={cn(
+                      "flex items-center py-1 gap-4",
+                      isRtl && "flex-row-reverse"
+                    )}
+                  >
+                    <Checkbox
+                      id={`${field.id}-${option.value}`}
+                      checked={selectedValues.includes(option.value)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          onChange([...selectedValues, option.value])
+                        } else {
+                          onChange(selectedValues.filter((v: string) => v !== option.value))
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor={`${field.id}-${option.value}`}
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {getLocalizedText(option.label, locale)}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
           )
         } else {
           // Single checkbox (boolean)
           return (
-            <div className={cn(
-              "flex items-center space-y-0 min-h-[44px]",
-              isRtl ? "space-x-reverse space-x-2" : "space-x-2"
-            )}>
-              <Checkbox
-                id={field.id}
-                checked={!!value}
-                onCheckedChange={(checked) => onChange(checked)}
-              />
-              <label htmlFor={field.id} className="text-sm font-normal cursor-pointer">
-                {label}
-              </label>
+            <div className={cn(isRtl && "w-fit ml-auto")}>
+              <div className={cn(
+                "flex items-center py-1 gap-4",
+                isRtl && "flex-row-reverse"
+              )}>
+                <Checkbox
+                  id={field.id}
+                  checked={!!value}
+                  onCheckedChange={(checked) => onChange(checked)}
+                />
+                <label htmlFor={field.id} className="text-sm font-normal cursor-pointer">
+                  {label}
+                </label>
+              </div>
             </div>
           )
         }

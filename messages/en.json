@@ -614,6 +614,7 @@
     "createdAgo": "Created {time}",
     "deleteFormTitle": "Delete Form",
     "deleteFormDescription": "Are you sure you want to delete \"{name}\"? This will also delete all responses. This action cannot be undone.",
+    "formDetails": "Form Details",
     "formName": "Form Name",
     "formNamePlaceholder": "e.g., Travel Preferences",
     "formSlug": "Form URL Slug",
@@ -671,6 +672,18 @@
     "tokenModeForms": "Token Mode Forms",
     "searchForms": "Search forms...",
     "loadingForms": "Loading forms...",
+    "untitled": "Untitled Form",
+    "copyToEvents": "Copy to Events",
+    "copyToEventsDialog": {
+      "title": "Copy Form to Other Events",
+      "description": "Copy \"{name}\" to one or more other events in this workspace.",
+      "selectAll": "Select all events",
+      "events": "events",
+      "noOtherEvents": "No other events available in this workspace.",
+      "categoryInfo": "Category-based visibility will be matched by name. If a category doesn't exist in the target event, that visibility filter will be cleared.",
+      "copying": "Copying...",
+      "submit": "Copy to {count} event(s)"
+    },
     "insert": {
       "back": "Back",
       "displayText": "Display Text",

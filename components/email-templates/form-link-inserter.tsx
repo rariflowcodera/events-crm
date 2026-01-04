@@ -4,6 +4,13 @@ import { useState } from "react"
 import { useTranslations } from "next-intl"
 
 import { useTokenModeForms } from "@/trpc/hooks/event-forms-hooks"
+import type { BilingualText } from "@/server/db/schemas/event-form"
+
+// Helper to get localized text (default to English)
+function getLocalizedText(text: BilingualText | null | undefined): string {
+  if (!text) return ""
+  return text.en || ""
+}
 import {
   Popover,
   PopoverContent,
@@ -213,14 +220,16 @@ export function FormLinkInserter({ eventId, onInsert, onFocus }: FormLinkInserte
                       key={form.id}
                       onSelect={() => handleSelectForm({
                         id: form.id,
-                        name: form.name,
+                        name: getLocalizedText(form.name as BilingualText),
                         purpose: form.purpose,
                       })}
                       className="flex items-start gap-2 py-2"
                     >
                       <FileText className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">{form.name}</div>
+                        <div className="font-medium text-sm truncate">
+                          {getLocalizedText(form.name as BilingualText)}
+                        </div>
                         {form.purpose && (
                           <Badge variant="secondary" className="text-[10px] px-1.5 py-0 mt-1">
                             {form.purpose}

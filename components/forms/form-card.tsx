@@ -38,14 +38,23 @@ import {
   usePublishEventForm,
   useUnpublishEventForm,
 } from "@/trpc/hooks/event-forms-hooks"
+import { CopyFormToEventsDialog } from "@/components/forms/copy-form-to-events-dialog"
 import type { FormPurpose } from "@/lib/schemas"
+import type { BilingualText } from "@/server/db/schemas/event-form"
+
+// Helper to get localized text (default to English)
+function getLocalizedText(text: BilingualText | null | undefined, locale: string = "en"): string {
+  if (!text) return ""
+  return (locale === "ar" ? text.ar : text.en) || text.en || ""
+}
 
 interface FormCardProps {
   form: {
     id: string
-    name: string
+    eventId: string
+    name: BilingualText
     slug: string
-    description: string | null
+    description: BilingualText | null
     purpose: FormPurpose | null
     isPublished: boolean
     shortCode: string | null
@@ -77,6 +86,7 @@ export function FormCard({ form, workspaceSlug, eventSlug }: FormCardProps) {
   const t = useTranslations()
   const router = useRouter()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false)
 
   const { mutate: deleteForm, isPending: isDeleting } = useDeleteEventForm({
     onSuccess: () => setDeleteDialogOpen(false),
@@ -110,17 +120,17 @@ export function FormCard({ form, workspaceSlug, eventSlug }: FormCardProps) {
                 <PurposeIcon className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <CardTitle className="truncate text-base">{form.name}</CardTitle>
+                <CardTitle className="truncate text-base">{getLocalizedText(form.name)}</CardTitle>
                 {form.description && (
                   <CardDescription className="mt-1 line-clamp-1">
-                    {form.description}
+                    {getLocalizedText(form.description)}
                   </CardDescription>
                 )}
               </div>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="relative z-10 h-8 w-8">
                   <Icons.moreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -157,6 +167,10 @@ export function FormCard({ form, workspaceSlug, eventSlug }: FormCardProps) {
                 >
                   <Icons.copy className="mr-2 h-4 w-4" />
                   {t("common.duplicate")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCopyDialogOpen(true)}>
+                  <Icons.send className="mr-2 h-4 w-4" />
+                  {t("forms.copyToEvents")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -209,7 +223,7 @@ export function FormCard({ form, workspaceSlug, eventSlug }: FormCardProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>{t("forms.deleteFormTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t("forms.deleteFormDescription", { name: form.name })}
+              {t("forms.deleteFormDescription", { name: getLocalizedText(form.name) })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -224,6 +238,17 @@ export function FormCard({ form, workspaceSlug, eventSlug }: FormCardProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CopyFormToEventsDialog
+        open={copyDialogOpen}
+        onOpenChange={setCopyDialogOpen}
+        form={{
+          id: form.id,
+          name: form.name,
+          eventId: form.eventId,
+        }}
+        workspaceSlug={workspaceSlug}
+      />
     </>
   )
 }

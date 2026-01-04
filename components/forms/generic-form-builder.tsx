@@ -685,35 +685,16 @@ function FieldEditorDialog({
           {needsOptions && (
             <div className="space-y-2">
               <Label>{t("fieldOptions")}</Label>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {(formData.options || []).map((option, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input
-                      value={option.value}
-                      onChange={(e) => {
-                        const newOptions = [...(formData.options || [])]
-                        newOptions[index] = { ...option, value: e.target.value }
-                        setFormData({ ...formData, options: newOptions })
-                      }}
-                      placeholder={t("optionValue")}
-                      className="flex-1"
-                    />
-                    <Input
-                      value={option.label.en || ""}
-                      onChange={(e) => {
-                        const newOptions = [...(formData.options || [])]
-                        newOptions[index] = {
-                          ...option,
-                          label: { en: e.target.value, ar: option.label.ar || "" },
-                        }
-                        setFormData({ ...formData, options: newOptions })
-                      }}
-                      placeholder={t("optionLabel")}
-                      className="flex-1"
-                    />
+                  <div
+                    key={index}
+                    className="relative rounded-lg border bg-muted/30 p-3 space-y-2"
+                  >
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="absolute top-1 right-1 h-7 w-7"
                       onClick={() => {
                         const newOptions = (formData.options || []).filter(
                           (_, i) => i !== index
@@ -723,6 +704,43 @@ function FieldEditorDialog({
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                    <Input
+                      value={option.value}
+                      onChange={(e) => {
+                        const newOptions = [...(formData.options || [])]
+                        newOptions[index] = { ...option, value: e.target.value }
+                        setFormData({ ...formData, options: newOptions })
+                      }}
+                      placeholder={t("optionValue")}
+                      className="pr-10"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        value={option.label.en || ""}
+                        onChange={(e) => {
+                          const newOptions = [...(formData.options || [])]
+                          newOptions[index] = {
+                            ...option,
+                            label: { en: e.target.value, ar: option.label.ar || "" },
+                          }
+                          setFormData({ ...formData, options: newOptions })
+                        }}
+                        placeholder="Label (English)"
+                      />
+                      <Input
+                        value={option.label.ar || ""}
+                        onChange={(e) => {
+                          const newOptions = [...(formData.options || [])]
+                          newOptions[index] = {
+                            ...option,
+                            label: { en: option.label.en || "", ar: e.target.value },
+                          }
+                          setFormData({ ...formData, options: newOptions })
+                        }}
+                        placeholder="التسمية (Arabic)"
+                        dir="rtl"
+                      />
+                    </div>
                   </div>
                 ))}
                 <Button
@@ -733,7 +751,7 @@ function FieldEditorDialog({
                       ...formData,
                       options: [
                         ...(formData.options || []),
-                        { value: "", label: { en: "" } },
+                        { value: "", label: { en: "", ar: "" } },
                       ],
                     })
                   }

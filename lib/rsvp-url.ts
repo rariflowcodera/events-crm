@@ -110,3 +110,12 @@ export function getVappUrl(event: EventWithCustomDomain, rsvpToken: string): str
   // Main app: include locale prefix
   return `${baseUrl}/en/vapp/${rsvpToken}`
 }
+
+/**
+ * Get form URL for a guest token
+ * Forms use /forms/t/{token} without locale prefix (same for custom domains and main app)
+ */
+export function getFormUrl(event: EventWithCustomDomain, formToken: string): string {
+  const baseUrl = getRsvpBaseUrl(event)
+  return `${baseUrl}/forms/t/${formToken}`
+}

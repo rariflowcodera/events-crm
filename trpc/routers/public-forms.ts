@@ -76,6 +76,7 @@ export const publicFormsRouter = createTRPCRouter({
         event: {
           id: event.id,
           name: event.name,
+          nameAr: event.nameAr,
           branding: event.branding,
           resolvedBranding,
         },
@@ -417,6 +418,7 @@ export const publicFormsRouter = createTRPCRouter({
         event: {
           id: event.id,
           name: event.name,
+          nameAr: event.nameAr,
           branding: event.branding,
           resolvedBranding,
         },

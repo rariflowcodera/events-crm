@@ -686,6 +686,12 @@ export const bilingualTextSchema = z.object({
   ar: z.string().optional(),
 })
 
+/** Bilingual text content (optional - for section titles etc.) */
+export const optionalBilingualTextSchema = z.object({
+  en: z.string().optional(),
+  ar: z.string().optional(),
+})
+
 /** Field validation rules */
 export const fieldValidationSchema = z.object({
   minLength: z.number().int().min(0).optional(),
@@ -957,8 +963,8 @@ export type FormFieldConfigInput = z.infer<typeof formFieldConfigSchema>
 /** Generic form section configuration */
 export const formSectionConfigSchema = z.object({
   id: z.string().min(1),
-  title: bilingualTextSchema,
-  description: bilingualTextSchema.optional(),
+  title: optionalBilingualTextSchema,
+  description: optionalBilingualTextSchema.optional(),
   enabled: z.boolean().default(true),
   sortOrder: z.number().int().min(0),
   fields: z.array(formFieldConfigSchema),
@@ -987,13 +993,13 @@ export type FormConfigInput = z.infer<typeof formConfigSchema>
 /** Create event form schema */
 export const createEventFormSchema = z.object({
   eventId: z.string().uuid("Invalid event ID"),
-  name: z.string().min(1, "Form name is required").max(100, "Form name must be 100 characters or less"),
+  name: bilingualTextSchema,
   slug: z
     .string()
     .min(1, "Slug is required")
     .max(100)
     .regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens only"),
-  description: z.string().max(500).optional(),
+  description: bilingualTextSchema.nullable().optional(),
   purpose: z.enum(formPurposeValues).optional(),
   formConfig: formConfigSchema,
   accessType: z.enum(formAccessTypeValues).default("email"),
@@ -1008,14 +1014,14 @@ export type CreateEventFormInput = z.infer<typeof createEventFormSchema>
 /** Update event form schema */
 export const updateEventFormSchema = z.object({
   formId: z.string().uuid("Invalid form ID"),
-  name: z.string().min(1).max(100).optional(),
+  name: bilingualTextSchema.optional(),
   slug: z
     .string()
     .min(1)
     .max(100)
     .regex(/^[a-z0-9-]+$/)
     .optional(),
-  description: z.string().max(500).nullable().optional(),
+  description: bilingualTextSchema.nullable().optional(),
   purpose: z.enum(formPurposeValues).optional(),
   formConfig: formConfigSchema.optional(),
   accessType: z.enum(formAccessTypeValues).optional(),

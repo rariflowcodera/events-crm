@@ -105,7 +105,7 @@ interface BrandingContext {
 
 /** Form token for token-based form access */
 interface FormToken {
-  form: { id: string; name: string }
+  form: { id: string; name: { en: string; ar?: string } }
   token: string
 }
 

@@ -523,6 +523,10 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
             eventId={event.id}
             guestId={selectedGuestId}
             guestName={`${selectedGuest.firstName} ${selectedGuest.lastName}`}
+            event={{
+              customDomain: event.customDomain,
+              customDomainVerified: event.customDomainVerified,
+            }}
           />
         )
       })()}
