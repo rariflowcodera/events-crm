@@ -93,6 +93,7 @@ interface Guest {
   tags: string[] | null
   internalNotes: string | null
   lastEmailSentAt: Date | null
+  lastEmailTemplateName: string | null
   lastEmailOpenedAt: Date | null
   lastRsvpPageVisitAt: Date | null
   attendedAt: Date | null
@@ -639,6 +640,22 @@ export function GuestsDataTable({
           return date ? format(date, "MMM d, yyyy") : ""
         },
         size: getColumnWidth("lastEmailSentAt"),
+      },
+      {
+        id: "lastEmailTemplateName",
+        accessorKey: "lastEmailTemplateName",
+        header: ({ column }) => (
+          <FilterableHeader column={column} title="Last Email Name" />
+        ),
+        cell: ({ getValue }) => {
+          const value = getValue() as string | null
+          return (
+            <span className="truncate" title={value ?? undefined}>
+              {value || ""}
+            </span>
+          )
+        },
+        size: getColumnWidth("lastEmailTemplateName"),
       },
       {
         id: "lastEmailOpenedAt",

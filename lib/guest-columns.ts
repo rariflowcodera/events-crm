@@ -43,6 +43,7 @@ export type GuestColumnId =
   | "internalNotes"
   | "rsvpRespondedAt"
   | "lastEmailSentAt"
+  | "lastEmailTemplateName"
   | "lastEmailOpenedAt"
   | "lastRsvpPageVisitAt"
   | "createdAt"
@@ -376,6 +377,16 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     defaultWidth: 140,
     sortable: true,
     filterable: false,
+    group: "activity",
+  },
+  {
+    id: "lastEmailTemplateName",
+    label: "Last Email Name",
+    labelAr: "اسم آخر بريد",
+    defaultVisible: false,
+    defaultWidth: 180,
+    sortable: true,
+    filterable: true,
     group: "activity",
   },
   {

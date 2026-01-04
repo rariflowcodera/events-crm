@@ -46,6 +46,7 @@ export const guestsRouter = createTRPCRouter({
             countries: z.array(z.string()).optional(),
             search: z.string().optional(),
             tags: z.array(z.string()).optional(),
+            lastEmailTemplateNames: z.array(z.string()).optional(),
           })
           .optional(),
         // Sorting configuration
@@ -109,6 +110,11 @@ export const guestsRouter = createTRPCRouter({
         conditions.push(inArray(guests.country, filters.countries))
       }
 
+      // Last Email Template Name filter (array)
+      if (filters?.lastEmailTemplateNames && filters.lastEmailTemplateNames.length > 0) {
+        conditions.push(inArray(guests.lastEmailTemplateName, filters.lastEmailTemplateNames))
+      }
+
       // Tags filter (array - check if guest has any of the specified tags)
       if (filters?.tags && filters.tags.length > 0) {
         // Use SQL array overlap operator to check if any tags match
@@ -167,6 +173,8 @@ export const guestsRouter = createTRPCRouter({
             return sortFn(guests.hasCompanion)
           case "lastEmailSentAt":
             return sortFn(guests.lastEmailSentAt)
+          case "lastEmailTemplateName":
+            return sortFn(guests.lastEmailTemplateName)
           case "lastEmailOpenedAt":
             return sortFn(guests.lastEmailOpenedAt)
           case "lastRsvpPageVisitAt":

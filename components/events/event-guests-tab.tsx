@@ -272,6 +272,20 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [guests])
 
+  // Compute available email template names from guest data (for last email filter options)
+  const availableEmailTemplateNames = useMemo(() => {
+    if (!guests.length) return []
+
+    const nameSet = new Set<string>()
+    guests.forEach((guest) => {
+      if (guest.lastEmailTemplateName) {
+        nameSet.add(guest.lastEmailTemplateName)
+      }
+    })
+
+    return Array.from(nameSet).sort()
+  }, [guests])
+
   // Update handlers
   const handleFiltersChange = useCallback((filters: GuestListViewFilterConfig) => {
     setViewConfig((prev) => ({ ...prev, filters }))
@@ -367,6 +381,10 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
     handleFiltersChange({ ...viewConfig.filters, countries: countries.length ? countries : undefined })
   }, [viewConfig.filters, handleFiltersChange])
 
+  const handleLastEmailTemplateNameFilterChange = useCallback((names: string[]) => {
+    handleFiltersChange({ ...viewConfig.filters, lastEmailTemplateNames: names.length ? names : undefined })
+  }, [viewConfig.filters, handleFiltersChange])
+
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
     const { filters } = viewConfig
@@ -375,7 +393,8 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
       (filters.status && filters.status.length > 0) ||
       (filters.categoryIds && filters.categoryIds.length > 0) ||
       (filters.countries && filters.countries.length > 0) ||
-      (filters.tags && filters.tags.length > 0)
+      (filters.tags && filters.tags.length > 0) ||
+      (filters.lastEmailTemplateNames && filters.lastEmailTemplateNames.length > 0)
     )
   }, [viewConfig.filters])
 
@@ -418,6 +437,9 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
         countryFilter={viewConfig.filters.countries || []}
         onCountryFilterChange={handleCountryFilterChange}
         availableCountries={availableCountries}
+        lastEmailTemplateNameFilter={viewConfig.filters.lastEmailTemplateNames || []}
+        onLastEmailTemplateNameFilterChange={handleLastEmailTemplateNameFilterChange}
+        availableEmailTemplateNames={availableEmailTemplateNames}
         categories={event.guestCategories}
         selectedCount={selectedIds.size}
         addGuestHref={addGuestHref}

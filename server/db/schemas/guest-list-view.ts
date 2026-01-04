@@ -42,6 +42,7 @@ export type GuestListViewFilterConfig = {
   countries?: string[] // Country filter values
   search?: string // Search query
   tags?: string[] // Tag filters
+  lastEmailTemplateNames?: string[] // Last email template name filter values
 }
 
 export type GuestListViewSortConfig = {

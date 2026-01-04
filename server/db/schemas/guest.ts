@@ -116,6 +116,7 @@ export const guests = pgTable(
 
     // Activity tracking
     lastEmailSentAt: timestamp("last_email_sent_at", { mode: "date" }),
+    lastEmailTemplateName: text("last_email_template_name"),
     lastEmailOpenedAt: timestamp("last_email_opened_at", { mode: "date" }),
     lastRsvpPageVisitAt: timestamp("last_rsvp_page_visit_at", { mode: "date" }),
 

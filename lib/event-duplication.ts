@@ -294,6 +294,16 @@ export function remapFormConfigCategories<
 // ============================================================================
 
 /**
+ * Strips existing -copy or -copy-N suffix from a slug to get the original base
+ * "asia-cup-2027-copy" → "asia-cup-2027"
+ * "asia-cup-2027-copy-2" → "asia-cup-2027"
+ * "asia-cup-2027" → "asia-cup-2027"
+ */
+function stripCopySuffix(slug: string): string {
+  return slug.replace(/-copy(?:-\d+)?$/, "")
+}
+
+/**
  * Generates a unique event slug by appending a counter if needed
  *
  * Original: annual-gala-2024
@@ -304,8 +314,11 @@ export async function generateUniqueEventSlug(
   workspaceId: string,
   baseSlug: string
 ): Promise<string> {
+  // Strip any existing -copy or -copy-N suffix to get the original base
+  const originalBase = stripCopySuffix(baseSlug)
+
   // First, try the base slug with "-copy" suffix
-  const copySlug = `${baseSlug}-copy`
+  const copySlug = `${originalBase}-copy`
 
   // Check if the copy slug already exists
   const existingWithCopy = await db.query.events.findFirst({
@@ -319,11 +332,11 @@ export async function generateUniqueEventSlug(
     return copySlug
   }
 
-  // Find all existing slugs that match the pattern "baseSlug-copy-N"
+  // Find all existing slugs that match the pattern "originalBase-copy-N"
   const existingEvents = await db.query.events.findMany({
     where: and(
       eq(events.workspaceId, workspaceId),
-      like(events.slug, `${baseSlug}-copy%`)
+      like(events.slug, `${originalBase}-copy%`)
     ),
     columns: { slug: true },
   })
@@ -331,7 +344,7 @@ export async function generateUniqueEventSlug(
   // Extract numbers from existing slugs
   const numbers = existingEvents
     .map((e) => {
-      const match = e.slug.match(new RegExp(`^${escapeRegex(baseSlug)}-copy(?:-(\\d+))?$`))
+      const match = e.slug.match(new RegExp(`^${escapeRegex(originalBase)}-copy(?:-(\\d+))?$`))
       if (match) {
         return match[1] ? parseInt(match[1], 10) : 1
       }
@@ -343,7 +356,7 @@ export async function generateUniqueEventSlug(
   const maxNumber = numbers.length > 0 ? Math.max(...numbers) : 1
   const nextNumber = maxNumber + 1
 
-  return `${baseSlug}-copy-${nextNumber}`
+  return `${originalBase}-copy-${nextNumber}`
 }
 
 /**

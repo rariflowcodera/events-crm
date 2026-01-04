@@ -239,6 +239,13 @@
       "when": 1767382126777,
       "tag": "0033_living_chimera",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1767547912323,
+      "tag": "0034_slow_captain_stacy",
+      "breakpoints": true
     }
   ]
 }

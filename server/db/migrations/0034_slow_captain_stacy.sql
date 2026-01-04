@@ -1,0 +1,1 @@
+ALTER TABLE "guest" ADD COLUMN "last_email_template_name" text;

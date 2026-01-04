@@ -80,6 +80,9 @@ interface GuestsToolbarProps {
   countryFilter: string[]
   onCountryFilterChange: (countries: string[]) => void
   availableCountries: CountryOption[]
+  lastEmailTemplateNameFilter: string[]
+  onLastEmailTemplateNameFilterChange: (names: string[]) => void
+  availableEmailTemplateNames: string[]
   categories: GuestCategory[]
   // Core props
   selectedCount: number
@@ -138,6 +141,9 @@ export function GuestsToolbar({
   countryFilter,
   onCountryFilterChange,
   availableCountries,
+  lastEmailTemplateNameFilter,
+  onLastEmailTemplateNameFilterChange,
+  availableEmailTemplateNames,
   categories,
   selectedCount,
   addGuestHref,
@@ -202,8 +208,9 @@ export function GuestsToolbar({
     if (statusFilter.length > 0) count++
     if (categoryFilter.length > 0) count++
     if (countryFilter.length > 0) count++
+    if (lastEmailTemplateNameFilter.length > 0) count++
     return count
-  }, [searchQuery, statusFilter, categoryFilter, countryFilter])
+  }, [searchQuery, statusFilter, categoryFilter, countryFilter, lastEmailTemplateNameFilter])
 
   // Clear all filters
   const handleClearFilters = () => {
@@ -211,6 +218,7 @@ export function GuestsToolbar({
     onStatusFilterChange([])
     onCategoryFilterChange([])
     onCountryFilterChange([])
+    onLastEmailTemplateNameFilterChange([])
   }
 
   // Category options for filter
@@ -388,6 +396,17 @@ export function GuestsToolbar({
                 options={availableCountries.map((c) => ({ value: c.code, label: c.name }))}
                 placeholder="Country"
                 searchPlaceholder="Search country..."
+              />
+            )}
+
+            {/* Last Email Name filter */}
+            {availableEmailTemplateNames.length > 0 && (
+              <MultiSelectFilter
+                value={lastEmailTemplateNameFilter}
+                onChange={onLastEmailTemplateNameFilterChange}
+                options={availableEmailTemplateNames.map((name) => ({ value: name, label: name }))}
+                placeholder="Last Email"
+                searchPlaceholder="Search email template..."
               />
             )}
 

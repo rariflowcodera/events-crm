@@ -340,6 +340,7 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
       .update(guests)
       .set({
         lastEmailSentAt: new Date(),
+        lastEmailTemplateName: template.name,
         ...(newStatus && { status: newStatus }),
       })
       .where(eq(guests.id, guestId))
