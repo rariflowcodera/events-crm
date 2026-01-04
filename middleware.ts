@@ -102,6 +102,22 @@ function handleCustomDomain(
     return response
   }
 
+  // Handle form token routes: /forms/t/{token}
+  const formTokenMatch = pathname.match(/^\/forms\/t\/([a-zA-Z0-9-]+)\/?$/)
+
+  if (formTokenMatch) {
+    const token = formTokenMatch[1]
+
+    // Rewrite to custom domain form handler
+    const url = request.nextUrl.clone()
+    url.pathname = `/${locale}/forms-custom/${token}`
+
+    const response = NextResponse.rewrite(url)
+    response.headers.set("x-custom-domain", host)
+    response.headers.set("x-locale", locale)
+    return response
+  }
+
   // Handle email preview routes: /email/{token}
   const emailMatch = pathname.match(/^\/email\/([a-zA-Z0-9-]+)\/?$/)
 
