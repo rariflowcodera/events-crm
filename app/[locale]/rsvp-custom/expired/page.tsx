@@ -6,19 +6,29 @@ interface ExpiredPageProps {
   params: Promise<{
     locale: string
   }>
+  searchParams: Promise<{
+    event?: string
+    lang?: string
+  }>
 }
 
-export default async function ExpiredPage({ params }: ExpiredPageProps) {
+export default async function ExpiredPage({ params, searchParams }: ExpiredPageProps) {
   const { locale } = await params
-  const headersList = await headers()
-  const customDomain = headersList.get("x-custom-domain")
+  const { event: eventParam } = await searchParams
 
-  // Get event branding if domain is valid
+  // Prefer event name from URL param (accurate for the specific guest)
   let eventName = "Event"
-  if (customDomain) {
-    const domainData = await getEventByCustomDomain(customDomain)
-    if (domainData) {
-      eventName = domainData.eventName
+  if (eventParam) {
+    eventName = eventParam
+  } else {
+    // Fallback to domain lookup (for legacy/direct access)
+    const headersList = await headers()
+    const customDomain = headersList.get("x-custom-domain")
+    if (customDomain) {
+      const domainData = await getEventByCustomDomain(customDomain)
+      if (domainData) {
+        eventName = domainData.eventName
+      }
     }
   }
 
@@ -50,16 +60,23 @@ export default async function ExpiredPage({ params }: ExpiredPageProps) {
   )
 }
 
-export async function generateMetadata({ params }: ExpiredPageProps) {
+export async function generateMetadata({ params, searchParams }: ExpiredPageProps) {
   const { locale } = await params
-  const headersList = await headers()
-  const customDomain = headersList.get("x-custom-domain")
+  const { event: eventParam } = await searchParams
 
+  // Prefer event name from URL param (accurate for the specific guest)
   let eventName = "Event"
-  if (customDomain) {
-    const domainData = await getEventByCustomDomain(customDomain)
-    if (domainData) {
-      eventName = domainData.eventName
+  if (eventParam) {
+    eventName = eventParam
+  } else {
+    // Fallback to domain lookup (for legacy/direct access)
+    const headersList = await headers()
+    const customDomain = headersList.get("x-custom-domain")
+    if (customDomain) {
+      const domainData = await getEventByCustomDomain(customDomain)
+      if (domainData) {
+        eventName = domainData.eventName
+      }
     }
   }
 

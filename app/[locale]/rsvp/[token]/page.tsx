@@ -15,18 +15,23 @@ interface RsvpPageProps {
 export default async function RsvpPage({ params }: RsvpPageProps) {
   const { token, locale } = await params
 
-  // Verify token exists and is not expired (check both UUID and short code)
+  // Verify token exists (check both UUID and short code)
   const guest = await db.query.guests.findFirst({
     where: or(eq(guests.rsvpToken, token), eq(guests.rsvpShortCode, token)),
-    columns: { id: true, rsvpTokenExpiresAt: true, rsvpToken: true },
+    columns: { id: true, rsvpToken: true },
+    with: {
+      event: {
+        columns: { rsvpDeadline: true },
+      },
+    },
   })
 
   if (!guest) {
     notFound()
   }
 
-  // Check if token is expired
-  if (guest.rsvpTokenExpiresAt && guest.rsvpTokenExpiresAt < new Date()) {
+  // Check event's current RSVP deadline (source of truth, not guest snapshot)
+  if (guest.event?.rsvpDeadline && guest.event.rsvpDeadline < new Date()) {
     redirect(`/${locale}/rsvp/expired`)
   }
 

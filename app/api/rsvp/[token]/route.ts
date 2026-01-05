@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { eq, and, gt, isNull, or } from "drizzle-orm"
+import { eq, and, isNull, or } from "drizzle-orm"
 import { db } from "@/server/db/config/database"
 import { guests, events, guestCategories, rsvpResponses, workspaces, emailTemplates } from "@/server/db/schemas"
 import { getMaterializedColumn, isStandardField } from "@/lib/rsvp"
@@ -17,11 +17,7 @@ export async function GET(
 
   // Find guest by RSVP token (check both UUID and short code)
   const guest = await db.query.guests.findFirst({
-    where: and(
-      or(eq(guests.rsvpToken, token), eq(guests.rsvpShortCode, token)),
-      // Token not expired (or no expiration set)
-      gt(guests.rsvpTokenExpiresAt, new Date())
-    ),
+    where: or(eq(guests.rsvpToken, token), eq(guests.rsvpShortCode, token)),
     with: {
       event: {
         with: {
@@ -39,19 +35,15 @@ export async function GET(
   })
 
   if (!guest) {
-    // Also check if token exists but is expired (check both token types)
-    const expiredGuest = await db.query.guests.findFirst({
-      where: or(eq(guests.rsvpToken, token), eq(guests.rsvpShortCode, token)),
-    })
-
-    if (expiredGuest) {
-      return NextResponse.json({ error: "RSVP link has expired", code: "EXPIRED" }, { status: 410 })
-    }
-
     return NextResponse.json(
       { error: "Invalid RSVP link", code: "NOT_FOUND" },
       { status: 404 }
     )
+  }
+
+  // Check event's current RSVP deadline (source of truth, not guest snapshot)
+  if (guest.event.rsvpDeadline && guest.event.rsvpDeadline < new Date()) {
+    return NextResponse.json({ error: "RSVP link has expired", code: "EXPIRED" }, { status: 410 })
   }
 
   // Track page visit - only update status to "viewed" if guest hasn't already responded
@@ -137,30 +129,22 @@ export async function POST(
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
   }
 
-  // Find guest
+  // Find guest (check both UUID and short code)
   const guest = await db.query.guests.findFirst({
-    where: and(eq(guests.rsvpToken, token), gt(guests.rsvpTokenExpiresAt, new Date())),
+    where: or(eq(guests.rsvpToken, token), eq(guests.rsvpShortCode, token)),
     with: {
       event: true,
     },
   })
 
   if (!guest) {
-    const expiredGuest = await db.query.guests.findFirst({
-      where: eq(guests.rsvpToken, token),
-    })
-
-    if (expiredGuest) {
-      return NextResponse.json({ error: "RSVP link has expired", code: "EXPIRED" }, { status: 410 })
-    }
-
     return NextResponse.json(
       { error: "Invalid RSVP link", code: "NOT_FOUND" },
       { status: 404 }
     )
   }
 
-  // Check RSVP deadline
+  // Check event's current RSVP deadline (source of truth, not guest snapshot)
   if (guest.event.rsvpDeadline && guest.event.rsvpDeadline < new Date()) {
     return NextResponse.json(
       { error: "RSVP deadline has passed", code: "DEADLINE_PASSED" },
