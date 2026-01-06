@@ -1,7 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { ChevronDown, Mail, FileText, Car, Trash2, Link2 } from "lucide-react"
+import { ChevronDown, Mail, FileText, Car, Trash2, Link2, RefreshCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -22,6 +22,7 @@ type BulkAction =
   | "delete"
   | "send_invitation"
   | "send_email"
+  | "update_status"
   | "get_form_link"
   | "get_vapp_link"
   | "generate_email_link"
@@ -32,6 +33,7 @@ interface GuestActionsDropdownProps {
   selectedCount: number
   onAction: (action: BulkAction) => void
   canSendEmails: boolean
+  canManageGuests: boolean
   canDeleteGuests: boolean
   vappEnabled?: boolean
   hasShortRsvpCode?: boolean
@@ -41,6 +43,7 @@ export function GuestActionsDropdown({
   selectedCount,
   onAction,
   canSendEmails,
+  canManageGuests,
   canDeleteGuests,
   vappEnabled = false,
   hasShortRsvpCode = false,
@@ -117,6 +120,13 @@ export function GuestActionsDropdown({
             label={t("sendEmail")}
             disabled={!canSendEmails}
             disabledReason={!canSendEmails ? t("noEmailPermission") : undefined}
+          />
+          <ActionItem
+            action="update_status"
+            icon={RefreshCw}
+            label={t("updateStatus")}
+            disabled={!canManageGuests}
+            disabledReason={!canManageGuests ? t("noManagePermission") : undefined}
           />
 
           <DropdownMenuSeparator />

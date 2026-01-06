@@ -24,6 +24,7 @@ import { EditViewDialog, ManageViewsDialog } from "@/components/guests/view-mana
 import { GetFormLinkDialog } from "@/components/guests/get-form-link-dialog"
 import { VappLinkDialog } from "@/components/guests/vapp-link-dialog"
 import { GenerateEmailLinkDialog } from "@/components/guests/generate-email-link-dialog"
+import { UpdateStatusDialog } from "@/components/guests/update-status-dialog"
 import type { EmailTemplateType } from "@/lib/schemas"
 import { getCountryName } from "@/lib/data/countries"
 import { createRoute } from "@/lib/routes"
@@ -89,6 +90,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
   const [isFormLinkDialogOpen, setIsFormLinkDialogOpen] = useState(false)
   const [isVappLinkDialogOpen, setIsVappLinkDialogOpen] = useState(false)
   const [isGenerateEmailLinkDialogOpen, setIsGenerateEmailLinkDialogOpen] = useState(false)
+  const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false)
   const [viewConfig, setViewConfig] = useState<GuestListViewConfig>(DEFAULT_VIEW_CONFIG)
   const [showFilters, setShowFilters] = useState(false)
 
@@ -306,6 +308,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
         | "delete"
         | "send_invitation"
         | "send_email"
+        | "update_status"
         | "get_form_link"
         | "get_vapp_link"
         | "generate_email_link"
@@ -318,6 +321,8 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
         setBulkEmailType("invitation")
       } else if (action === "send_email") {
         setIsSendEmailDialogOpen(true)
+      } else if (action === "update_status") {
+        setIsUpdateStatusDialogOpen(true)
       } else if (action === "get_form_link") {
         setIsFormLinkDialogOpen(true)
       } else if (action === "get_vapp_link") {
@@ -585,6 +590,15 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
           />
         )
       })()}
+
+      {/* Update Status Dialog */}
+      <UpdateStatusDialog
+        isOpen={isUpdateStatusDialogOpen}
+        onClose={() => setIsUpdateStatusDialogOpen(false)}
+        eventId={event.id}
+        guestIds={Array.from(selectedIds)}
+        onSuccess={() => setSelectedIds(new Set())}
+      />
 
       {/* Edit View Dialog */}
       {currentView && (

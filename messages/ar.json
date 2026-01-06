@@ -513,6 +513,7 @@
     "actions": "الإجراءات",
     "sendInvitation": "إرسال دعوة",
     "sendEmail": "إرسال بريد",
+    "updateStatus": "تحديث الحالة",
     "generateEmailLink": "إنشاء رابط البريد",
     "getFormLink": "الحصول على رابط النموذج",
     "vappLink": "رابط تصريح الدخول",
@@ -521,7 +522,13 @@
     "delete": "حذف",
     "selectOneGuest": "اختر ضيف واحد فقط",
     "noEmailPermission": "لا يوجد إذن لإرسال البريد",
-    "noDeletePermission": "لا يوجد إذن لحذف الضيوف"
+    "noDeletePermission": "لا يوجد إذن لحذف الضيوف",
+    "noManagePermission": "لا يوجد إذن لإدارة الضيوف",
+    "selectNewStatus": "اختر الحالة الجديدة",
+    "updateStatusDescription": "تحديث حالة {count} ضيف/ضيوف",
+    "cancel": "إلغاء",
+    "update": "تحديث",
+    "updating": "جاري التحديث..."
   },
   "dashboard": {
     "title": "لوحة التحكم",

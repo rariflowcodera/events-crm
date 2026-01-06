@@ -58,6 +58,7 @@ type BulkAction =
   | "delete"
   | "send_invitation"
   | "send_email"
+  | "update_status"
   | "get_form_link"
   | "get_vapp_link"
   | "generate_email_link"
@@ -309,6 +310,7 @@ export function GuestsToolbar({
               selectedCount={selectedCount}
               onAction={onBulkAction}
               canSendEmails={canSendEmails}
+              canManageGuests={canManageGuests}
               canDeleteGuests={canDeleteGuests}
               vappEnabled={vappEnabled}
               hasShortRsvpCode={hasShortRsvpCode}

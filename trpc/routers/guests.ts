@@ -196,6 +196,9 @@ export const guestsRouter = createTRPCRouter({
         orderByExpressions.push(desc(guests.createdAt))
       }
 
+      // Always add id as final tiebreaker for deterministic ordering
+      orderByExpressions.push(asc(guests.id))
+
       const guestList = await db.query.guests.findMany({
         where: and(...conditions),
         with: {
@@ -791,7 +794,7 @@ export const guestsRouter = createTRPCRouter({
         .where(
           and(
             eq(guests.eventId, input.eventId),
-            sql`${guests.id} = ANY(${input.guestIds})`
+            inArray(guests.id, input.guestIds)
           )
         )
         .returning({ id: guests.id })
@@ -851,7 +854,7 @@ export const guestsRouter = createTRPCRouter({
         .where(
           and(
             eq(guests.eventId, input.eventId),
-            sql`${guests.id} = ANY(${input.guestIds})`
+            inArray(guests.id, input.guestIds)
           )
         )
         .returning({ id: guests.id })
@@ -1243,7 +1246,7 @@ export const guestsRouter = createTRPCRouter({
       const guestList = await db.query.guests.findMany({
         where: and(
           eq(guests.eventId, input.eventId),
-          sql`${guests.id} = ANY(${input.guestIds})`
+          inArray(guests.id, input.guestIds)
         ),
         with: {
           category: {

@@ -515,6 +515,7 @@
     "actions": "Actions",
     "sendInvitation": "Send Invitation",
     "sendEmail": "Send Email",
+    "updateStatus": "Update Status",
     "generateEmailLink": "Generate Email Link",
     "getFormLink": "Get Form Link",
     "vappLink": "VAPP Link",
@@ -523,7 +524,13 @@
     "delete": "Delete",
     "selectOneGuest": "Select exactly 1 guest",
     "noEmailPermission": "No permission to send emails",
-    "noDeletePermission": "No permission to delete guests"
+    "noDeletePermission": "No permission to delete guests",
+    "noManagePermission": "No permission to manage guests",
+    "selectNewStatus": "Select new status",
+    "updateStatusDescription": "Update status for {count} guest(s)",
+    "cancel": "Cancel",
+    "update": "Update",
+    "updating": "Updating..."
   },
   "dashboard": {
     "title": "Dashboard",
