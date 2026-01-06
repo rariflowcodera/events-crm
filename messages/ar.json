@@ -852,7 +852,14 @@
     "variableGroupRsvp": "تأكيد الحضور",
     "copied": "تم النسخ!",
     "welcomeMessageDisplayMode": "إظهار اللغتين",
-    "welcomeMessageDisplayModeDescription": "عرض الرسائل بالإنجليزية والعربية معاً بدلاً من لغة المستخدم المحددة فقط"
+    "welcomeMessageDisplayModeDescription": "عرض الرسائل بالإنجليزية والعربية معاً بدلاً من لغة المستخدم المحددة فقط",
+    "sectionSettings": "إعدادات القسم",
+    "sectionSettingsDescription": "تخصيص عنوان القسم ووصفه",
+    "sectionTitle": "عنوان القسم",
+    "sectionTitleHint": "اتركه فارغاً لإخفاء رأس القسم",
+    "noTitle": "(بدون عنوان)",
+    "sectionDescription": "وصف القسم",
+    "sectionDescriptionHint": "اتركه فارغاً لإخفاء الوصف"
   },
   "branding": {
     "title": "العلامة التجارية",

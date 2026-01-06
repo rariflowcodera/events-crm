@@ -43,6 +43,8 @@ interface SectionListProps {
   language: "en" | "ar"
   onToggleSection: (sectionId: SectionId, enabled: boolean) => void
   onReorderSections: (sectionIds: SectionId[]) => void
+  onUpdateSectionTitle: (sectionId: SectionId, title: BilingualText) => void
+  onUpdateSectionDescription: (sectionId: SectionId, description: BilingualText | undefined) => void
   onToggleStandardField: (sectionId: SectionId, fieldKey: string, enabled: boolean) => void
   onUpdateStandardField: (sectionId: SectionId, fieldKey: string, config: Partial<StandardFieldConfig>) => void
   onAddCustomField: (sectionId: SectionId, field: Omit<CustomFieldDefinition, "sortOrder">) => void
@@ -58,6 +60,8 @@ export function SectionList({
   language,
   onToggleSection,
   onReorderSections,
+  onUpdateSectionTitle,
+  onUpdateSectionDescription,
   onToggleStandardField,
   onUpdateStandardField,
   onAddCustomField,
@@ -70,6 +74,7 @@ export function SectionList({
   const [expandedSection, setExpandedSection] = useState<SectionId | null>(
     sections.find((s) => s.enabled)?.id || null
   )
+  const [editingSectionId, setEditingSectionId] = useState<SectionId | null>(null)
 
   // Sort sections by sortOrder
   const sortedSections = [...sections].sort((a, b) => a.sortOrder - b.sortOrder)
@@ -165,10 +170,15 @@ export function SectionList({
                     <span
                       className={cn(
                         "font-medium",
-                        !section.enabled && "text-muted-foreground"
+                        !section.enabled && "text-muted-foreground",
+                        !section.title.en && !section.title.ar && "italic text-muted-foreground"
                       )}
                     >
-                      <BilingualDisplay value={section.title} language={language} />
+                      {section.title.en || section.title.ar ? (
+                        <BilingualDisplay value={section.title} language={language} />
+                      ) : (
+                        t("noTitle")
+                      )}
                     </span>
                   </div>
                   {section.description && (
@@ -191,6 +201,20 @@ export function SectionList({
                   </div>
                 )}
               </button>
+
+              {/* Section Settings Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setEditingSectionId(section.id)
+                }}
+                disabled={disabled}
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
             </div>
 
             {/* Section Content */}
@@ -237,6 +261,35 @@ export function SectionList({
                 </div>
               </div>
             )}
+
+            {/* Section Settings Sheet */}
+            <Sheet
+              open={editingSectionId === section.id}
+              onOpenChange={(open) => !open && setEditingSectionId(null)}
+            >
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>{t("sectionSettings")}</SheetTitle>
+                  <SheetDescription>{t("sectionSettingsDescription")}</SheetDescription>
+                </SheetHeader>
+                <div className="space-y-6 px-4 pb-4 mt-6">
+                  <BilingualInput
+                    label={t("sectionTitle")}
+                    description={t("sectionTitleHint")}
+                    value={section.title}
+                    onChange={(title) => onUpdateSectionTitle(section.id, title)}
+                    placeholder={{ en: "Optional title...", ar: "عنوان اختياري..." }}
+                  />
+                  <BilingualInput
+                    label={t("sectionDescription")}
+                    description={t("sectionDescriptionHint")}
+                    value={section.description || { en: "", ar: "" }}
+                    onChange={(description) => onUpdateSectionDescription(section.id, description)}
+                    placeholder={{ en: "Optional description...", ar: "وصف اختياري..." }}
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         )
       })}

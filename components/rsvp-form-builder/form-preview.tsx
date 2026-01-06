@@ -120,19 +120,28 @@ function SectionPreview({ section, language, isFieldVisible }: SectionPreviewPro
     return null
   }
 
+  // Check if section has a visible title
+  const hasTitle = section.title.en || section.title.ar
+  const hasDescription = section.description && (section.description.en || section.description.ar)
+  const hasHeader = hasTitle || hasDescription
+
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">
-          <BilingualDisplay value={section.title} language={language} />
-        </CardTitle>
-        {section.description && (
-          <CardDescription>
-            <BilingualDisplay value={section.description} language={language} fallback="" />
-          </CardDescription>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-4">
+      {hasHeader && (
+        <CardHeader className="pb-3">
+          {hasTitle && (
+            <CardTitle className="text-lg">
+              <BilingualDisplay value={section.title} language={language} />
+            </CardTitle>
+          )}
+          {hasDescription && (
+            <CardDescription>
+              <BilingualDisplay value={section.description!} language={language} fallback="" />
+            </CardDescription>
+          )}
+        </CardHeader>
+      )}
+      <CardContent className={hasHeader ? "space-y-4" : "space-y-4 pt-6"}>
         {/* Standard Fields */}
         {visibleStandardFields.map(({ config, def }) => (
           <FieldPreview

@@ -211,6 +211,12 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
     }
   }
 
+  // Sync HTML dir attribute with display locale for proper RTL rendering
+  useEffect(() => {
+    document.documentElement.dir = isRtl ? "rtl" : "ltr"
+    document.documentElement.lang = displayLocale
+  }, [displayLocale, isRtl])
+
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(0)
   const [actualSectionCount, setActualSectionCount] = useState<number | null>(null)
@@ -833,7 +839,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                     disabled={submitting}
                     className="h-11 sm:h-9"
                   >
-                    {t("back")}
+                    {displayLocale === "ar" ? "رجوع" : "Back"}
                   </Button>
                 )}
 

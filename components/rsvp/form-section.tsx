@@ -29,43 +29,50 @@ export function FormSection({
 }: FormSectionComponentProps) {
   const isRtl = locale === "ar"
 
+  // Only show header if there's a title or description
+  const hasHeader = title || description
+
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Section header */}
-      <div
-        className={cn(
-          "flex items-center gap-3",
-          isRtl && "flex-row-reverse",
-          sectionHeaderStyle && "px-3 py-2 sm:px-4 sm:py-2.5 rounded-md -mx-1"
-        )}
-        style={sectionHeaderStyle ? {
-          backgroundColor: sectionHeaderStyle.backgroundColor,
-          color: sectionHeaderStyle.textColor,
-        } : undefined}
-      >
-        {showProgress && (
+      {/* Section header - wrapped for RTL positioning */}
+      {hasHeader && (
+        <div className={cn(isRtl && "w-fit ml-auto")}>
           <div
             className={cn(
-              "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-medium",
-              sectionHeaderStyle ? "bg-white/20" : "bg-muted"
+              "flex items-center gap-3",
+              isRtl && "flex-row-reverse",
+              sectionHeaderStyle && "px-3 py-2 sm:px-4 sm:py-2.5 rounded-md"
             )}
-            style={sectionHeaderStyle ? { color: sectionHeaderStyle.textColor } : undefined}
+            style={sectionHeaderStyle ? {
+              backgroundColor: sectionHeaderStyle.backgroundColor,
+              color: sectionHeaderStyle.textColor,
+            } : undefined}
           >
-            {sectionIndex + 1}
+            {showProgress && (
+              <div
+                className={cn(
+                  "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-medium",
+                  sectionHeaderStyle ? "bg-white/20" : "bg-muted"
+                )}
+                style={sectionHeaderStyle ? { color: sectionHeaderStyle.textColor } : undefined}
+              >
+                {sectionIndex + 1}
+              </div>
+            )}
+            <div className={cn("text-left", isRtl && "text-right")}>
+              {title && <h3 className="font-semibold text-sm sm:text-base">{title}</h3>}
+              {description && (
+                <p className={cn(
+                  "text-sm mt-0.5",
+                  sectionHeaderStyle ? "opacity-80" : "text-muted-foreground"
+                )}>
+                  {description}
+                </p>
+              )}
+            </div>
           </div>
-        )}
-        <div className={cn("text-left", isRtl && "text-right")}>
-          <h3 className="font-semibold text-sm sm:text-base">{title}</h3>
-          {description && (
-            <p className={cn(
-              "text-sm mt-0.5",
-              sectionHeaderStyle ? "opacity-80" : "text-muted-foreground"
-            )}>
-              {description}
-            </p>
-          )}
         </div>
-      </div>
+      )}
 
       {/* Fields - always visible */}
       {fields.length > 0 ? (

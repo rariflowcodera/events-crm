@@ -764,8 +764,8 @@ export type RsvpFormSectionId = (typeof sectionIdValues)[number]
 /** Form section configuration */
 export const rsvpFormSectionSchema = z.object({
   id: z.enum(sectionIdValues),
-  title: bilingualTextSchema,
-  description: bilingualTextSchema.optional(),
+  title: optionalBilingualTextSchema,
+  description: optionalBilingualTextSchema.optional(),
   enabled: z.boolean(),
   sortOrder: z.number().int().min(0),
   standardFields: z.array(standardFieldConfigSchema),

@@ -61,7 +61,7 @@ export function DynamicField({
             }}
             render={({ field, fieldState }) => (
               <div className="space-y-2">
-                <Label htmlFor={fieldKey} className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
+                <Label htmlFor={fieldKey} className={cn(required && "after:content-['*'] after:ms-0.5 after:text-destructive")}>
                   {label}
                 </Label>
                 {description && (
@@ -104,7 +104,7 @@ export function DynamicField({
             }}
             render={({ field, fieldState }) => (
               <div className="space-y-2">
-                <Label htmlFor={fieldKey} className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
+                <Label htmlFor={fieldKey} className={cn(required && "after:content-['*'] after:ms-0.5 after:text-destructive")}>
                   {label}
                 </Label>
                 {description && (
@@ -147,7 +147,7 @@ export function DynamicField({
             }}
             render={({ field, fieldState }) => (
               <div className="space-y-2">
-                <Label htmlFor={fieldKey} className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
+                <Label htmlFor={fieldKey} className={cn(required && "after:content-['*'] after:ms-0.5 after:text-destructive")}>
                   {label}
                 </Label>
                 {description && (
@@ -184,7 +184,7 @@ export function DynamicField({
             }}
             render={({ field, fieldState }) => (
               <div className="space-y-2">
-                <Label htmlFor={fieldKey} className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
+                <Label htmlFor={fieldKey} className={cn(required && "after:content-['*'] after:ms-0.5 after:text-destructive")}>
                   {label}
                 </Label>
                 {description && (
@@ -219,7 +219,7 @@ export function DynamicField({
             }}
             render={({ field, fieldState }) => (
               <div className="space-y-2">
-                <Label htmlFor={fieldKey} className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
+                <Label htmlFor={fieldKey} className={cn(required && "after:content-['*'] after:ms-0.5 after:text-destructive")}>
                   {label}
                 </Label>
                 {description && (
@@ -262,33 +262,35 @@ export function DynamicField({
             }}
             render={({ field, fieldState }) => (
               <div className="space-y-2">
-                <Label className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
+                <Label className={cn(required && "after:content-['*'] after:ms-0.5 after:text-destructive")}>
                   {label}
                 </Label>
                 {description && (
                   <p className="text-sm text-muted-foreground">{description}</p>
                 )}
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  value={field.value || ""}
-                  disabled={disabled}
-                  className="flex flex-col"
-                >
-                  {options?.map((option) => (
-                    <div
-                      key={option.value}
-                      className={cn(
-                        "flex items-center gap-3 py-2",
-                        isRtl && "flex-row-reverse"
-                      )}
-                    >
-                      <RadioGroupItem value={option.value} id={`${fieldKey}-${option.value}`} />
-                      <Label htmlFor={`${fieldKey}-${option.value}`} className="font-normal cursor-pointer flex-1">
-                        {option.label}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
+                <div className={cn(isRtl && "w-fit ml-auto")}>
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    value={field.value || ""}
+                    disabled={disabled}
+                    className="flex flex-col"
+                  >
+                    {options?.map((option) => (
+                      <div
+                        key={option.value}
+                        className={cn(
+                          "flex items-center gap-3 py-2",
+                          isRtl && "flex-row-reverse"
+                        )}
+                      >
+                        <RadioGroupItem value={option.value} id={`${fieldKey}-${option.value}`} />
+                        <Label htmlFor={`${fieldKey}-${option.value}`} className="font-normal cursor-pointer flex-1">
+                          {option.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
                 {fieldState.error && (
                   <p className="text-sm text-destructive">{fieldState.error.message}</p>
                 )}
@@ -318,34 +320,36 @@ export function DynamicField({
 
               return (
                 <div className="space-y-2">
-                  <Label className={cn(required && "after:content-['*'] after:ml-0.5 after:text-destructive")}>
+                  <Label className={cn(required && "after:content-['*'] after:ms-0.5 after:text-destructive")}>
                     {label}
                   </Label>
                   {description && (
                     <p className="text-sm text-muted-foreground">{description}</p>
                   )}
-                  <div className="flex flex-col">
-                    {options?.map((option) => (
-                      <div
-                        key={option.value}
-                        className={cn(
-                          "flex items-center gap-3 py-2",
-                          isRtl && "flex-row-reverse"
-                        )}
-                      >
-                        <Checkbox
-                          id={`${fieldKey}-${option.value}`}
-                          checked={selectedValues.includes(option.value)}
-                          onCheckedChange={(checked) =>
-                            handleCheckChange(option.value, checked as boolean)
-                          }
-                          disabled={disabled}
-                        />
-                        <Label htmlFor={`${fieldKey}-${option.value}`} className="font-normal cursor-pointer flex-1">
-                          {option.label}
-                        </Label>
-                      </div>
-                    ))}
+                  <div className={cn(isRtl && "w-fit ml-auto")}>
+                    <div className="flex flex-col">
+                      {options?.map((option) => (
+                        <div
+                          key={option.value}
+                          className={cn(
+                            "flex items-center gap-3 py-2",
+                            isRtl && "flex-row-reverse"
+                          )}
+                        >
+                          <Checkbox
+                            id={`${fieldKey}-${option.value}`}
+                            checked={selectedValues.includes(option.value)}
+                            onCheckedChange={(checked) =>
+                              handleCheckChange(option.value, checked as boolean)
+                            }
+                            disabled={disabled}
+                          />
+                          <Label htmlFor={`${fieldKey}-${option.value}`} className="font-normal cursor-pointer flex-1">
+                            {option.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   {fieldState.error && (
                     <p className="text-sm text-destructive">{fieldState.error.message}</p>

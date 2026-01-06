@@ -161,6 +161,30 @@ export function RsvpFormBuilder({
     }))
   }
 
+  const handleUpdateSectionTitle = (sectionId: SectionId, title: BilingualText) => {
+    updateLocalConfig((prev) => ({
+      ...prev,
+      sections: prev.sections.map((s) =>
+        s.id === sectionId ? { ...s, title } : s
+      ),
+    }))
+  }
+
+  const handleUpdateSectionDescription = (sectionId: SectionId, description: BilingualText | undefined) => {
+    // If both en and ar are empty, set to undefined to remove it
+    const cleanedDescription =
+      !description || (description.en.trim() === "" && (!description.ar || description.ar.trim() === ""))
+        ? undefined
+        : description
+
+    updateLocalConfig((prev) => ({
+      ...prev,
+      sections: prev.sections.map((s) =>
+        s.id === sectionId ? { ...s, description: cleanedDescription } : s
+      ),
+    }))
+  }
+
   // Standard field handlers
   const handleToggleStandardField = (
     sectionId: SectionId,
@@ -385,6 +409,8 @@ export function RsvpFormBuilder({
             language={language}
             onToggleSection={handleToggleSection}
             onReorderSections={handleReorderSections}
+            onUpdateSectionTitle={handleUpdateSectionTitle}
+            onUpdateSectionDescription={handleUpdateSectionDescription}
             onToggleStandardField={handleToggleStandardField}
             onUpdateStandardField={handleUpdateStandardField}
             onAddCustomField={handleAddCustomField}

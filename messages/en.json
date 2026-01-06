@@ -854,7 +854,14 @@
     "variableGroupRsvp": "RSVP",
     "copied": "Copied!",
     "welcomeMessageDisplayMode": "Show Both Languages",
-    "welcomeMessageDisplayModeDescription": "Display English and Arabic messages stacked together instead of just the user's selected language"
+    "welcomeMessageDisplayModeDescription": "Display English and Arabic messages stacked together instead of just the user's selected language",
+    "sectionSettings": "Section Settings",
+    "sectionSettingsDescription": "Customize the section title and description",
+    "sectionTitle": "Section Title",
+    "sectionTitleHint": "Leave blank to hide the section header",
+    "noTitle": "(No title)",
+    "sectionDescription": "Section Description",
+    "sectionDescriptionHint": "Leave blank to hide the description"
   },
   "branding": {
     "title": "Branding",
