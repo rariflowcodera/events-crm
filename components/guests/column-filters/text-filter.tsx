@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Search, X } from "lucide-react"
 
+import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -53,9 +54,14 @@ export function TextFilter({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className={`h-6 w-6 p-0 ${hasValue ? "text-primary" : "text-muted-foreground/70 hover:text-muted-foreground"}`}
+          className={cn(
+            "h-7 w-7 p-0 relative border flex-shrink-0",
+            hasValue
+              ? "border-primary bg-primary/10 text-primary hover:bg-primary/20"
+              : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+          )}
         >
           <Search className="h-4 w-4" />
         </Button>

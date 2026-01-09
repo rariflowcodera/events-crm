@@ -288,6 +288,38 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
     return Array.from(nameSet).sort()
   }, [guests])
 
+  // Compute tags from guest data (for tags filter)
+  const availableTags = useMemo(() => {
+    if (!guests.length) return []
+
+    const tagSet = new Set<string>()
+    guests.forEach((guest) => {
+      guest.tags?.forEach((tag) => tagSet.add(tag))
+    })
+
+    return Array.from(tagSet)
+      .sort()
+      .map((tag) => ({ value: tag, label: tag }))
+  }, [guests])
+
+  // Combine all filter options for the data table
+  const filterOptions = useMemo(
+    () => ({
+      categories: event.guestCategories.map((cat) => ({
+        value: cat.id,
+        label: cat.name,
+        color: cat.color ?? undefined,
+      })),
+      countries: availableCountries,
+      tags: availableTags,
+      lastEmailTemplateNames: availableEmailTemplateNames.map((name) => ({
+        value: name,
+        label: name,
+      })),
+    }),
+    [event.guestCategories, availableCountries, availableTags, availableEmailTemplateNames]
+  )
+
   // Update handlers
   const handleFiltersChange = useCallback((filters: GuestListViewFilterConfig) => {
     setViewConfig((prev) => ({ ...prev, filters }))
@@ -492,6 +524,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
             totalGuests={totalGuests}
             fillHeight={fullHeight}
             canViewDetails={canViewDetails}
+            filterOptions={filterOptions}
           />
         </div>
       ) : (

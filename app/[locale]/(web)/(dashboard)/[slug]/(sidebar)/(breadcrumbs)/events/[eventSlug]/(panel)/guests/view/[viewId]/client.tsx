@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { notFound } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Search, X } from "lucide-react"
@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button"
 import { createRoute } from "@/lib/routes"
 import { PERMISSIONS } from "@/lib/permissions"
 import { usePermissions } from "@/hooks/use-permissions"
-import type { GuestListViewConfig } from "@/lib/guest-columns"
+import { getCountryName } from "@/lib/data/countries"
+import { syncViewConfigColumns, type GuestListViewConfig } from "@/lib/guest-columns"
 
 interface GuestListViewPageClientProps {
   workspaceSlug: string
@@ -53,8 +54,14 @@ export function GuestListViewPageClient({
     { enabled: !!workspaceSlug && !!eventSlug }
   )
 
-  // Use local config if modified, otherwise use view config
-  const activeConfig = localViewConfig ?? view?.config
+  // Sync view config to ensure columns have correct widths from GUEST_COLUMNS
+  const syncedViewConfig = useMemo(() => {
+    if (!view?.config) return null
+    return syncViewConfigColumns(view.config as GuestListViewConfig)
+  }, [view?.config])
+
+  // Use local config if modified, otherwise use synced view config
+  const activeConfig = localViewConfig ?? syncedViewConfig
 
   // Fetch guests with filters from view config
   const { data: guestsData, isLoading: isLoadingGuests } = trpc.guests.getMany.useQuery(
@@ -70,9 +77,9 @@ export function GuestListViewPageClient({
   // Debounce search to update viewConfig.filters.search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!view) return
+      if (!syncedViewConfig) return
 
-      const baseConfig = localViewConfig ?? view.config
+      const baseConfig = localViewConfig ?? syncedViewConfig
       const currentSearch = baseConfig.filters?.search || ""
 
       // Only update if search actually changed
@@ -88,12 +95,63 @@ export function GuestListViewPageClient({
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [localSearchQuery, view, localViewConfig])
+  }, [localSearchQuery, syncedViewConfig, localViewConfig])
 
   // View config change handler
   const handleViewConfigChange = useCallback((config: GuestListViewConfig) => {
     setLocalViewConfig(config)
   }, [])
+
+  // Guests array (derived from query data)
+  const guests = guestsData?.guests ?? []
+
+  // Compute filter options from event and guest data
+  // NOTE: This must be before early returns to maintain hook order
+  const filterOptions = useMemo(() => {
+    // Categories from event
+    const categories = (event?.guestCategories ?? []).map((cat) => ({
+      value: cat.id,
+      label: cat.name,
+      color: cat.color ?? undefined,
+    }))
+
+    // Countries from guest data
+    const countrySet = new Set<string>()
+    guests.forEach((g) => {
+      if (g.country) countrySet.add(g.country)
+    })
+    const countries = Array.from(countrySet)
+      .map((code) => ({
+        code,
+        name: getCountryName(code) || code,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    // Tags from guest data
+    const tagSet = new Set<string>()
+    guests.forEach((g) => {
+      g.tags?.forEach((tag) => tagSet.add(tag))
+    })
+    const tags = Array.from(tagSet)
+      .sort()
+      .map((tag) => ({ value: tag, label: tag }))
+
+    // Last email template names from guest data
+    const templateNameSet = new Set<string>()
+    guests.forEach((g) => {
+      if (g.lastEmailTemplateName) templateNameSet.add(g.lastEmailTemplateName)
+    })
+    const lastEmailTemplateNames = Array.from(templateNameSet)
+      .sort()
+      .map((name) => ({ value: name, label: name }))
+
+    return {
+      categories,
+      countries,
+      tags,
+      lastEmailTemplateNames,
+    }
+  }, [event?.guestCategories, guests])
 
   // Fallback URL for back navigation
   const backHref = createRoute("event-detail", { slug: workspaceSlug, eventSlug }).href + "?tab=guests"
@@ -114,7 +172,6 @@ export function GuestListViewPageClient({
   }
 
   const colorConfig = VIEW_COLORS[view.color as ViewColor] ?? VIEW_COLORS.gray
-  const guests = guestsData?.guests ?? []
 
   const getGuestDetailHref = (guestId: string) =>
     `/${workspaceSlug}/events/${eventSlug}/guests/${guestId}?fromView=${viewId}`
@@ -175,10 +232,11 @@ export function GuestListViewPageClient({
                 customDomainVerified: event.customDomainVerified,
               }}
               workspaceSlug={workspaceSlug}
-              viewConfig={activeConfig ?? view.config}
+              viewConfig={(activeConfig ?? view.config) as GuestListViewConfig}
               onViewConfigChange={handleViewConfigChange}
               fillHeight
               canViewDetails={canViewDetails}
+              filterOptions={filterOptions}
             />
           )}
         </div>

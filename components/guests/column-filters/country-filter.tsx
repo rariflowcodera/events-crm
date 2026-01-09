@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useCallback } from "react"
-import { Globe, Check, X } from "lucide-react"
+import { Filter, Check, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -66,13 +66,18 @@ export function CountryFilter({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className={`h-6 w-6 p-0 ${hasValue ? "text-primary" : "text-muted-foreground/70 hover:text-muted-foreground"}`}
+          className={cn(
+            "h-7 w-7 p-0 relative border flex-shrink-0",
+            hasValue
+              ? "border-primary bg-primary/10 text-primary hover:bg-primary/20"
+              : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+          )}
         >
-          <Globe className="h-4 w-4" />
+          <Filter className="h-4 w-4" />
           {hasValue && (
-            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary text-[8px] text-primary-foreground flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center">
               {value.length}
             </span>
           )}

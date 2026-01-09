@@ -12,6 +12,12 @@ export { VIEW_COLORS }
 export type { ViewColor, GuestListViewConfig, GuestListViewColumnConfig, GuestListViewFilterConfig, GuestListViewSortConfig }
 
 // ============================================================================
+// Filter Types
+// ============================================================================
+
+export type ColumnFilterType = "text" | "select" | "country" | "boolean"
+
+// ============================================================================
 // Column Identifiers
 // ============================================================================
 
@@ -68,6 +74,8 @@ export interface GuestColumnDefinition {
   maxWidth?: number
   sortable: boolean
   filterable: boolean
+  filterType?: ColumnFilterType // Type of filter UI to render
+  filterKey?: string // Maps to viewConfig.filters key (e.g., "category" -> "categoryIds")
   fixed?: "left" | "right" // For pinned columns
   group: "selection" | "personal" | "professional" | "contact" | "rsvp" | "requirements" | "meta" | "activity" | "attendance" | "actions"
 }
@@ -113,6 +121,8 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     maxWidth: 300,
     sortable: true,
     filterable: true,
+    filterType: "text",
+    filterKey: "search", // Uses global search
     group: "personal",
   },
   {
@@ -123,6 +133,8 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     defaultWidth: 120,
     sortable: true,
     filterable: true,
+    filterType: "text",
+    filterKey: "search", // Uses global search
     group: "personal",
   },
   {
@@ -133,6 +145,8 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     defaultWidth: 120,
     sortable: true,
     filterable: true,
+    filterType: "text",
+    filterKey: "search", // Uses global search
     group: "personal",
   },
   {
@@ -160,9 +174,11 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     label: "Gender",
     labelAr: "الجنس",
     defaultVisible: false,
-    defaultWidth: 90,
+    defaultWidth: 120,
     sortable: true,
     filterable: true,
+    filterType: "select",
+    filterKey: "gender", // Needs backend support
     group: "personal",
   },
   {
@@ -200,9 +216,11 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     label: "Country",
     labelAr: "الدولة",
     defaultVisible: true,
-    defaultWidth: 130,
+    defaultWidth: 150,
     sortable: true,
     filterable: true,
+    filterType: "country",
+    filterKey: "countries",
     group: "personal",
   },
 
@@ -216,6 +234,8 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     minWidth: 100,
     sortable: true,
     filterable: true,
+    filterType: "text",
+    filterKey: "search", // Uses global search
     group: "professional",
   },
   {
@@ -226,6 +246,8 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     defaultWidth: 150,
     sortable: true,
     filterable: true,
+    filterType: "text",
+    filterKey: "search", // Uses global search
     group: "professional",
   },
   {
@@ -236,6 +258,8 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     defaultWidth: 130,
     sortable: true,
     filterable: true,
+    filterType: "text",
+    filterKey: "search", // Uses global search (needs backend support for dedicated filter)
     group: "professional",
   },
 
@@ -249,6 +273,8 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     minWidth: 150,
     sortable: true,
     filterable: true,
+    filterType: "text",
+    filterKey: "search", // Uses global search
     group: "contact",
   },
   {
@@ -278,9 +304,11 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     label: "Status",
     labelAr: "الحالة",
     defaultVisible: true,
-    defaultWidth: 110,
+    defaultWidth: 130,
     sortable: true,
     filterable: true,
+    filterType: "select",
+    filterKey: "status",
     group: "rsvp",
   },
   {
@@ -288,9 +316,11 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     label: "Category",
     labelAr: "الفئة",
     defaultVisible: true,
-    defaultWidth: 100,
+    defaultWidth: 150,
     sortable: true,
     filterable: true,
+    filterType: "select",
+    filterKey: "categoryIds",
     group: "rsvp",
   },
   {
@@ -313,6 +343,8 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     defaultWidth: 150,
     sortable: false,
     filterable: true,
+    filterType: "text",
+    filterKey: "dietaryRequirements", // Needs backend support
     group: "requirements",
   },
   {
@@ -323,6 +355,8 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     defaultWidth: 150,
     sortable: false,
     filterable: true,
+    filterType: "text",
+    filterKey: "accessibilityNeeds", // Needs backend support
     group: "requirements",
   },
   {
@@ -330,9 +364,11 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     label: "Companion",
     labelAr: "مرافق",
     defaultVisible: false,
-    defaultWidth: 100,
+    defaultWidth: 130,
     sortable: true,
     filterable: true,
+    filterType: "boolean",
+    filterKey: "hasCompanion", // Needs backend support
     group: "requirements",
   },
 
@@ -345,6 +381,8 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     defaultWidth: 150,
     sortable: false,
     filterable: true,
+    filterType: "select",
+    filterKey: "tags",
     group: "meta",
   },
   {
@@ -355,6 +393,8 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     defaultWidth: 200,
     sortable: false,
     filterable: true,
+    filterType: "text",
+    filterKey: "internalNotes", // Needs backend support
     group: "meta",
   },
   {
@@ -384,9 +424,11 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     label: "Last Email Name",
     labelAr: "اسم آخر بريد",
     defaultVisible: false,
-    defaultWidth: 180,
+    defaultWidth: 220,
     sortable: true,
     filterable: true,
+    filterType: "select",
+    filterKey: "lastEmailTemplateNames",
     group: "activity",
   },
   {
@@ -436,9 +478,11 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     label: "Attendance",
     labelAr: "الحضور",
     defaultVisible: false,
-    defaultWidth: 90,
+    defaultWidth: 130,
     sortable: true,
     filterable: true,
+    filterType: "boolean",
+    filterKey: "attended", // Needs backend support
     group: "attendance",
   },
   {
@@ -523,7 +567,8 @@ export function getColumnGroups(): Record<string, GuestColumnDefinition[]> {
 /**
  * Ensures a view config has all columns from GUEST_COLUMNS.
  * - Adds missing columns (new columns added to schema)
- * - Preserves existing column visibility/width settings
+ * - Syncs column widths from GUEST_COLUMNS defaults
+ * - Preserves existing column visibility settings
  * - Removes columns that no longer exist in GUEST_COLUMNS
  */
 export function syncViewConfigColumns(
@@ -532,10 +577,16 @@ export function syncViewConfigColumns(
   const existingColumnIds = new Set(config.columns.map((c) => c.id))
   const validColumnIds = new Set(GUEST_COLUMNS.map((c) => c.id))
 
-  // Keep existing columns that still exist in GUEST_COLUMNS
-  const existingColumns = config.columns.filter((c) =>
-    validColumnIds.has(c.id as GuestColumnId)
-  )
+  // Keep existing columns that still exist, but sync width from defaults
+  const existingColumns = config.columns
+    .filter((c) => validColumnIds.has(c.id as GuestColumnId))
+    .map((c) => {
+      const colDef = GUEST_COLUMNS.find((col) => col.id === c.id)
+      return {
+        ...c,
+        width: colDef?.defaultWidth ?? c.width,
+      }
+    })
 
   // Find new columns not in the config
   const newColumns: GuestListViewColumnConfig[] = GUEST_COLUMNS

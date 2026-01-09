@@ -31,7 +31,8 @@ import { GuestCategoryBadge } from "@/components/guests/guest-category-badge"
 import { GuestRowActions } from "@/components/guests/guest-row-actions"
 import { GuestEmailStatusIndicator } from "@/components/guests/guest-email-history"
 import { AttendanceToggle } from "@/components/guests/attendance-toggle"
-import { FilterableHeader } from "@/components/guests/column-filters"
+import { FilterableHeader, ColumnHeaderWithFilter } from "@/components/guests/column-filters"
+import { GUEST_COLUMNS as COLUMN_DEFS, type ColumnFilterType } from "@/lib/guest-columns"
 import { GuestAvatarCell } from "@/components/guests/guest-avatar-cell"
 import { ImageLightbox } from "@/components/guests/image-lightbox"
 
@@ -109,6 +110,15 @@ interface EventCustomDomain {
   customDomainVerified: boolean | null
 }
 
+interface FilterOptions {
+  categories?: { value: string; label: string; color?: string }[]
+  countries?: { code: string; name: string }[]
+  statuses?: { value: string; label: string }[]
+  genders?: { value: string; label: string }[]
+  tags?: { value: string; label: string }[]
+  lastEmailTemplateNames?: { value: string; label: string }[]
+}
+
 interface GuestsDataTableProps {
   guests: Guest[]
   selectedIds: Set<string>
@@ -122,6 +132,7 @@ interface GuestsDataTableProps {
   totalGuests?: number
   fillHeight?: boolean
   canViewDetails?: boolean
+  filterOptions?: FilterOptions
 }
 
 // ============================================================================
@@ -133,6 +144,28 @@ const MAX_VISIBLE_ROWS = 20
 const SELECT_COLUMN_WIDTH = 40
 const ACTIONS_COLUMN_WIDTH = 48
 const MIN_TABLE_WIDTH = 1200 // Minimum width to ensure horizontal scroll
+
+// Default status options for select filter
+const STATUS_OPTIONS = [
+  { value: "pending", label: "Pending" },
+  { value: "invited", label: "Invited" },
+  { value: "reminded", label: "Reminded" },
+  { value: "viewed", label: "Viewed" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "declined", label: "Declined" },
+  { value: "maybe", label: "Maybe" },
+  { value: "waitlisted", label: "Waitlisted" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "attended", label: "Attended" },
+  { value: "no_show", label: "No Show" },
+]
+
+// Default gender options for select filter
+const GENDER_OPTIONS = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "unspecified", label: "Unspecified" },
+]
 
 // ============================================================================
 // Resize Handle Component
@@ -176,6 +209,7 @@ export function GuestsDataTable({
   totalGuests,
   fillHeight = false,
   canViewDetails = true,
+  filterOptions = {},
 }: GuestsDataTableProps) {
   const router = useRouter()
   const parentRef = useRef<HTMLDivElement>(null)
@@ -280,6 +314,59 @@ export function GuestsDataTable({
       })
     },
     [columnSizing, viewConfig, onViewConfigChange]
+  )
+
+  // Handle column filter change
+  const handleColumnFilterChange = useCallback(
+    (key: string, value: string | string[] | boolean | undefined) => {
+      if (!onViewConfigChange) return
+
+      // Clean up undefined/empty values
+      const cleanValue =
+        value === "" ||
+        value === undefined ||
+        (Array.isArray(value) && value.length === 0)
+          ? undefined
+          : value
+
+      onViewConfigChange({
+        ...viewConfig,
+        filters: {
+          ...viewConfig.filters,
+          [key]: cleanValue,
+        },
+      })
+    },
+    [viewConfig, onViewConfigChange]
+  )
+
+  // Helper to get filter value from viewConfig
+  const getFilterValue = useCallback(
+    (filterKey: string): string | string[] | boolean | undefined => {
+      return viewConfig.filters?.[filterKey as keyof typeof viewConfig.filters]
+    },
+    [viewConfig.filters]
+  )
+
+  // Helper to get filter options for a column
+  const getFilterOptionsForColumn = useCallback(
+    (columnId: string, filterKey: string): { value: string; label: string; color?: string }[] => {
+      switch (filterKey) {
+        case "status":
+          return filterOptions.statuses ?? STATUS_OPTIONS
+        case "categoryIds":
+          return filterOptions.categories ?? []
+        case "gender":
+          return filterOptions.genders ?? GENDER_OPTIONS
+        case "tags":
+          return filterOptions.tags ?? []
+        case "lastEmailTemplateNames":
+          return filterOptions.lastEmailTemplateNames ?? []
+        default:
+          return []
+      }
+    },
+    [filterOptions]
   )
 
   // Get column width from config
@@ -512,7 +599,15 @@ export function GuestsDataTable({
         id: "country",
         accessorKey: "country",
         header: ({ column }) => (
-          <FilterableHeader column={column} title="Country" />
+          <ColumnHeaderWithFilter
+            column={column}
+            title="Country"
+            filterType="country"
+            filterKey="countries"
+            filterValue={getFilterValue("countries")}
+            onFilterChange={handleColumnFilterChange}
+            availableCountries={filterOptions.countries}
+          />
         ),
         cell: ({ getValue }) => {
           const code = getValue() as string | null
@@ -525,7 +620,15 @@ export function GuestsDataTable({
         id: "status",
         accessorKey: "status",
         header: ({ column }) => (
-          <FilterableHeader column={column} title="Status" />
+          <ColumnHeaderWithFilter
+            column={column}
+            title="Status"
+            filterType="select"
+            filterKey="status"
+            filterValue={getFilterValue("status")}
+            onFilterChange={handleColumnFilterChange}
+            filterOptions={getFilterOptionsForColumn("status", "status")}
+          />
         ),
         cell: ({ getValue }) => (
           <GuestStatusBadge status={getValue() as GuestStatus} />
@@ -536,7 +639,15 @@ export function GuestsDataTable({
         id: "category",
         accessorFn: (row) => row.category.name,
         header: ({ column }) => (
-          <FilterableHeader column={column} title="Category" />
+          <ColumnHeaderWithFilter
+            column={column}
+            title="Category"
+            filterType="select"
+            filterKey="categoryIds"
+            filterValue={getFilterValue("categoryIds")}
+            onFilterChange={handleColumnFilterChange}
+            filterOptions={getFilterOptionsForColumn("category", "categoryIds")}
+          />
         ),
         cell: ({ row }) => <GuestCategoryBadge category={row.original.category} />,
         size: getColumnWidth("category"),
@@ -593,7 +704,17 @@ export function GuestsDataTable({
       {
         id: "tags",
         accessorKey: "tags",
-        header: "Tags",
+        header: ({ column }) => (
+          <ColumnHeaderWithFilter
+            column={column}
+            title="Tags"
+            filterType="select"
+            filterKey="tags"
+            filterValue={getFilterValue("tags")}
+            onFilterChange={handleColumnFilterChange}
+            filterOptions={getFilterOptionsForColumn("tags", "tags")}
+          />
+        ),
         cell: ({ getValue }) => {
           const tags = getValue() as string[] | null
           if (!tags?.length) return ""
@@ -645,7 +766,15 @@ export function GuestsDataTable({
         id: "lastEmailTemplateName",
         accessorKey: "lastEmailTemplateName",
         header: ({ column }) => (
-          <FilterableHeader column={column} title="Last Email Name" />
+          <ColumnHeaderWithFilter
+            column={column}
+            title="Last Email Name"
+            filterType="select"
+            filterKey="lastEmailTemplateNames"
+            filterValue={getFilterValue("lastEmailTemplateNames")}
+            onFilterChange={handleColumnFilterChange}
+            filterOptions={getFilterOptionsForColumn("lastEmailTemplateName", "lastEmailTemplateNames")}
+          />
         ),
         cell: ({ getValue }) => {
           const value = getValue() as string | null
@@ -763,6 +892,10 @@ export function GuestsDataTable({
       workspaceSlug,
       getColumnWidth,
       canViewDetails,
+      getFilterValue,
+      handleColumnFilterChange,
+      getFilterOptionsForColumn,
+      filterOptions,
     ]
   )
 
@@ -865,7 +998,7 @@ export function GuestsDataTable({
           {/* Sticky select column header */}
           {selectColumn && (
             <div
-              className="p-2 flex-shrink-0 bg-muted/30 sticky left-0 z-20"
+              className="p-2 flex-shrink-0 bg-muted/30"
               style={{ width: SELECT_COLUMN_WIDTH }}
             >
               {flexRender(
@@ -952,7 +1085,7 @@ export function GuestsDataTable({
                   {/* Sticky select cell */}
                   {selectCell && (
                     <div
-                      className="p-2 flex-shrink-0 bg-background sticky left-0 z-10 data-[state=selected]:bg-muted"
+                      className="p-2 flex-shrink-0 bg-background data-[state=selected]:bg-muted"
                       data-state={row.getIsSelected() ? "selected" : undefined}
                       style={{ width: SELECT_COLUMN_WIDTH }}
                       onClick={(e) => e.stopPropagation()}
