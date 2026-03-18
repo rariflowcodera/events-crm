@@ -28,6 +28,21 @@ import { linkify } from "@/lib/linkify"
 import { getBackgroundStyles, type BackgroundImageMode } from "@/components/branding/background-image-upload"
 import { getAccentStyles } from "@/components/branding/card-accent-settings"
 import { getLogoForDisplayMode } from "@/lib/branding/utils"
+import { isLightColor } from "@/lib/color-utils"
+
+/** Build inline style overrides for card text color, including CSS custom properties */
+function getCardTextColorStyles(color?: string): React.CSSProperties {
+  if (!color) return {}
+  return {
+    color,
+    "--foreground": color,
+    "--color-foreground": color,
+    "--muted-foreground": color,
+    "--color-muted-foreground": color,
+    "--card-foreground": color,
+    "--color-card-foreground": color,
+  } as React.CSSProperties
+}
 
 import { DynamicFormRenderer } from "./dynamic-form-renderer"
 import { VisualResponseSelector } from "./visual-response-selector"
@@ -118,6 +133,10 @@ interface GuestData {
       secondaryColor?: string
       backgroundImage?: string
       backgroundImageMode?: BackgroundImageMode
+      cardBackgroundColor?: string
+      cardTextColor?: string
+      cardButtonColor?: string
+      cardBorderColor?: string
       cardAccent?: {
         enabled: boolean
         color: string
@@ -430,7 +449,12 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
       >
         <Card
           className="w-full max-w-md relative rounded-lg sm:rounded-xl overflow-hidden"
-          style={getAccentStyles(event.branding?.cardAccent)}
+          style={{
+            ...getAccentStyles(event.branding?.cardAccent),
+            ...(event.branding?.cardBackgroundColor ? { backgroundColor: event.branding.cardBackgroundColor } : {}),
+            ...getCardTextColorStyles(event.branding?.cardTextColor),
+            ...(event.branding?.cardBorderColor ? { borderColor: event.branding.cardBorderColor } : {}),
+          }}
         >
           {/* Language toggle */}
           <button
@@ -520,7 +544,12 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
       >
         <Card
           className="w-full max-w-md relative rounded-lg sm:rounded-xl overflow-hidden"
-          style={getAccentStyles(guestData.event.branding?.cardAccent)}
+          style={{
+            ...getAccentStyles(guestData.event.branding?.cardAccent),
+            ...(guestData.event.branding?.cardBackgroundColor ? { backgroundColor: guestData.event.branding.cardBackgroundColor } : {}),
+            ...getCardTextColorStyles(guestData.event.branding?.cardTextColor),
+            ...(guestData.event.branding?.cardBorderColor ? { borderColor: guestData.event.branding.cardBorderColor } : {}),
+          }}
         >
           <CardContent className="pt-6 text-center p-4 sm:p-6 sm:pt-6">
             {brandLogo && (
@@ -658,9 +687,13 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
     isSystemDark
   )
   const brandPrimary = event.resolvedBranding?.primaryColor || event.branding?.primaryColor
+  const cardButtonColor = event.branding?.cardButtonColor || brandPrimary
   const brandAccent = event.resolvedBranding?.accentColor || event.branding?.secondaryColor
   const bgUrl = category.rsvpPageConfig?.backgroundImage || event.branding?.backgroundImage
   const bgMode = event.branding?.backgroundImageMode || "cover"
+  const isDarkCard = event.branding?.cardBackgroundColor
+    ? !isLightColor(event.branding.cardBackgroundColor)
+    : false
 
   return (
     <div
@@ -673,8 +706,29 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
       }}
     >
       <Card
-        className="w-full max-w-2xl relative rounded-lg sm:rounded-xl overflow-hidden"
-        style={getAccentStyles(event.branding?.cardAccent)}
+        className={cn(
+          "w-full max-w-2xl relative rounded-lg sm:rounded-xl overflow-hidden",
+          isDarkCard && [
+            "[&_input]:text-gray-900",
+            "[&_input]:placeholder:text-gray-500",
+            "[&_textarea]:bg-white",
+            "[&_textarea]:text-gray-900",
+            "[&_textarea]:placeholder:text-gray-500",
+            "[&_[data-slot=select-trigger]]:bg-white",
+            "[&_[data-slot=select-trigger]]:text-gray-900",
+            "[&_button[role=checkbox]]:border-white/70",
+            "[&_button[role=checkbox]]:data-[state=checked]:border-primary",
+            "[&_button[role=radio]]:border-white/70",
+            "[&_button[role=radio]]:text-white",
+            "[&_button[role=radio]_svg]:fill-white",
+          ]
+        )}
+        style={{
+          ...getAccentStyles(event.branding?.cardAccent),
+          ...(event.branding?.cardBackgroundColor ? { backgroundColor: event.branding.cardBackgroundColor } : {}),
+          ...getCardTextColorStyles(event.branding?.cardTextColor),
+          ...(event.branding?.cardBorderColor ? { borderColor: event.branding.cardBorderColor } : {}),
+        }}
       >
         {/* Language toggle */}
         <button
@@ -771,6 +825,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                               maybeLabel={maybeLabel}
                               showMaybeOption={showMaybeOption}
                               isRtl={isRtl}
+                              cardBackgroundColor={event.branding?.cardBackgroundColor}
                             />
                           ) : (
                             <RadioGroup
@@ -838,6 +893,11 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                     onClick={() => setCurrentStep(s => s - 1)}
                     disabled={submitting}
                     className="h-11 sm:h-9"
+                    style={cardButtonColor ? {
+                      borderColor: cardButtonColor,
+                      color: cardButtonColor,
+                      backgroundColor: "transparent",
+                    } : undefined}
                   >
                     {displayLocale === "ar" ? "رجوع" : "Back"}
                   </Button>
@@ -850,7 +910,7 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                     type="submit"
                     className={cn("h-11 sm:h-9", currentStep === 0 ? "w-full" : "flex-1")}
                     disabled={submitting}
-                    style={brandPrimary ? { backgroundColor: brandPrimary } : undefined}
+                    style={cardButtonColor ? { backgroundColor: cardButtonColor } : undefined}
                   >
                     {submitting ? (
                       <>
@@ -867,9 +927,9 @@ export function RsvpPage({ token, locale, customDomain }: RsvpPageProps) {
                     type="button"
                     className="w-full h-11 sm:h-9"
                     onClick={handleNextClick}
-                    style={brandPrimary ? { backgroundColor: brandPrimary } : undefined}
+                    style={cardButtonColor ? { backgroundColor: cardButtonColor } : undefined}
                   >
-                    {t("next")}
+                    {displayLocale === "ar" ? "التالي" : "Next"}
                   </Button>
                 )}
               </div>

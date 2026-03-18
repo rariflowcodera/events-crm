@@ -120,6 +120,10 @@ export type EventBranding = {
   backgroundImageMode?: "cover" | "contain" | "repeat" | "center" // How the background image displays
   vappBackgroundImage?: string // Background image URL for VAPP vouchers
   // Card styling
+  cardBackgroundColor?: string // Hex color for card background
+  cardTextColor?: string // Hex color for card text
+  cardButtonColor?: string // Hex color for card buttons (submit/next/back)
+  cardBorderColor?: string // Hex color for card border
   cardAccent?: {
     enabled: boolean
     color: string // Hex color (e.g., "#D4A84B" for gold)

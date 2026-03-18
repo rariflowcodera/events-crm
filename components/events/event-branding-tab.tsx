@@ -56,6 +56,10 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
       backgroundImage: "",
       backgroundImageMode: undefined,
       vappBackgroundImage: "",
+      cardBackgroundColor: "",
+      cardTextColor: "",
+      cardButtonColor: "",
+      cardBorderColor: "",
       cardAccent: undefined,
       sectionHeader: undefined,
       emailBranding: undefined,
@@ -81,6 +85,10 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
         backgroundImage: data.eventBranding?.backgroundImage || "",
         backgroundImageMode: data.eventBranding?.backgroundImageMode,
         vappBackgroundImage: data.eventBranding?.vappBackgroundImage || "",
+        cardBackgroundColor: data.eventBranding?.cardBackgroundColor || "",
+        cardTextColor: data.eventBranding?.cardTextColor || "",
+        cardButtonColor: data.eventBranding?.cardButtonColor || "",
+        cardBorderColor: data.eventBranding?.cardBorderColor || "",
         cardAccent: data.eventBranding?.cardAccent,
         sectionHeader: data.eventBranding?.sectionHeader,
         emailBranding: data.eventBranding?.emailBranding,
@@ -105,6 +113,10 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
       backgroundImage: values.backgroundImage || undefined,
       backgroundImageMode: values.backgroundImageMode || undefined,
       vappBackgroundImage: values.vappBackgroundImage || undefined,
+      cardBackgroundColor: values.cardBackgroundColor || undefined,
+      cardTextColor: values.cardTextColor || undefined,
+      cardButtonColor: values.cardButtonColor || undefined,
+      cardBorderColor: values.cardBorderColor || undefined,
       cardAccent: values.cardAccent || undefined,
       sectionHeader: values.sectionHeader || undefined,
       emailBranding: values.emailBranding || undefined,
@@ -146,6 +158,10 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
       backgroundImage: "",
       backgroundImageMode: undefined,
       vappBackgroundImage: "",
+      cardBackgroundColor: "",
+      cardTextColor: "",
+      cardButtonColor: "",
+      cardBorderColor: "",
       cardAccent: undefined,
       sectionHeader: undefined,
       emailBranding: undefined,
@@ -433,6 +449,122 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
                   disabled={isPending}
                 />
 
+                <FormField
+                  control={form.control}
+                  name="cardBackgroundColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <ColorPicker
+                        value={field.value}
+                        onChange={(color) => {
+                          field.onChange(color)
+                          updateBranding({
+                            eventId: event.id,
+                            branding: buildBrandingPayload({ cardBackgroundColor: color }),
+                          })
+                        }}
+                        label="Card Background Color"
+                        disabled={isPending}
+                        onReset={() => {
+                          form.setValue("cardBackgroundColor", "", { shouldDirty: true })
+                          updateBranding({
+                            eventId: event.id,
+                            branding: buildBrandingPayload({ cardBackgroundColor: "" }),
+                          })
+                        }}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cardTextColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <ColorPicker
+                        value={field.value}
+                        onChange={(color) => {
+                          field.onChange(color)
+                          updateBranding({
+                            eventId: event.id,
+                            branding: buildBrandingPayload({ cardTextColor: color }),
+                          })
+                        }}
+                        label="Card Text Color"
+                        disabled={isPending}
+                        onReset={() => {
+                          form.setValue("cardTextColor", "", { shouldDirty: true })
+                          updateBranding({
+                            eventId: event.id,
+                            branding: buildBrandingPayload({ cardTextColor: "" }),
+                          })
+                        }}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cardButtonColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <ColorPicker
+                        value={field.value}
+                        onChange={(color) => {
+                          field.onChange(color)
+                          updateBranding({
+                            eventId: event.id,
+                            branding: buildBrandingPayload({ cardButtonColor: color }),
+                          })
+                        }}
+                        label="Card Button Color"
+                        disabled={isPending}
+                        onReset={() => {
+                          form.setValue("cardButtonColor", "", { shouldDirty: true })
+                          updateBranding({
+                            eventId: event.id,
+                            branding: buildBrandingPayload({ cardButtonColor: "" }),
+                          })
+                        }}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cardBorderColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <ColorPicker
+                        value={field.value}
+                        onChange={(color) => {
+                          field.onChange(color)
+                          updateBranding({
+                            eventId: event.id,
+                            branding: buildBrandingPayload({ cardBorderColor: color }),
+                          })
+                        }}
+                        label="Card Border Color"
+                        disabled={isPending}
+                        onReset={() => {
+                          form.setValue("cardBorderColor", "", { shouldDirty: true })
+                          updateBranding({
+                            eventId: event.id,
+                            branding: buildBrandingPayload({ cardBorderColor: "" }),
+                          })
+                        }}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <SectionHeaderSettings
                   value={watchedValues.sectionHeader}
                   onChange={(header) => {
@@ -507,6 +639,10 @@ export function EventBrandingTab({ event, workspaceSlug }: EventBrandingTabProps
           backgroundImage={watchedValues.backgroundImage}
           backgroundImageMode={watchedValues.backgroundImageMode || "cover"}
           cardAccent={watchedValues.cardAccent}
+          cardBackgroundColor={watchedValues.cardBackgroundColor}
+          cardTextColor={watchedValues.cardTextColor}
+          cardButtonColor={watchedValues.cardButtonColor}
+          cardBorderColor={watchedValues.cardBorderColor}
           sectionHeader={watchedValues.sectionHeader}
           className="sticky top-4"
         />

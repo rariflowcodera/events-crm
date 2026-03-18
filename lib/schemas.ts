@@ -111,6 +111,10 @@ export const eventBrandingSchema = baseBrandingSchema.extend({
   backgroundImage: brandingImageSchema,
   backgroundImageMode: backgroundImageModeSchema,
   vappBackgroundImage: brandingImageSchema, // Background image for VAPP vouchers
+  cardBackgroundColor: hexColorSchema,
+  cardTextColor: hexColorSchema,
+  cardButtonColor: hexColorSchema,
+  cardBorderColor: hexColorSchema,
   cardAccent: cardAccentSchema,
   sectionHeader: sectionHeaderSchema,
   emailBranding: emailBrandingConfigSchema.optional(),

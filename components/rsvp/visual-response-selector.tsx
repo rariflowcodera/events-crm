@@ -2,6 +2,7 @@
 
 import { Check, X, HelpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { isLightColor } from "@/lib/color-utils"
 
 interface VisualResponseSelectorProps {
   value?: string
@@ -11,6 +12,7 @@ interface VisualResponseSelectorProps {
   maybeLabel: string
   showMaybeOption: boolean
   isRtl: boolean
+  cardBackgroundColor?: string
 }
 
 interface ResponseOption {
@@ -21,6 +23,7 @@ interface ResponseOption {
   iconColor: string
   selectedBg: string
   selectedBorder: string
+  selectedText: string
 }
 
 export function VisualResponseSelector({
@@ -31,25 +34,32 @@ export function VisualResponseSelector({
   maybeLabel,
   showMaybeOption,
   isRtl,
+  cardBackgroundColor,
 }: VisualResponseSelectorProps) {
+  const isDarkCard = cardBackgroundColor
+    ? !isLightColor(cardBackgroundColor)
+    : false
+
   const options: ResponseOption[] = [
     {
       value: "confirmed",
       label: confirmLabel,
       Icon: Check,
-      iconBg: "bg-green-100 dark:bg-green-900/30",
-      iconColor: "text-green-600 dark:text-green-400",
-      selectedBg: "bg-green-50 dark:bg-green-900/20",
-      selectedBorder: "border-green-500 dark:border-green-400",
+      iconBg: isDarkCard ? "bg-green-500/20" : "bg-green-100 dark:bg-green-900/30",
+      iconColor: isDarkCard ? "text-green-300" : "text-green-600 dark:text-green-400",
+      selectedBg: isDarkCard ? "bg-green-500/20" : "bg-green-50 dark:bg-green-900/20",
+      selectedBorder: isDarkCard ? "border-green-400" : "border-green-500 dark:border-green-400",
+      selectedText: isDarkCard ? "text-green-100" : "text-green-800",
     },
     {
       value: "declined",
       label: declineLabel,
       Icon: X,
-      iconBg: "bg-red-100 dark:bg-red-900/30",
-      iconColor: "text-red-600 dark:text-red-400",
-      selectedBg: "bg-red-50 dark:bg-red-900/20",
-      selectedBorder: "border-red-500 dark:border-red-400",
+      iconBg: isDarkCard ? "bg-red-500/20" : "bg-red-100 dark:bg-red-900/30",
+      iconColor: isDarkCard ? "text-red-300" : "text-red-600 dark:text-red-400",
+      selectedBg: isDarkCard ? "bg-red-500/20" : "bg-red-50 dark:bg-red-900/20",
+      selectedBorder: isDarkCard ? "border-red-400" : "border-red-500 dark:border-red-400",
+      selectedText: isDarkCard ? "text-red-100" : "text-red-800",
     },
     ...(showMaybeOption
       ? [
@@ -57,10 +67,11 @@ export function VisualResponseSelector({
             value: "maybe" as const,
             label: maybeLabel,
             Icon: HelpCircle,
-            iconBg: "bg-amber-100 dark:bg-amber-900/30",
-            iconColor: "text-amber-600 dark:text-amber-400",
-            selectedBg: "bg-amber-50 dark:bg-amber-900/20",
-            selectedBorder: "border-amber-500 dark:border-amber-400",
+            iconBg: isDarkCard ? "bg-amber-500/20" : "bg-amber-100 dark:bg-amber-900/30",
+            iconColor: isDarkCard ? "text-amber-300" : "text-amber-600 dark:text-amber-400",
+            selectedBg: isDarkCard ? "bg-amber-500/20" : "bg-amber-50 dark:bg-amber-900/20",
+            selectedBorder: isDarkCard ? "border-amber-400" : "border-amber-500 dark:border-amber-400",
+            selectedText: isDarkCard ? "text-amber-100" : "text-amber-800",
           },
         ]
       : []),
@@ -86,7 +97,9 @@ export function VisualResponseSelector({
               "hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary",
               isSelected
                 ? cn(option.selectedBorder, option.selectedBg)
-                : "border-border hover:border-muted-foreground/30"
+                : isDarkCard
+                  ? "border-white/20 hover:border-white/40"
+                  : "border-border hover:border-muted-foreground/30"
             )}
           >
             <div
@@ -101,7 +114,11 @@ export function VisualResponseSelector({
             <span
               className={cn(
                 "font-medium text-sm",
-                isSelected ? "text-foreground" : "text-muted-foreground"
+                isSelected
+                  ? option.selectedText
+                  : isDarkCard
+                    ? "text-white/70"
+                    : "text-muted-foreground"
               )}
             >
               {option.label}

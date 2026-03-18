@@ -63,7 +63,7 @@ export function linkify(text: string): ReactNode[] {
         href={href}
         target={m.type === "url" ? "_blank" : undefined}
         rel={m.type === "url" ? "noopener noreferrer" : undefined}
-        className="underline text-primary hover:text-primary/80"
+        className="underline text-current hover:opacity-80"
       >
         {m.text}
       </a>

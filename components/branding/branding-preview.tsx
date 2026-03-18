@@ -34,6 +34,10 @@ interface BrandingPreviewProps {
   backgroundImage?: string
   backgroundImageMode?: BackgroundImageMode
   cardAccent?: CardAccent
+  cardBackgroundColor?: string
+  cardTextColor?: string
+  cardButtonColor?: string
+  cardBorderColor?: string
   sectionHeader?: SectionHeader
   className?: string
 }
@@ -51,6 +55,10 @@ export function BrandingPreview({
   backgroundImage,
   backgroundImageMode = "cover",
   cardAccent,
+  cardBackgroundColor,
+  cardTextColor,
+  cardButtonColor,
+  cardBorderColor,
   sectionHeader,
   className,
 }: BrandingPreviewProps) {
@@ -112,7 +120,12 @@ export function BrandingPreview({
             "shadow-sm border",
             isDark ? "border-gray-700" : "border-gray-200"
           )}
-          style={getAccentStyles(cardAccent)}
+          style={{
+            ...getAccentStyles(cardAccent),
+            ...(cardBackgroundColor ? { backgroundColor: cardBackgroundColor } : {}),
+            ...(cardTextColor ? { color: cardTextColor, "--foreground": cardTextColor, "--color-foreground": cardTextColor, "--muted-foreground": cardTextColor, "--color-muted-foreground": cardTextColor, "--card-foreground": cardTextColor, "--color-card-foreground": cardTextColor } as React.CSSProperties : {}),
+            ...(cardBorderColor ? { borderColor: cardBorderColor } : {}),
+          }}
         >
           <div className="p-4 space-y-3">
             {/* Logo */}
@@ -165,7 +178,7 @@ export function BrandingPreview({
             <button
               type="button"
               className="w-full rounded-md px-3 py-1.5 text-xs font-medium text-white transition-colors"
-              style={{ backgroundColor: primaryColor }}
+              style={{ backgroundColor: cardButtonColor || primaryColor }}
             >
               Confirm
             </button>
