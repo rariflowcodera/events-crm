@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray, isNull } from "drizzle-orm"
 import { db } from "@/server/db/config/database"
 import {
   emailPreviewTokens,
+  emailMasterTemplates,
   eventDocuments,
   eventForms,
   guestFormTokens,
@@ -280,12 +281,35 @@ export async function GET(
     )
   }
 
-  // Use built-in default master template (consistent with email processor)
-  const masterTemplate = {
-    id: "built-in",
-    name: "Default",
-    htmlTemplate: defaultMasterTemplate,
-    structure: defaultMasterTemplateStructure,
+  // Resolve master template: template's masterTemplateId → workspace default → built-in default
+  let masterTemplate: {
+    id: string
+    name: string
+    htmlTemplate: string
+    structure: typeof defaultMasterTemplateStructure | null
+  } | null = null
+
+  if (template.masterTemplateId) {
+    masterTemplate = await db.query.emailMasterTemplates.findFirst({
+      where: eq(emailMasterTemplates.id, template.masterTemplateId),
+    }) ?? null
+  }
+  if (!masterTemplate) {
+    masterTemplate = await db.query.emailMasterTemplates.findFirst({
+      where: and(
+        eq(emailMasterTemplates.workspaceId, event.workspaceId),
+        eq(emailMasterTemplates.isDefault, true),
+        isNull(emailMasterTemplates.eventId)
+      ),
+    }) ?? null
+  }
+  if (!masterTemplate) {
+    masterTemplate = {
+      id: "built-in",
+      name: "Default",
+      htmlTemplate: defaultMasterTemplate,
+      structure: defaultMasterTemplateStructure,
+    }
   }
 
   // Prepare guest data for rendering

@@ -1,10 +1,11 @@
 import { Job } from "bullmq"
-import { and, eq, inArray, sql } from "drizzle-orm"
+import { and, eq, inArray, isNull, sql } from "drizzle-orm"
 import { db } from "@/server/db/config/database"
 import {
   bulkEmailJobs,
   emailLogs,
   emailSuppressions,
+  emailMasterTemplates,
   emailTemplates,
   eventDocuments,
   eventForms,
@@ -284,11 +285,33 @@ async function processSingleJob(job: Job<SingleEmailJobData>): Promise<EmailJobR
     .returning()
 
   try {
+    // Resolve master template: template's masterTemplateId → workspace default → null (falls back to built-in)
+    let resolvedMasterTemplate = null
+    if (template.masterTemplateId) {
+      resolvedMasterTemplate = await db.query.emailMasterTemplates.findFirst({
+        where: eq(emailMasterTemplates.id, template.masterTemplateId),
+      }) ?? null
+    }
+    if (!resolvedMasterTemplate && eventWithWorkspace?.workspaceId) {
+      resolvedMasterTemplate = await db.query.emailMasterTemplates.findFirst({
+        where: and(
+          eq(emailMasterTemplates.workspaceId, eventWithWorkspace.workspaceId),
+          eq(emailMasterTemplates.isDefault, true),
+          isNull(emailMasterTemplates.eventId)
+        ),
+      }) ?? null
+    }
+
     // Build branding context for email rendering
     const branding = {
       workspaceBranding: eventWithWorkspace?.workspace?.branding || null,
       eventBranding: eventWithWorkspace?.branding || null,
-      masterTemplate: null, // Uses default master template
+      masterTemplate: resolvedMasterTemplate ? {
+        id: resolvedMasterTemplate.id,
+        name: resolvedMasterTemplate.name,
+        htmlTemplate: resolvedMasterTemplate.htmlTemplate,
+        structure: resolvedMasterTemplate.structure,
+      } : null,
     }
 
     // Render template with variables (including document links, form links, and branding)
