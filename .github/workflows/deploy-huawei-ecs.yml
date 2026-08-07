@@ -1,0 +1,83 @@
+name: Deploy to Huawei Cloud ECS
+
+on:
+  push:
+    branches: [ "prod" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install pnpm FIRST (required for setup-node caching)
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          # Build-time variables (values don't need to be real prod secrets, just present)
+          BETTER_AUTH_SECRET: "build-time-secret-placeholder"
+          BETTER_AUTH_URL: "http://localhost:3000"
+          AWS_REGION: "me-south-1"
+          AWS_ACCESS_KEY_ID: "build-placeholder"
+          AWS_SECRET_ACCESS_KEY: "build-placeholder"
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+
+      - name: Prepare deployment artifacts
+        run: |
+          mkdir deploy_package
+          # Remove cache to speed up upload
+          rm -rf .next/cache
+
+          # Copy essential files + LOCKFILE + TSCONFIG + SOURCE (for seeding/workers)
+          # We include 'lib', 'hooks', 'messages', 'i18n', 'types' because server-side code (workers/seeds) imports them via alias @/
+          cp -r .next public package.json pnpm-lock.yaml tsconfig.json next.config.ts ecosystem.config.js server lib hooks messages i18n types env.ts drizzle.config.ts content deploy_package/
+
+          # We DO NOT copy node_modules to save upload time.
+          # We will install them on the server.
+
+      - name: Deploy to Huawei ECS via rsync
+        uses: easingthemes/ssh-deploy@main
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.HUAWEI_SSH_PRIVATE_KEY }}
+          # Exclude logs, node_modules, uploads, and local env file from being deleted on the server
+          ARGS: "-rlgoDzvc -i -s --delete --exclude=logs --exclude=node_modules --exclude=.env.local --exclude=uploads"
+          SOURCE: "deploy_package/"
+          REMOTE_HOST: ${{ secrets.HUAWEI_SSH_HOST }}
+          REMOTE_USER: ${{ secrets.HUAWEI_SSH_USER }}
+          REMOTE_PORT: ${{ secrets.HUAWEI_SSH_PORT }}
+          TARGET: "/opt/events-crm/"
+          SCRIPT_AFTER: |
+            cd /opt/events-crm
+
+            echo "Creating logs directory..."
+            mkdir -p logs
+
+            echo "Installing dependencies..."
+            pnpm install --frozen-lockfile || { echo "Retry pnpm install..."; pnpm install --frozen-lockfile; }
+
+            echo "Running database migrations..."
+            pnpm db:migrate
+
+            echo "Reloading application (zero-downtime)..."
+            pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
+            pm2 save
+
+            echo "Deployment Complete!"
