@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/server/queries/auth-queries"
 import { PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
-import { awsClient } from "@/lib/aws"
+import { getAwsClient } from "@/lib/aws"
 import { createRateLimiter } from "@/lib/ratelimit"
 import { responses } from "@/lib/responses"
 
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       CacheControl: "max-age=63072000",
     }
 
-    const preSignedUrl = await getSignedUrl(awsClient, new PutObjectCommand(params), {
+    const preSignedUrl = await getSignedUrl(getAwsClient(), new PutObjectCommand(params), {
       expiresIn: 60 * 60,
     })
 
