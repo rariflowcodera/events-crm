@@ -35,7 +35,7 @@ module.exports = {
     },
     {
       name: "events-crm-worker",
-      script: "node --import tsx server/workers/email-worker.ts",
+      script: "node --env-file=.env.local --import tsx server/workers/email-worker.ts",
       cwd: __dirname,
       env: {
         NODE_ENV: "production",
@@ -53,7 +53,7 @@ module.exports = {
     },
     {
       name: "events-crm-suppression-worker",
-      script: "node --import tsx server/workers/suppression-sync-worker.ts",
+      script: "node --env-file=.env.local --import tsx server/workers/suppression-sync-worker.ts",
       cwd: __dirname,
       env: {
         NODE_ENV: "production",
