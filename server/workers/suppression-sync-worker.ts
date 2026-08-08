@@ -11,7 +11,8 @@
  * 2. email_log status for bounced addresses
  */
 
-import "dotenv/config"
+import { config } from "dotenv"
+config({ path: ".env.local" })
 import { Worker } from "bullmq"
 import { createQueueConnection } from "@/lib/queue/connection"
 import {

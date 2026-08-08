@@ -8,7 +8,8 @@
  * single email jobs (which send individual emails).
  */
 
-import "dotenv/config"
+import { config } from "dotenv"
+config({ path: ".env.local" })
 import { Worker } from "bullmq"
 import { createQueueConnection } from "@/lib/queue/connection"
 import { QUEUE_NAMES } from "@/lib/queue/queues"
