@@ -239,8 +239,11 @@ function renderLegacyEmailTemplate(
     "guest.firstName": guest.firstName || "",
     "guest.lastName": guest.lastName || "",
     "guest.fullName": [guest.firstName, guest.lastName].filter(Boolean).join(" "),
+    "guest.displayNameAr":
+      guest.displayNameAr || [guest.firstName, guest.lastName].filter(Boolean).join(" "),
     "guest.title": guest.title || "",
     "guest.salutation": guest.salutation || "",
+    "guest.salutationAr": guest.salutationAr || "",
     "guest.email": guest.email || "",
     "guest.position": guest.position || "",
     "guest.entity": guest.entity || "",
