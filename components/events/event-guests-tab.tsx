@@ -52,6 +52,7 @@ interface Event {
   id: string
   name: string
   slug: string
+  status: string
   guestCategories: GuestCategory[]
   customDomain: string | null
   customDomainVerified: boolean | null
@@ -502,6 +503,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
         onShowFiltersChange={setShowFilters}
         vappEnabled={event.settings?.vapp?.enabled}
         hasShortRsvpCode={hasShortRsvpCode}
+        eventStatus={event.status}
       />
 
       {isLoading ? (
@@ -559,6 +561,7 @@ export function EventGuestsTab({ event, workspaceSlug, fullHeight = false }: Eve
           guestIds={Array.from(selectedIds)}
           emailType={bulkEmailType}
           onSuccess={() => setSelectedIds(new Set())}
+          eventStatus={event.status}
         />
       )}
 

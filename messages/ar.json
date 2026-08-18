@@ -522,6 +522,7 @@
     "delete": "حذف",
     "selectOneGuest": "اختر ضيف واحد فقط",
     "noEmailPermission": "لا يوجد إذن لإرسال البريد",
+    "draftEventCannotSendInvitation": "الفعالية في وضع المسودة — يجب نشرها أولاً لإرسال الدعوات",
     "noDeletePermission": "لا يوجد إذن لحذف الضيوف",
     "noManagePermission": "لا يوجد إذن لإدارة الضيوف",
     "selectNewStatus": "اختر الحالة الجديدة",

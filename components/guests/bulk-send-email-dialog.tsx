@@ -28,6 +28,7 @@ interface BulkSendEmailDialogProps {
   emailType: EmailTemplateType
   workspaceSlug?: string
   onSuccess?: () => void
+  eventStatus?: string
 }
 
 export function BulkSendEmailDialog({
@@ -38,8 +39,11 @@ export function BulkSendEmailDialog({
   emailType,
   workspaceSlug,
   onSuccess,
+  eventStatus,
 }: BulkSendEmailDialogProps) {
   const t = useTranslations("bulkEmail")
+  const guestActionsT = useTranslations("guestActions")
+  const isDraftInvitationBlocked = emailType === "invitation" && eventStatus === "draft"
 
   const [activeJobIds, setActiveJobIds] = useState<string[]>([])
 
@@ -138,8 +142,18 @@ export function BulkSendEmailDialog({
           </div>
         )}
 
+        {/* Draft Event Blocked State */}
+        {isDraftInvitationBlocked && !activeJobIds.length && (
+          <Alert variant="destructive" className="my-4">
+            <Icons.alertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {guestActionsT("draftEventCannotSendInvitation")}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Missing Templates Error State */}
-        {!loadingCategories && !activeJobIds.length && categoriesWithoutTemplate.length > 0 && (
+        {!isDraftInvitationBlocked && !loadingCategories && !activeJobIds.length && categoriesWithoutTemplate.length > 0 && (
           <div className="space-y-4 py-4">
             <Alert variant="destructive">
               <Icons.alertTriangle className="h-4 w-4" />
@@ -171,7 +185,7 @@ export function BulkSendEmailDialog({
         )}
 
         {/* Ready to Send State */}
-        {!loadingCategories && !activeJobIds.length && allHaveTemplates && guestsToSend > 0 && (
+        {!isDraftInvitationBlocked && !loadingCategories && !activeJobIds.length && allHaveTemplates && guestsToSend > 0 && (
           <div className="py-4">
             <div className="rounded-lg border bg-muted/50 p-4">
               <div className="flex items-center gap-3">
@@ -238,6 +252,7 @@ export function BulkSendEmailDialog({
               <Button
                 onClick={handleSend}
                 disabled={
+                  isDraftInvitationBlocked ||
                   loadingCategories ||
                   !allHaveTemplates ||
                   guestsToSend === 0 ||
