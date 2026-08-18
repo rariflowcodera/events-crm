@@ -27,7 +27,9 @@ export const eventStatusEnum = pgEnum("event_status", [
 
 Today there is no check anywhere — server or client — that stops a user from sending bulk invitations/emails to guests on an event that's still in draft. This was confirmed by code search: `trpc/routers/bulk-email.ts`'s three send mutations only verify the event exists, `server/workers/email-processor.ts` (the actual BullMQ send worker) has no event-status check, and no UI surface disables send actions based on status.
 
-All three mutations (`sendBulk`, `sendToAll`, `sendBulkByCategory`) take an `emailType` input (`lib/schemas.ts:420-429`: `invitation | reminder | confirmation | declined_acknowledgment | maybe_acknowledgment | update | cancellation | custom`). The guard only applies when `emailType === "invitation"` — other email types (reminders, confirmations, updates, etc.) must keep sending regardless of event status, since those are typically sent after invitations have already gone out and blocking them on `draft` would be incorrect (and in practice the event will no longer be `draft` by then, but the check must not assume that).
+All three mutations (`sendBulk`, `sendToAll`, `sendBulkByCategory`) take an `emailType` input (`lib/schemas.ts:420-429`: `invitation | reminder | confirmation | declined_acknowledgment | maybe_acknowledgment | update | cancellation | custom`).
+
+> **Update (revised scope):** The guard is scoped by *action path*, not by `emailType` value. `sendToAll` and `sendBulkByCategory` — the "Send Invitation" quick-send paths — are blocked for draft events. `sendBulk` — the manual "Send Email" template picker (`components/guests/send-email-dialog.tsx`) — is **never** blocked, even if the user manually selects a template whose `type` happens to be `invitation`. Rationale: users need to be able to send arbitrary templated emails (by template) during draft, and only the dedicated invitation quick-actions should be gated. This is carried through to the BullMQ job via a new `enforceDraftGuard` boolean on `BulkEmailJobData` (`lib/queue/types.ts`), since the worker only sees `emailType`, not which router mutation enqueued the job.
 
 Link/RSVP generation (`lib/rsvp-url.ts`, and the planned Stage 40 "Generate Email Link" feature) is architecturally separate from the send pipeline already — it's pure token/URL generation that never touches the mail queue — so it needs no change.
 
@@ -39,7 +41,7 @@ Link/RSVP generation (`lib/rsvp-url.ts`, and the planned Stage 40 "Generate Emai
 |----------|--------|-----------|
 | Blocked statuses | Only `draft` | User's requirement is specifically about draft events; all other statuses (`planning`, `invitations_sent`, `rsvp_open`, `rsvp_closed`, `in_progress`, `completed`, `cancelled`) remain sendable as today. |
 | Enforcement layer | Server-side in tRPC mutations (primary) + worker-level check (defense-in-depth) | Server-side is the actual security boundary; the worker check guards against a job that was already queued when the event was later moved back to draft. |
-| Which sends are blocked | Only `emailType === "invitation"` within `sendBulk`, `sendToAll`, `sendBulkByCategory` (`trpc/routers/bulk-email.ts`) | Explicit requirement — don't block general "Send Email" for other template types (reminder, confirmation, update, cancellation, custom, etc.), only invitations. |
+| Which sends are blocked | `sendToAll` and `sendBulkByCategory` only (`trpc/routers/bulk-email.ts`) — the dedicated "Send Invitation" paths. `sendBulk` (manual "Send Email" template picker) is never blocked, regardless of the selected template's type. | Revised per explicit follow-up requirement — users need to send arbitrary templated emails "by template" during draft; only the invitation quick-actions should be gated. |
 | Link generation | Unrestricted | Explicit requirement — draft events can still generate links, just not auto-send. |
 | Error surfaced to user | Clear message + UI-level prevention | User should not be able to click "Send" and get a raw server error as their first signal — the action should be disabled with an explanatory tooltip, matching the existing disabled-item pattern in `guest-actions-dropdown.tsx`. |
 | Error code | `TRPCError({ code: "BAD_REQUEST" })` | Matches existing pattern for guard-rail validation errors elsewhere in the router (e.g. "Event not found" uses `NOT_FOUND`; this is a state-validation failure, not a missing resource). |
@@ -62,7 +64,7 @@ Link/RSVP generation (`lib/rsvp-url.ts`, and the planned Stage 40 "Generate Emai
 
 **Update `trpc/routers/bulk-email.ts`:**
 
-In each of `sendBulk` (line 21), `sendToAll` (line 119), and `sendBulkByCategory` (line 198), extend the existing event-fetch query to also select `status`, and add a guard immediately after the "event not found" check — scoped to `emailType === "invitation"` only:
+In `sendToAll` and `sendBulkByCategory` only, extend the existing event-fetch query to also select `status`, and add a guard immediately after the "event not found" check:
 
 ```ts
 const event = await db.query.events.findFirst({
@@ -82,7 +84,9 @@ if (emailType === "invitation" && event.status === "draft") {
 }
 ```
 
-Non-invitation email types (`reminder`, `confirmation`, `declined_acknowledgment`, `maybe_acknowledgment`, `update`, `cancellation`, `custom`) pass through unaffected, at any event status.
+`sendBulk` deliberately does **not** get this guard — it's the manual "Send Email" template picker and must always be able to send, regardless of the selected template's `type` or the event's status.
+
+When enqueuing the BullMQ job, `sendToAll` and `sendBulkByCategory` pass `enforceDraftGuard: true` in the `addBulkEmailJob(...)` payload; `sendBulk` omits it (defaults to falsy). See 44B.
 
 ---
 
@@ -90,7 +94,9 @@ Non-invitation email types (`reminder`, `confirmation`, `declined_acknowledgment
 
 **Update `server/workers/email-processor.ts`:**
 
-Before processing a queued bulk email job (in `processBulkJob`), when `job.data.emailType === "invitation"`, re-check `event.status` from the DB (not from the job payload, in case the event changed after enqueue) and fail the job gracefully (mark it `failed` with a clear reason) if the event has since been moved to `draft`. Non-invitation jobs skip this check entirely. This only matters for the edge case where an invitation job is queued, then the event is manually reverted to draft before the worker picks it up.
+Before processing a queued bulk email job (in `processBulkJob`), when `job.data.enforceDraftGuard` is true, re-check `event.status` from the DB (not from the job payload, in case the event changed after enqueue) and fail the job gracefully (mark it `failed` with a clear reason) if the event has since been moved to `draft`. Jobs from `sendBulk` (where `enforceDraftGuard` is not set) skip this check entirely, regardless of `emailType`. This only matters for the edge case where a guarded job is queued, then the event is manually reverted to draft before the worker picks it up.
+
+Note: the worker only has `job.data`, not knowledge of which router mutation created the job — `emailType` alone can't distinguish "Send Invitation" from a manually-picked invitation-type template in "Send Email", which is why `enforceDraftGuard` is threaded through explicitly (`lib/queue/types.ts`).
 
 ---
 
@@ -134,15 +140,14 @@ Add Arabic translation for the above key.
 ## Verification Checklist
 
 ### 44A: Server-Side Guard
-- [ ] `sendBulk` throws `BAD_REQUEST` when `emailType === "invitation"` and event status is `draft`
-- [ ] `sendToAll` throws `BAD_REQUEST` when `emailType === "invitation"` and event status is `draft`
-- [ ] `sendBulkByCategory` throws `BAD_REQUEST` when `emailType === "invitation"` and event status is `draft`
-- [ ] All three mutations still succeed for `emailType === "invitation"` on every non-draft status
-- [ ] All three mutations still succeed for every non-invitation `emailType`, including when event status is `draft`
+- [x] `sendToAll` throws `BAD_REQUEST` when `emailType === "invitation"` and event status is `draft`
+- [x] `sendBulkByCategory` throws `BAD_REQUEST` when `emailType === "invitation"` and event status is `draft`
+- [x] `sendBulk` (manual "Send Email" template picker) succeeds regardless of event status and regardless of the selected template's `type`, including `invitation`
+- [x] `sendToAll` / `sendBulkByCategory` still succeed on every non-draft status
 
 ### 44B: Worker Defense-in-Depth
-- [ ] Invitation job queued while event is non-draft, then event reverted to draft before processing → job fails gracefully with clear reason, no emails sent
-- [ ] Non-invitation job queued/processed while event is `draft` → sends normally, unaffected by the check
+- [x] Job with `enforceDraftGuard: true` queued while event is non-draft, then event reverted to draft before processing → job fails gracefully with clear reason, no emails sent
+- [x] `sendBulk`-originated jobs (`enforceDraftGuard` unset) process normally while event is `draft`, regardless of `emailType`
 
 ### 44C: UI Disable
 - [ ] "Send Invitation" disabled with tooltip when event is draft
@@ -165,9 +170,11 @@ Add Arabic translation for the above key.
 ```
 trpc/routers/bulk-email.ts
 server/workers/email-processor.ts
+lib/queue/types.ts
 components/guests/guest-actions-dropdown.tsx
 components/guests/guests-toolbar.tsx
-components/guests/bulk-send-email-dialog.tsx (or equivalent)
+components/events/event-guests-tab.tsx
+components/guests/bulk-send-email-dialog.tsx
 messages/en.json
 messages/ar.json
 ```

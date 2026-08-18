@@ -33,7 +33,7 @@ export const bulkEmailRouter = createTRPCRouter({
       // Verify event exists and user has access
       const event = await db.query.events.findFirst({
         where: eq(events.id, eventId),
-        columns: { id: true, workspaceId: true, status: true },
+        columns: { id: true, workspaceId: true },
       })
 
       if (!event) {
@@ -43,12 +43,9 @@ export const bulkEmailRouter = createTRPCRouter({
         })
       }
 
-      if (emailType === "invitation" && event.status === "draft") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot send invitations while the event is in draft status. Publish the event first, or generate a link to share manually.",
-        })
-      }
+      // Note: unlike sendToAll/sendBulkByCategory, sendBulk is used by the
+      // manual "Send Email" template picker and is intentionally NOT gated
+      // by draft status, even for invitation-type templates.
 
       // Verify template exists and belongs to this event
       const template = await db.query.emailTemplates.findFirst({
@@ -210,6 +207,7 @@ export const bulkEmailRouter = createTRPCRouter({
         templateId: template.id,
         emailType,
         guestIds: guestsWithEmail.map((g) => g.id),
+        enforceDraftGuard: true,
       })
 
       return {
@@ -369,6 +367,7 @@ export const bulkEmailRouter = createTRPCRouter({
           templateId,
           emailType,
           guestIds: templateGuests.map((g) => g.id),
+          enforceDraftGuard: true,
         })
 
         jobs.push({
