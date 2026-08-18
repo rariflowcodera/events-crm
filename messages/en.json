@@ -524,6 +524,7 @@
     "delete": "Delete",
     "selectOneGuest": "Select exactly 1 guest",
     "noEmailPermission": "No permission to send emails",
+    "draftEventCannotSendInvitation": "Event is in draft — publish it first to send invitations",
     "noDeletePermission": "No permission to delete guests",
     "noManagePermission": "No permission to manage guests",
     "selectNewStatus": "Select new status",

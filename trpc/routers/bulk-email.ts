@@ -33,13 +33,20 @@ export const bulkEmailRouter = createTRPCRouter({
       // Verify event exists and user has access
       const event = await db.query.events.findFirst({
         where: eq(events.id, eventId),
-        columns: { id: true, workspaceId: true },
+        columns: { id: true, workspaceId: true, status: true },
       })
 
       if (!event) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Event not found",
+        })
+      }
+
+      if (emailType === "invitation" && event.status === "draft") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot send invitations while the event is in draft status. Publish the event first, or generate a link to share manually.",
         })
       }
 
@@ -126,6 +133,26 @@ export const bulkEmailRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { eventId, emailType } = input
 
+      // Verify event exists and user has access
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, eventId),
+        columns: { id: true, workspaceId: true, status: true },
+      })
+
+      if (!event) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Event not found",
+        })
+      }
+
+      if (emailType === "invitation" && event.status === "draft") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot send invitations while the event is in draft status. Publish the event first, or generate a link to share manually.",
+        })
+      }
+
       // Get the default template for this email type
       const template = await db.query.emailTemplates.findFirst({
         where: and(
@@ -209,13 +236,20 @@ export const bulkEmailRouter = createTRPCRouter({
       // Verify event exists
       const event = await db.query.events.findFirst({
         where: eq(events.id, eventId),
-        columns: { id: true, workspaceId: true },
+        columns: { id: true, workspaceId: true, status: true },
       })
 
       if (!event) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Event not found",
+        })
+      }
+
+      if (emailType === "invitation" && event.status === "draft") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot send invitations while the event is in draft status. Publish the event first, or generate a link to share manually.",
         })
       }
 

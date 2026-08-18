@@ -51,6 +51,26 @@ async function processBulkJob(job: Job<BulkEmailJobData>): Promise<EmailJobResul
     .where(eq(bulkEmailJobs.id, bulkJobId))
 
   try {
+    if (emailType === "invitation") {
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, eventId),
+        columns: { status: true },
+      })
+
+      if (event?.status === "draft") {
+        await db
+          .update(bulkEmailJobs)
+          .set({
+            status: "failed",
+            errorMessage: "Event was moved back to draft status before invitations could be sent",
+            completedAt: new Date(),
+          })
+          .where(eq(bulkEmailJobs.id, bulkJobId))
+
+        return { success: false, error: "Event is in draft status" }
+      }
+    }
+
     // Fetch guests with emails
     const guestsToEmail = await db.query.guests.findMany({
       where: inArray(guests.id, guestIds),

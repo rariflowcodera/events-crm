@@ -37,6 +37,7 @@ interface GuestActionsDropdownProps {
   canDeleteGuests: boolean
   vappEnabled?: boolean
   hasShortRsvpCode?: boolean
+  eventStatus?: string
 }
 
 export function GuestActionsDropdown({
@@ -47,9 +48,11 @@ export function GuestActionsDropdown({
   canDeleteGuests,
   vappEnabled = false,
   hasShortRsvpCode = false,
+  eventStatus,
 }: GuestActionsDropdownProps) {
   const t = useTranslations("guestActions")
   const isSingleSelection = selectedCount === 1
+  const isDraftEvent = eventStatus === "draft"
 
   // Helper to render an action item with tooltip when disabled
   const ActionItem = ({
@@ -111,8 +114,14 @@ export function GuestActionsDropdown({
             action="send_invitation"
             icon={Mail}
             label={t("sendInvitation")}
-            disabled={!canSendEmails}
-            disabledReason={!canSendEmails ? t("noEmailPermission") : undefined}
+            disabled={!canSendEmails || isDraftEvent}
+            disabledReason={
+              !canSendEmails
+                ? t("noEmailPermission")
+                : isDraftEvent
+                  ? t("draftEventCannotSendInvitation")
+                  : undefined
+            }
           />
           <ActionItem
             action="send_email"
