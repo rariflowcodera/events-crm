@@ -23,6 +23,12 @@ export interface BulkEmailJobData {
   templateId: string
   emailType: EmailTemplateType
   guestIds: string[]
+  /**
+   * Whether this job should be blocked if the event is in draft status.
+   * True for the "Send Invitation" quick-send paths (sendToAll, sendBulkByCategory);
+   * false for the manual "Send Email" template picker (sendBulk), which is never gated.
+   */
+  enforceDraftGuard?: boolean
 }
 
 export type EmailJobData = SingleEmailJobData | BulkEmailJobData

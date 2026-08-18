@@ -40,7 +40,7 @@ export async function processEmailJob(job: Job<EmailJobData>): Promise<EmailJobR
  * Process a bulk email job - creates child jobs for each guest
  */
 async function processBulkJob(job: Job<BulkEmailJobData>): Promise<EmailJobResult> {
-  const { bulkJobId, eventId, templateId, emailType, guestIds } = job.data
+  const { bulkJobId, eventId, templateId, emailType, guestIds, enforceDraftGuard } = job.data
 
   console.log(`Processing bulk email job ${bulkJobId} for ${guestIds.length} guests`)
 
@@ -51,7 +51,7 @@ async function processBulkJob(job: Job<BulkEmailJobData>): Promise<EmailJobResul
     .where(eq(bulkEmailJobs.id, bulkJobId))
 
   try {
-    if (emailType === "invitation") {
+    if (enforceDraftGuard) {
       const event = await db.query.events.findFirst({
         where: eq(events.id, eventId),
         columns: { status: true },
