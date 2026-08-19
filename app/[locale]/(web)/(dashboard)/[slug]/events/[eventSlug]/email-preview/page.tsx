@@ -240,8 +240,12 @@ export default function EmailPreviewPage({ params }: EmailPreviewPageProps) {
           firstName: selectedGuest.firstName,
           lastName: selectedGuest.lastName,
           fullName: [selectedGuest.firstName, selectedGuest.lastName].filter(Boolean).join(" "),
+          displayNameAr:
+            selectedGuest.displayNameAr ||
+            [selectedGuest.firstName, selectedGuest.lastName].filter(Boolean).join(" "),
           title: selectedGuest.title,
           salutation: selectedGuest.salutation,
+          salutationAr: selectedGuest.salutationAr,
           email: selectedGuest.email,
           position: selectedGuest.position,
           entity: selectedGuest.entity,
