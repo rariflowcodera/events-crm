@@ -71,6 +71,31 @@ export const useUpdateEventDocument = ({
   return { mutate, isPending }
 }
 
+export const useReplaceEventDocumentFile = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: () => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, mutateAsync, isPending } = trpc.eventDocuments.replaceFile.useMutation({
+    onSuccess: (data) => {
+      toast.success("Document file replaced")
+      utils.eventDocuments.getMany.invalidate({ eventId: data.eventId })
+      utils.eventDocuments.getOne.invalidate({ documentId: data.id })
+      onSuccess?.()
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, mutateAsync, isPending }
+}
+
 export const useDeleteEventDocument = ({
   onSuccess,
   onError,
