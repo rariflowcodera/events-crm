@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { useUpdateEventDocument, useDeleteEventDocument } from "@/trpc/hooks/document-hooks"
+import { DocumentReplaceFileDialog } from "@/components/documents/document-replace-file-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -106,6 +107,7 @@ export function DocumentRow({ document, categories }: DocumentRowProps) {
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false)
   const [editName, setEditName] = useState(document.name)
   const [editType, setEditType] = useState<EventDocumentType>(document.type)
   const [editCategoryIds, setEditCategoryIds] = useState<string[]>(document.categoryIds || [])
@@ -209,6 +211,10 @@ export function DocumentRow({ document, categories }: DocumentRowProps) {
                 <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
                   <Icons.edit className="mr-2 h-4 w-4" />
                   {tCommon("edit")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsReplaceDialogOpen(true)}>
+                  <Icons.upload className="mr-2 h-4 w-4" />
+                  {t("replaceFile.action")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleCopyVariable}>
                   <Icons.copy className="mr-2 h-4 w-4" />
@@ -324,6 +330,18 @@ export function DocumentRow({ document, categories }: DocumentRowProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Replace File Dialog */}
+      <DocumentReplaceFileDialog
+        open={isReplaceDialogOpen}
+        onOpenChange={setIsReplaceDialogOpen}
+        document={{
+          id: document.id,
+          eventId: document.eventId,
+          name: document.name,
+          fileName: document.fileName,
+        }}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

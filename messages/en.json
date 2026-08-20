@@ -976,6 +976,13 @@
       "title": "Edit Document",
       "save": "Save Changes"
     },
+    "replaceFile": {
+      "action": "Replace File",
+      "title": "Replace Document File",
+      "description": "Upload a new file to replace \"{name}\". The document's name, type, and category visibility stay the same.",
+      "confirm": "Replace File",
+      "success": "Document file replaced"
+    },
     "errors": {
       "fileTooLarge": "File size exceeds 10MB limit",
       "invalidType": "Only PDF and image files are allowed",

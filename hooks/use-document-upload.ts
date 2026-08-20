@@ -1,5 +1,8 @@
 import { useState, useCallback } from "react"
-import { useCreateEventDocument } from "@/trpc/hooks/document-hooks"
+import {
+  useCreateEventDocument,
+  useReplaceEventDocumentFile,
+} from "@/trpc/hooks/document-hooks"
 import type { EventDocumentType } from "@/server/db/schemas/event-document"
 
 type DocumentUploadResponse = {
@@ -95,6 +98,30 @@ export function useDocumentUpload(eventId: string) {
   const [isUploading, setIsUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const { mutateAsync: createDocument } = useCreateEventDocument()
+  const { mutateAsync: replaceDocumentFile } = useReplaceEventDocumentFile()
+
+  // Get an upload URL and transfer the file; returns the resulting document URL.
+  const performTransfer = useCallback(
+    async (file: File, onProgress?: (progress: number) => void) => {
+      const response = await getDocumentUploadUrl(file, eventId)
+      const { data } = response
+
+      const uploadUrl =
+        data.storageProvider === "local" ? data.uploadUrl! : data.preSignedUrl!
+
+      const localUrl = await uploadFile(
+        uploadUrl,
+        file,
+        data.storageProvider,
+        eventId,
+        onProgress
+      )
+
+      // For local storage, use the returned URL; for S3, use the pre-computed URL
+      return localUrl || data.documentUrl
+    },
+    [eventId]
+  )
 
   const upload = useCallback(
     async (
@@ -109,26 +136,8 @@ export function useDocumentUpload(eventId: string) {
       setProgress(0)
 
       try {
-        // 1. Get upload URL
-        const response = await getDocumentUploadUrl(file, eventId)
-        const { data } = response
+        const finalUrl = await performTransfer(file, setProgress)
 
-        // 2. Upload file
-        const uploadUrl =
-          data.storageProvider === "local" ? data.uploadUrl! : data.preSignedUrl!
-
-        const localUrl = await uploadFile(
-          uploadUrl,
-          file,
-          data.storageProvider,
-          eventId,
-          setProgress
-        )
-
-        // For local storage, use the returned URL; for S3, use the pre-computed URL
-        const finalUrl = localUrl || data.documentUrl
-
-        // 3. Create document record
         await createDocument({
           eventId,
           name: metadata.name,
@@ -146,8 +155,33 @@ export function useDocumentUpload(eventId: string) {
         setProgress(0)
       }
     },
-    [eventId, createDocument]
+    [eventId, createDocument, performTransfer]
   )
 
-  return { upload, isUploading, progress }
+  const replace = useCallback(
+    async (documentId: string, file: File) => {
+      setIsUploading(true)
+      setProgress(0)
+
+      try {
+        const finalUrl = await performTransfer(file, setProgress)
+
+        await replaceDocumentFile({
+          documentId,
+          fileName: file.name,
+          url: finalUrl,
+          mimeType: file.type,
+          fileSize: file.size,
+        })
+
+        return finalUrl
+      } finally {
+        setIsUploading(false)
+        setProgress(0)
+      }
+    },
+    [replaceDocumentFile, performTransfer]
+  )
+
+  return { upload, replace, isUploading, progress }
 }
