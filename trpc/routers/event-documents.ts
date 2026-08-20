@@ -184,6 +184,53 @@ export const eventDocumentsRouter = createTRPCRouter({
       return updated
     }),
 
+  // Replace the underlying file of an existing document
+  replaceFile: protectedProcedure
+    .input(
+      z.object({
+        documentId: z.string().uuid(),
+        fileName: z.string(),
+        url: z.string().url(),
+        mimeType: z.string(),
+        fileSize: z.number().max(10 * 1024 * 1024),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const document = await db.query.eventDocuments.findFirst({
+        where: eq(eventDocuments.id, input.documentId),
+        with: { event: true },
+      })
+
+      if (!document) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" })
+      }
+
+      const isMember = await db.query.workspaceMembers.findFirst({
+        where: and(
+          eq(workspaceMembers.workspaceId, document.event.workspaceId),
+          eq(workspaceMembers.userId, ctx.user.id)
+        ),
+      })
+
+      if (!isMember) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not a member of this workspace" })
+      }
+
+      const [updated] = await db
+        .update(eventDocuments)
+        .set({
+          fileName: input.fileName,
+          url: input.url,
+          mimeType: input.mimeType,
+          fileSize: input.fileSize,
+          updatedAt: new Date(),
+        })
+        .where(eq(eventDocuments.id, input.documentId))
+        .returning()
+
+      return updated
+    }),
+
   // Delete document
   delete: protectedProcedure
     .input(z.object({ documentId: z.string().uuid() }))
