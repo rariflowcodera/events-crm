@@ -17,6 +17,7 @@ type DashboardPageProps = {
 export default async function DashboardPage({ params }: DashboardPageProps) {
   const { slug } = await params
   void trpc.events.getMany.prefetch({ workspaceSlug: slug })
+  void trpc.events.getWorkspaceStats.prefetch({ workspaceSlug: slug })
 
   return (
     <HydrateClient>

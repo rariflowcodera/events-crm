@@ -29,6 +29,7 @@ interface Event {
   nameAr: string | null
   slug: string
   description: string | null
+  coverImage: string | null
   eventType: string | null
   venue: string | null
   venueAddress: string | null

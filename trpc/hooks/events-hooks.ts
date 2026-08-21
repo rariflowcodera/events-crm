@@ -12,6 +12,10 @@ export const useEvent = (eventId: string) => {
   return trpc.events.getOne.useQuery({ eventId }, { enabled: !!eventId })
 }
 
+export const useWorkspaceStats = (workspaceSlug: string) => {
+  return trpc.events.getWorkspaceStats.useQuery({ workspaceSlug })
+}
+
 export const useEventBySlug = (workspaceSlug: string, eventSlug: string) => {
   return trpc.events.getBySlug.useQuery(
     { workspaceSlug, eventSlug },
