@@ -8,6 +8,7 @@ import { Alert } from "@/components/global/alert"
 import { EventsList } from "@/components/events/events-list"
 import { EventsListSkeleton } from "@/components/events/events-list-skeleton"
 import { EventsHeader } from "@/components/events/events-header"
+import { WorkspaceStatRow } from "@/components/events/workspace-stat-row"
 
 interface EventsClientProps {
   slug: string
@@ -22,6 +23,7 @@ export function EventsClient({ slug }: EventsClientProps) {
 
   return (
     <div className="space-y-6">
+      <WorkspaceStatRow slug={slug} />
       <EventsHeader
         slug={slug}
         searchQuery={searchQuery}
