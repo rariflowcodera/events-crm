@@ -12,7 +12,7 @@ import { NavMainFiltered } from "@/components/navigation/nav-main-filtered"
 import { NavEvent } from "@/components/navigation/nav-event"
 
 // Workspace-level routes (shown when NOT in event context, or below separator in event context)
-const workspaceRoutes: RouteConfigType[] = [ROUTES.dashboard]
+const workspaceRoutes: RouteConfigType[] = [ROUTES.dashboard, ROUTES.guests]
 
 // Misc routes (always at bottom) - Settings first, then User Guide
 const miscRoutes: RouteConfigType[] = [

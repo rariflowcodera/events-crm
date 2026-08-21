@@ -14,6 +14,7 @@ export type RouteName =
   | "invite"
   | "callback"
   | "dashboard"
+  | "guests"
   | "events"
   | "event-detail"
   | "event-create"
@@ -222,6 +223,19 @@ export const ROUTES: Record<RouteName, RouteConfigType> = {
       name: "Dashboard",
       image: placeholderImageUrl({}),
       icon: "dashboard",
+    },
+  },
+  guests: {
+    name: "guests",
+    path: "/:slug/guests",
+    metadata: {
+      title: documentTitle("Guest Directory"),
+      description: "Workspace-wide guest directory",
+    },
+    metadataExtra: {
+      name: "Guests",
+      image: placeholderImageUrl({}),
+      icon: "users",
     },
   },
   events: {
@@ -554,6 +568,7 @@ type RouteParams = {
   invite: { token: string }
   callback: never
   dashboard: { slug: string }
+  guests: { slug: string }
   events: { slug: string }
   "event-detail": { slug: string; eventSlug: string }
   "event-create": { slug: string }
