@@ -13,6 +13,7 @@ interface Event {
   name: string
   slug: string
   description: string | null
+  coverImage: string | null
   eventType: string | null
   venue: string | null
   startDate: Date | null

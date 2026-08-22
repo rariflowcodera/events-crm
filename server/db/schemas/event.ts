@@ -204,6 +204,7 @@ export const events = pgTable(
     status: eventStatusEnum("status").notNull().default("draft"),
 
     branding: json("branding").$type<EventBranding>(),
+    coverImage: text("cover_image"), // Internal admin-facing photo shown on event cards/dashboard
 
     // Custom domain configuration for RSVP pages
     customDomain: text("custom_domain"),

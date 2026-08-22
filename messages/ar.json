@@ -77,7 +77,13 @@
     "title": "الفعالية",
     "events": "الفعاليات",
     "create": "إنشاء فعالية",
-    "settings": "إعدادات الفعالية",
+    "settings": {
+      "autoAcknowledgementEmails": "إرسال رسائل تأكيد RSVP تلقائياً",
+      "autoAcknowledgementEmailsDescription": "إرسال رسائل تأكيد تلقائية عند رد الضيوف على نموذج RSVP",
+      "coverImage": "صورة الغلاف",
+      "coverImageDescription": "تظهر في بطاقة الفعالية بلوحة تحكم مساحة العمل",
+      "coverImageUploadPrompt": "انقر أو اسحب لتحميل صورة الغلاف"
+    },
     "details": "تفاصيل الفعالية",
     "venue": "المكان",
     "date": "التاريخ",
@@ -115,10 +121,6 @@
       "rsvpDeadline": "موعد انتهاء التسجيل",
       "maxGuests": "الحد الأقصى للضيوف"
     },
-    "settings": {
-      "autoAcknowledgementEmails": "إرسال رسائل تأكيد RSVP تلقائياً",
-      "autoAcknowledgementEmailsDescription": "إرسال رسائل تأكيد تلقائية عند رد الضيوف على نموذج RSVP"
-    },
     "dashboard": {
       "totalInvited": "إجمالي المدعوين",
       "responseRate": "معدل الاستجابة",
@@ -145,7 +147,11 @@
       "viewOnMap": "عرض على الخريطة",
       "noCoordinates": "إحداثيات الخريطة غير متوفرة",
       "guestsResponded": "ضيف قد استجاب",
-      "guests": "ضيف"
+      "guests": "ضيف",
+      "totalEvents": "إجمالي الفعاليات",
+      "upcomingEvents": "الفعاليات القادمة",
+      "totalGuestsInvited": "إجمالي المدعوين",
+      "overallResponseRate": "نسبة الاستجابة"
     }
   },
   "events": {
@@ -195,7 +201,15 @@
   "guest": {
     "title": "الضيف",
     "guests": "الضيوف",
-    "import": "استيراد الضيوف",
+    "import": {
+      "title": "استيراد الضيوف",
+      "upload": "رفع الملف",
+      "mapping": "تعيين الأعمدة",
+      "preview": "معاينة",
+      "importing": "جار الاستيراد...",
+      "success": "تم استيراد {count} ضيف بنجاح",
+      "errors": "اكتمل الاستيراد مع {count} أخطاء"
+    },
     "export": "تصدير الضيوف",
     "add": "إضافة ضيف",
     "formLink": "النماذج",
@@ -249,15 +263,6 @@
     "addressing": {
       "title": "مخاطبة الضيف",
       "description": "الجنس واللقب والتحية للتواصل المخصص"
-    },
-    "import": {
-      "title": "استيراد الضيوف",
-      "upload": "رفع الملف",
-      "mapping": "تعيين الأعمدة",
-      "preview": "معاينة",
-      "importing": "جار الاستيراد...",
-      "success": "تم استيراد {count} ضيف بنجاح",
-      "errors": "اكتمل الاستيراد مع {count} أخطاء"
     },
     "bulkActions": {
       "sendInvitations": "إرسال الدعوات",
@@ -522,6 +527,7 @@
     "delete": "حذف",
     "selectOneGuest": "اختر ضيف واحد فقط",
     "noEmailPermission": "لا يوجد إذن لإرسال البريد",
+    "draftEventCannotSendInvitation": "الفعالية في وضع المسودة — يجب نشرها أولاً لإرسال الدعوات",
     "noDeletePermission": "لا يوجد إذن لحذف الضيوف",
     "noManagePermission": "لا يوجد إذن لإدارة الضيوف",
     "selectNewStatus": "اختر الحالة الجديدة",
@@ -875,7 +881,7 @@
     "darkModeColors": "ألوان الوضع الداكن",
     "darkModeColorsHelp": "اختياري. إذا لم يتم تعيينها، سيتم استخدام ألوان الوضع الفاتح.",
     "primaryColor": "اللون الأساسي",
-    "accentColor": "اللون المميز",
+    "accentColor": "لون التمييز",
     "primaryColorDark": "اللون الأساسي (داكن)",
     "accentColorDark": "اللون المميز (داكن)",
     "inherited": "موروث",
@@ -903,7 +909,6 @@
     "cardAccent": "شريط التمييز",
     "cardAccentDescription": "إضافة شريط زخرفي للبطاقات",
     "enableAccent": "تفعيل شريط التمييز",
-    "accentColor": "لون التمييز",
     "accentPosition": "الموضع",
     "accentPositionTop": "أعلى",
     "accentPositionBottom": "أسفل",
@@ -972,6 +977,13 @@
     "edit": {
       "title": "تعديل المستند",
       "save": "حفظ التغييرات"
+    },
+    "replaceFile": {
+      "action": "استبدال الملف",
+      "title": "استبدال ملف المستند",
+      "description": "قم بتحميل ملف جديد لاستبدال \"{name}\". يبقى اسم المستند ونوعه ورؤية الفئات كما هي.",
+      "confirm": "استبدال الملف",
+      "success": "تم استبدال ملف المستند"
     },
     "errors": {
       "fileTooLarge": "حجم الملف يتجاوز الحد المسموح ١٠ ميجابايت",

@@ -10,6 +10,7 @@ import {
   workspaces,
 } from "@/server/db/schemas"
 import { renderStructuredEmail } from "@/lib/email/render-structured"
+import { renderEmailTemplate } from "@/lib/queue/email-job"
 import {
   defaultMasterTemplate,
   defaultMasterTemplateStructure,
@@ -90,11 +91,73 @@ export async function GET(
 
   const { guest, template, event } = tokenRecord
 
+  // Get workspace branding
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(workspaces.id, event.workspaceId),
+  })
+
+  // Get event documents
+  const documents = await db.query.eventDocuments.findMany({
+    where: eq(eventDocuments.eventId, event.id),
+  })
+
+  // Prepare guest data for rendering
+  const guestData = {
+    id: guest.id,
+    firstName: guest.firstName,
+    lastName: guest.lastName,
+    displayNameAr: guest.displayNameAr,
+    gender: guest.gender,
+    title: guest.title,
+    salutation: guest.salutation,
+    salutationAr: guest.salutationAr,
+    email: guest.email,
+    position: guest.position,
+    entity: guest.entity,
+    rsvpToken: guest.rsvpToken,
+    serialNumber: guest.serialNumber,
+    categoryId: guest.categoryId,
+    category: guest.category
+      ? { name: guest.category.name, code: guest.category.code }
+      : null,
+  }
+
+  // Prepare event data for rendering
+  const eventData = {
+    id: event.id,
+    name: event.name,
+    nameAr: event.nameAr,
+    slug: event.slug,
+    venue: event.venue,
+    venueAddress: event.venueAddress,
+    latitude: event.latitude,
+    longitude: event.longitude,
+    startDate: event.startDate,
+    endDate: event.endDate,
+    rsvpDeadline: event.rsvpDeadline,
+    customDomain: event.customDomain,
+    customDomainVerified: event.customDomainVerified,
+    settings: event.settings,
+  }
+
   // Check if template has structured content
   if (!template.structuredContent) {
-    // For legacy HTML templates, return the HTML directly
-    const htmlContent = template.content?.en?.htmlContent || template.content?.ar?.htmlContent
-    if (htmlContent) {
+    // For legacy HTML templates, replace {{...}} placeholders with real values
+    if (template.content?.en?.htmlContent || template.content?.ar?.htmlContent) {
+      const rendered = renderEmailTemplate(
+        template,
+        guestData,
+        eventData,
+        (template.defaultLanguage as "en" | "ar") || "en",
+        documents.map((d) => ({
+          id: d.id,
+          name: d.name,
+          url: d.url,
+          type: d.type,
+          categoryIds: d.categoryIds,
+        }))
+      )
+
       return new NextResponse(
         `<!DOCTYPE html>
         <html>
@@ -103,7 +166,7 @@ export async function GET(
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>Email Preview</title>
           </head>
-          <body>${htmlContent}</body>
+          <body>${rendered.html}</body>
         </html>`,
         { headers: { "Content-Type": "text/html" } }
       )
@@ -126,16 +189,6 @@ export async function GET(
       }
     )
   }
-
-  // Get workspace branding
-  const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.id, event.workspaceId),
-  })
-
-  // Get event documents
-  const documents = await db.query.eventDocuments.findMany({
-    where: eq(eventDocuments.eventId, event.id),
-  })
 
   // Extract form IDs from template content for form link variable processing
   const formIdPattern = /\{\{form(?:Link|Url)\.([a-f0-9-]{36})/g
@@ -229,45 +282,6 @@ export async function GET(
       htmlTemplate: defaultMasterTemplate,
       structure: defaultMasterTemplateStructure,
     }
-  }
-
-  // Prepare guest data for rendering
-  const guestData = {
-    id: guest.id,
-    firstName: guest.firstName,
-    lastName: guest.lastName,
-    displayNameAr: guest.displayNameAr,
-    gender: guest.gender,
-    title: guest.title,
-    salutation: guest.salutation,
-    salutationAr: guest.salutationAr,
-    email: guest.email,
-    position: guest.position,
-    entity: guest.entity,
-    rsvpToken: guest.rsvpToken,
-    serialNumber: guest.serialNumber,
-    categoryId: guest.categoryId,
-    category: guest.category
-      ? { name: guest.category.name, code: guest.category.code }
-      : null,
-  }
-
-  // Prepare event data for rendering
-  const eventData = {
-    id: event.id,
-    name: event.name,
-    nameAr: event.nameAr,
-    slug: event.slug,
-    venue: event.venue,
-    venueAddress: event.venueAddress,
-    latitude: event.latitude,
-    longitude: event.longitude,
-    startDate: event.startDate,
-    endDate: event.endDate,
-    rsvpDeadline: event.rsvpDeadline,
-    customDomain: event.customDomain,
-    customDomainVerified: event.customDomainVerified,
-    settings: event.settings,
   }
 
   // Render the email

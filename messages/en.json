@@ -79,7 +79,13 @@
     "title": "Event",
     "events": "Events",
     "create": "Create Event",
-    "settings": "Event Settings",
+    "settings": {
+      "autoAcknowledgementEmails": "Auto-send RSVP Acknowledgement Emails",
+      "autoAcknowledgementEmailsDescription": "Automatically send confirmation emails when guests respond to your RSVP form",
+      "coverImage": "Cover Image",
+      "coverImageDescription": "Shown on the event card in the workspace dashboard",
+      "coverImageUploadPrompt": "Click or drag to upload a cover image"
+    },
     "details": "Event Details",
     "venue": "Venue",
     "date": "Date",
@@ -117,10 +123,6 @@
       "rsvpDeadline": "RSVP Deadline",
       "maxGuests": "Maximum Guests"
     },
-    "settings": {
-      "autoAcknowledgementEmails": "Auto-send RSVP Acknowledgement Emails",
-      "autoAcknowledgementEmailsDescription": "Automatically send confirmation emails when guests respond to your RSVP form"
-    },
     "dashboard": {
       "totalInvited": "Total Invited",
       "responseRate": "Response Rate",
@@ -147,7 +149,11 @@
       "viewOnMap": "View on Map",
       "noCoordinates": "No map coordinates available",
       "guestsResponded": "guests have responded",
-      "guests": "guests"
+      "guests": "guests",
+      "totalEvents": "Total Events",
+      "upcomingEvents": "Upcoming Events",
+      "totalGuestsInvited": "Total Guests Invited",
+      "overallResponseRate": "Response Rate"
     }
   },
   "events": {
@@ -197,7 +203,15 @@
   "guest": {
     "title": "Guest",
     "guests": "Guests",
-    "import": "Import Guests",
+    "import": {
+      "title": "Import Guests",
+      "upload": "Upload File",
+      "mapping": "Map Columns",
+      "preview": "Preview",
+      "importing": "Importing...",
+      "success": "Successfully imported {count} guests",
+      "errors": "Import completed with {count} errors"
+    },
     "export": "Export Guests",
     "add": "Add Guest",
     "formLink": "Forms",
@@ -251,15 +265,6 @@
     "addressing": {
       "title": "Guest Addressing",
       "description": "Gender, title, and salutation for personalized communications"
-    },
-    "import": {
-      "title": "Import Guests",
-      "upload": "Upload File",
-      "mapping": "Map Columns",
-      "preview": "Preview",
-      "importing": "Importing...",
-      "success": "Successfully imported {count} guests",
-      "errors": "Import completed with {count} errors"
     },
     "bulkActions": {
       "sendInvitations": "Send Invitations",
@@ -524,6 +529,7 @@
     "delete": "Delete",
     "selectOneGuest": "Select exactly 1 guest",
     "noEmailPermission": "No permission to send emails",
+    "draftEventCannotSendInvitation": "Event is in draft — publish it first to send invitations",
     "noDeletePermission": "No permission to delete guests",
     "noManagePermission": "No permission to manage guests",
     "selectNewStatus": "Select new status",
@@ -905,7 +911,6 @@
     "cardAccent": "Accent Strip",
     "cardAccentDescription": "Add a decorative accent bar to cards",
     "enableAccent": "Enable accent strip",
-    "accentColor": "Accent Color",
     "accentPosition": "Position",
     "accentPositionTop": "Top",
     "accentPositionBottom": "Bottom",
@@ -974,6 +979,13 @@
     "edit": {
       "title": "Edit Document",
       "save": "Save Changes"
+    },
+    "replaceFile": {
+      "action": "Replace File",
+      "title": "Replace Document File",
+      "description": "Upload a new file to replace \"{name}\". The document's name, type, and category visibility stay the same.",
+      "confirm": "Replace File",
+      "success": "Document file replaced"
     },
     "errors": {
       "fileTooLarge": "File size exceeds 10MB limit",

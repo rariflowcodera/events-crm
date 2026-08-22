@@ -116,6 +116,8 @@ interface GuestsToolbarProps {
   vappEnabled?: boolean
   // RSVP link
   hasShortRsvpCode?: boolean
+  // Event status (used to gate invitation sends while draft)
+  eventStatus?: string
 }
 
 const STATUS_OPTIONS: { value: GuestStatus; label: string }[] = [
@@ -170,6 +172,7 @@ export function GuestsToolbar({
   onShowFiltersChange,
   vappEnabled = false,
   hasShortRsvpCode = false,
+  eventStatus,
 }: GuestsToolbarProps) {
   const t = useTranslations("guest")
   const { can } = usePermissions(workspaceSlug)
@@ -314,6 +317,7 @@ export function GuestsToolbar({
               canDeleteGuests={canDeleteGuests}
               vappEnabled={vappEnabled}
               hasShortRsvpCode={hasShortRsvpCode}
+              eventStatus={eventStatus}
             />
           )}
 
