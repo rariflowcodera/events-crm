@@ -61,6 +61,7 @@ export const useUpdateEvent = ({
     onSuccess: (data) => {
       toast.success("Event updated successfully")
       utils.events.getOne.invalidate({ eventId: data.id })
+      utils.events.getBySlug.invalidate()
       utils.events.getMany.invalidate()
       onSuccess?.()
     },

@@ -26,15 +26,21 @@ export function EventCoverImageUpload({
 }: EventCoverImageUploadProps) {
   const t = useTranslations("event.settings")
   const [isUploading, setIsUploading] = useState(false)
+  const [localPreview, setLocalPreview] = useState<string | null>(null)
   const { mutate: updateEvent } = useUpdateEvent()
 
   const handleFileDrop = async (file: File) => {
+    const objectUrl = URL.createObjectURL(file)
+    setLocalPreview(objectUrl)
+
     try {
       setIsUploading(true)
       const data = await getPreSignedUrl(file)
 
       if (!data || !data.data) {
         setIsUploading(false)
+        setLocalPreview(null)
+        URL.revokeObjectURL(objectUrl)
         return toast.error("Too many requests. Please try again later.")
       }
 
@@ -44,6 +50,8 @@ export function EventCoverImageUpload({
 
       if (!uploadUrl) {
         setIsUploading(false)
+        setLocalPreview(null)
+        URL.revokeObjectURL(objectUrl)
         return toast.error("Failed to get upload URL")
       }
 
@@ -57,8 +65,12 @@ export function EventCoverImageUpload({
         updateEvent({ eventId, coverImage: imageUrl })
       }
       setIsUploading(false)
+      URL.revokeObjectURL(objectUrl)
+      setLocalPreview(null)
     } catch {
       setIsUploading(false)
+      setLocalPreview(null)
+      URL.revokeObjectURL(objectUrl)
       toast.error("Failed to upload cover image")
     }
   }
@@ -68,25 +80,33 @@ export function EventCoverImageUpload({
     updateEvent({ eventId, coverImage: null })
   }
 
+  const displayValue = localPreview || value
+
   return (
     <div className="space-y-3">
       <Label>{t("coverImage")}</Label>
 
-      {value ? (
+      {displayValue ? (
         <div className="relative aspect-video w-full max-w-md overflow-hidden rounded-lg border">
-          <Image src={value} alt="" fill className="object-cover" />
-          <div className="absolute top-2 right-2 flex gap-1">
-            <Button
-              size="icon"
-              variant="secondary"
-              className="h-7 w-7"
-              type="button"
-              onClick={handleRemove}
-              disabled={disabled}
-            >
-              <Icons.trash className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          <Image src={displayValue} alt="" fill className="object-cover" unoptimized={!!localPreview} />
+          {isUploading ? (
+            <div className="bg-background/60 absolute inset-0 flex items-center justify-center">
+              <Icons.loader className="text-muted-foreground h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <div className="absolute top-2 right-2 flex gap-1">
+              <Button
+                size="icon"
+                variant="secondary"
+                className="h-7 w-7"
+                type="button"
+                onClick={handleRemove}
+                disabled={disabled}
+              >
+                <Icons.trash className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <Dropzone
