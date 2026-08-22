@@ -143,6 +143,7 @@ After all stages:
   - 5E: Panel-to-Page Refactor (mobile-friendly URL-based navigation)
 - [Stage 6: Email Template Builder](./06-email-template-builder.md)
 - [Stage 15: Google Maps Integration](./15-google-maps-integration.md)
+- [Stage 46: Workspace Guest Directory](./46-workspace-guest-directory.md)
 
 ## Reference Documents
 

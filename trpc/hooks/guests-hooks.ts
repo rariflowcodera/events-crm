@@ -397,3 +397,41 @@ export const useGenerateSerialNumbers = ({
 
   return { mutate, isPending }
 }
+
+// Workspace-wide guest directory
+export const useWorkspaceGuests = (params: {
+  workspaceSlug: string
+  search?: string
+  limit?: number
+  offset?: number
+}) => {
+  return trpc.guests.getWorkspaceGuests.useQuery(params, {
+    enabled: !!params.workspaceSlug,
+  })
+}
+
+export const useAddGuestToEvent = ({
+  onSuccess,
+  onError,
+}: {
+  onSuccess?: (data: { id: string; eventId: string }) => void
+  onError?: () => void
+} = {}) => {
+  const utils = trpc.useUtils()
+
+  const { mutate, mutateAsync, isPending } = trpc.guests.addToEvent.useMutation({
+    onSuccess: (data) => {
+      toast.success("Guest added to event")
+      utils.guests.getWorkspaceGuests.invalidate()
+      utils.guests.getMany.invalidate({ eventId: data.eventId })
+      utils.guests.getStats.invalidate({ eventId: data.eventId })
+      onSuccess?.(data)
+    },
+    onError: (error) => {
+      toast.error(error.message || GLOBAL_ERROR_MESSAGE)
+      onError?.()
+    },
+  })
+
+  return { mutate, mutateAsync, isPending }
+}
