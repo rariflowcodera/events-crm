@@ -5,6 +5,7 @@ import {
   workspaceMembers,
   users,
   guestCategories,
+  guests,
   emailTemplates,
   guestListViews,
   eventForms,
@@ -93,6 +94,59 @@ export const eventsRouter = createTRPCRouter({
           },
         },
       })
+    }),
+
+  // Get workspace-wide KPI stats for the dashboard
+  getWorkspaceStats: protectedProcedure
+    .input(z.object({ workspaceSlug: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(workspaces.slug, input.workspaceSlug),
+      })
+
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Workspace not found" })
+      }
+
+      const isMember = await db.query.workspaceMembers.findFirst({
+        where: and(
+          eq(workspaceMembers.workspaceId, workspace.id),
+          eq(workspaceMembers.userId, ctx.user.id)
+        ),
+      })
+
+      if (!isMember) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not a member of this workspace" })
+      }
+
+      const workspaceEvents = await db.query.events.findMany({
+        where: eq(events.workspaceId, workspace.id),
+        columns: { id: true, startDate: true },
+      })
+
+      const totalEvents = workspaceEvents.length
+      const now = new Date()
+      const upcomingEvents = workspaceEvents.filter(
+        (e) => e.startDate && e.startDate >= now
+      ).length
+
+      const guestCounts = await db
+        .select({
+          status: guests.status,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(guests)
+        .innerJoin(events, eq(guests.eventId, events.id))
+        .where(eq(events.workspaceId, workspace.id))
+        .groupBy(guests.status)
+
+      const totalGuests = guestCounts.reduce((sum, r) => sum + r.count, 0)
+      const confirmed = guestCounts.find((r) => r.status === "confirmed")?.count ?? 0
+      const pending = guestCounts.find((r) => r.status === "pending")?.count ?? 0
+      const responded = totalGuests - pending
+      const responseRate = responded > 0 ? Math.round((confirmed / responded) * 100) : null
+
+      return { totalEvents, upcomingEvents, totalGuests, responseRate }
     }),
 
   // Get single event with categories
@@ -374,6 +428,7 @@ export const eventsRouter = createTRPCRouter({
         rsvpDeadline: z.date().nullable().optional(),
         maxGuests: z.number().int().positive().nullable().optional(),
         status: z.enum(eventStatusValues).optional(),
+        coverImage: z.string().nullable().optional(),
         branding: z
           .object({
             logo: z.string().optional(),

@@ -12,6 +12,10 @@ export const useEvent = (eventId: string) => {
   return trpc.events.getOne.useQuery({ eventId }, { enabled: !!eventId })
 }
 
+export const useWorkspaceStats = (workspaceSlug: string) => {
+  return trpc.events.getWorkspaceStats.useQuery({ workspaceSlug })
+}
+
 export const useEventBySlug = (workspaceSlug: string, eventSlug: string) => {
   return trpc.events.getBySlug.useQuery(
     { workspaceSlug, eventSlug },
@@ -57,6 +61,7 @@ export const useUpdateEvent = ({
     onSuccess: (data) => {
       toast.success("Event updated successfully")
       utils.events.getOne.invalidate({ eventId: data.id })
+      utils.events.getBySlug.invalidate()
       utils.events.getMany.invalidate()
       onSuccess?.()
     },

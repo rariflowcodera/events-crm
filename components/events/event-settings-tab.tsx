@@ -40,6 +40,7 @@ import { LocationPreview } from "@/components/events/location-preview"
 import { EmailConfigurationCard } from "@/components/events/email-configuration-card"
 import { EventCustomDomainCard } from "@/components/events/event-custom-domain-card"
 import { EventEmailSenderCard } from "@/components/events/event-email-sender-card"
+import { EventCoverImageUpload } from "@/components/events/event-cover-image-upload"
 import { usePermissions } from "@/hooks/use-permissions"
 import { PERMISSIONS } from "@/lib/permissions"
 
@@ -51,6 +52,7 @@ interface Event {
   nameAr: string | null
   slug: string
   description: string | null
+  coverImage: string | null
   eventType: string | null
   venue: string | null
   venueAddress: string | null
@@ -250,6 +252,16 @@ export function EventSettingsTab({ event, workspaceSlug }: EventSettingsTabProps
         )}
 
         {/* Basic Info */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("settings.coverImage")}</CardTitle>
+            <CardDescription>{t("settings.coverImageDescription")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EventCoverImageUpload eventId={event.id} value={event.coverImage} />
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>

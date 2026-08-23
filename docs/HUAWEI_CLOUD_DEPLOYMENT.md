@@ -40,7 +40,7 @@ Once running, note the EIP — you'll point DNS at it.
 
 ## 2. Point DNS
 
-Create an `A` record for your domain (e.g. `events.yourdomain.sa`) pointing at the ECS EIP. TLS in step 6 depends on this resolving before you request a certificate.
+Create an `A` record for your domain (e.g. `guest-afc2027.com`) pointing at the ECS EIP. TLS in step 6 depends on this resolving before you request a certificate.
 
 ---
 
@@ -65,12 +65,21 @@ npm install -g pnpm pm2
 apt install -y docker.io docker-compose-plugin
 systemctl enable --now docker
 
-# Nginx (reverse proxy) + Certbot (TLS)
-apt install -y nginx certbot python3-certbot-nginx
+# Caddy (reverse proxy + automatic TLS — no separate certbot step needed)
+apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+apt update
+apt install -y caddy
 
 # App directory
 mkdir -p /opt/events-crm
 ```
+
+> **This is already done on the live box.** Caddy is installed and running as a
+> single `/etc/caddy/Caddyfile` (not split into per-site files — see §9 for its
+> actual current content). The steps above are here for standing up a *new* box
+> from scratch; skip them if you're just changing the existing config.
 
 ---
 
@@ -151,15 +160,15 @@ SMTP_HOST=<your-smtp-provider-host>
 SMTP_PORT=587
 SMTP_USER=<smtp-user>
 SMTP_PASS=<smtp-pass>
-SMTP_FROM=noreply@yourdomain.sa
+SMTP_FROM=noreply@guest-afc2027.com
 
-BETTER_AUTH_URL=https://events.yourdomain.sa
+BETTER_AUTH_URL=https://guest-afc2027.com
 BETTER_AUTH_SECRET=<generate: openssl rand -base64 32>
 
 # Local disk storage keeps this deploy minimal — avoids needing S3/OBS integration work
 STORAGE_PROVIDER=local
 
-NEXT_PUBLIC_APP_URL=https://events.yourdomain.sa
+NEXT_PUBLIC_APP_URL=https://guest-afc2027.com
 
 WORKER_CONCURRENCY=5
 SMTP_RATE_LIMIT=10
@@ -205,38 +214,69 @@ At 200 concurrent users, keep `instances: 1` for `events-crm-web` as configured 
 
 ---
 
-## 9. Nginx reverse proxy + TLS
+## 9. Caddy reverse proxy + TLS
 
-`/etc/nginx/sites-available/events-crm`:
+Caddy issues and renews Let's Encrypt certificates itself — no certbot step, no cron
+renewal job to babysit. Make sure DNS (step 2) has already propagated before pointing
+a new hostname at it, since it needs to complete a challenge against the domain on
+ports 80/443.
 
-```nginx
-server {
-    listen 80;
-    server_name events.yourdomain.sa;
+The live box runs a single `/etc/caddy/Caddyfile` (not split into per-site files —
+that was an earlier draft of this doc; this is what's actually deployed). Real domain
+is `guest-afc2027.com`, not the `guest-afc2027.com` placeholder used elsewhere in
+this doc:
 
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
+```caddyfile
+{
+    email a.uzair@techxoetic.com
+
+    on_demand_tls {
+        ask http://127.0.0.1:8080/api/domain/verify
     }
+}
+
+# Redirect any plain HTTP to HTTPS (main app + custom domains)
+http:// {
+    redir https://{host}{uri} permanent
+}
+
+guest-afc2027.com, www.guest-afc2027.com {
+    reverse_proxy 127.0.0.1:8080
+}
+
+test.guest-afc2027.com {
+    reverse_proxy 127.0.0.1:8081
+}
+
+# Custom event domains — certificates issued on demand
+https:// {
+    tls {
+        on_demand
+    }
+    reverse_proxy 127.0.0.1:8080
 }
 ```
 
+Two things worth understanding before editing this file:
+
+- **The `on_demand_tls` block is load-bearing for a real product feature**, not
+  boilerplate — it's how guests can point their own custom domain at an event
+  (`event.customDomain` / `event.customDomainVerified` in the schema). The catch-all
+  `https://` block at the bottom issues a cert on demand for *any* hostname that
+  reaches it over TLS, gated by the app confirming at `/api/domain/verify` that the
+  domain is a verified `event.customDomain` before Caddy will issue a certificate for
+  it — this is what stops it from being an open cert-issuance oracle for arbitrary
+  domains someone points at the box.
+- **Caddy matches the most specific `site block` for a given host**, so the explicit
+  `guest-afc2027.com`/`test.guest-afc2027.com` blocks always win over the `https://`
+  catch-all for those hostnames — the catch-all only ever fires for hostnames that
+  don't match an explicit block, i.e. actual custom event domains.
+
 ```bash
-ln -s /etc/nginx/sites-available/events-crm /etc/nginx/sites-enabled/
-nginx -t && systemctl reload nginx
-
-# Issue + auto-configure TLS
-certbot --nginx -d events.yourdomain.sa
+caddy fmt --overwrite /etc/caddy/Caddyfile
+caddy validate --config /etc/caddy/Caddyfile
+systemctl reload caddy
 ```
-
-Certbot sets up auto-renewal via a systemd timer by default — confirm with `systemctl list-timers | grep certbot`.
 
 ---
 
@@ -284,6 +324,6 @@ This single-box setup is right-sized for ~200 concurrent users in production, no
 - **You need uptime during OS patches/reboots or a hardware fault** → split into managed **RDS for PostgreSQL** + managed **DCS (Redis)** + a second ECS instance behind an **ELB**, so the app tier can restart independently of data. Not needed for capacity at 200 users — needed for availability.
 - **You need file storage decoupled from the instance disk** → OBS, once `lib/aws.ts` supports a custom S3 endpoint.
 - **You're scaling workers**, not just the web tier → the email/suppression workers assume a single instance (no distributed locking), so running more than one worker replica risks duplicate sends. Scale the web tier horizontally first; treat workers as a later, more careful change.
-- **The app is public-facing with sensitive guest PII at higher traffic** → add a WAF in front of Nginx.
+- **The app is public-facing with sensitive guest PII at higher traffic** → add a WAF in front of Caddy.
 
 None of these are required to ship at 200 users — they're listed so today's setup doesn't quietly become a ceiling later.

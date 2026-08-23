@@ -3,6 +3,7 @@ import {
   events,
   guests,
   guestCategories,
+  workspaces,
   workspaceMembers,
   rsvpResponses,
 } from "@/server/db/schemas"
@@ -1388,5 +1389,304 @@ export const guestsRouter = createTRPCRouter({
         .where(eq(events.id, input.eventId))
 
       return { generatedCount: updates.length }
+    }),
+
+  // Workspace-wide guest directory: aggregates per-event guest rows across
+  // every event in the workspace, grouped by lowercased email so the same
+  // person shows as one row even if they exist in multiple events.
+  getWorkspaceGuests: protectedProcedure
+    .input(
+      z.object({
+        workspaceSlug: z.string(),
+        search: z.string().optional(),
+        limit: z.number().min(1).max(200).default(50),
+        offset: z.number().min(0).default(0),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const workspace = await db.query.workspaces.findFirst({
+        where: eq(workspaces.slug, input.workspaceSlug),
+      })
+
+      if (!workspace) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Workspace not found" })
+      }
+
+      const isMember = await db.query.workspaceMembers.findFirst({
+        where: and(
+          eq(workspaceMembers.workspaceId, workspace.id),
+          eq(workspaceMembers.userId, ctx.user.id)
+        ),
+      })
+
+      if (!isMember) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not a member of this workspace" })
+      }
+
+      const canView = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: workspace.id,
+        permissionName: PERMISSIONS.VIEW_GUESTS,
+      })
+
+      if (!canView) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to view guests",
+        })
+      }
+
+      const conditions = [eq(events.workspaceId, workspace.id)]
+
+      if (input.search) {
+        const term = `%${input.search}%`
+        conditions.push(
+          or(
+            ilike(guests.firstName, term),
+            ilike(guests.lastName, term),
+            ilike(guests.email, term),
+            ilike(guests.entity, term)
+          )!
+        )
+      }
+
+      const rows = await db
+        .select({
+          guestId: guests.id,
+          firstName: guests.firstName,
+          lastName: guests.lastName,
+          email: guests.email,
+          phone: guests.phone,
+          country: guests.country,
+          profileImage: guests.profileImage,
+          status: guests.status,
+          categoryId: guests.categoryId,
+          categoryName: guestCategories.name,
+          categoryColor: guestCategories.color,
+          createdAt: guests.createdAt,
+          eventId: events.id,
+          eventName: events.name,
+          eventSlug: events.slug,
+          eventStatus: events.status,
+        })
+        .from(guests)
+        .innerJoin(events, eq(guests.eventId, events.id))
+        .innerJoin(guestCategories, eq(guests.categoryId, guestCategories.id))
+        .where(and(...conditions))
+        .orderBy(desc(guests.createdAt))
+
+      // Group into one directory entry per person: by lowercased email when
+      // present, otherwise each guest row stands alone (no reliable identity
+      // signal to merge on).
+      type Participation = {
+        guestId: string
+        eventId: string
+        eventName: string
+        eventSlug: string
+        eventStatus: string
+        status: string
+        categoryId: string
+        categoryName: string
+        categoryColor: string | null
+      }
+      type DirectoryEntry = {
+        key: string
+        firstName: string
+        lastName: string | null
+        email: string | null
+        phone: string | null
+        country: string | null
+        profileImage: string | null
+        createdAt: Date
+        participations: Participation[]
+      }
+
+      const entriesByKey = new Map<string, DirectoryEntry>()
+
+      for (const row of rows) {
+        const key = row.email ? `email:${row.email.toLowerCase()}` : `guest:${row.guestId}`
+        const participation: Participation = {
+          guestId: row.guestId,
+          eventId: row.eventId,
+          eventName: row.eventName,
+          eventSlug: row.eventSlug,
+          eventStatus: row.eventStatus,
+          status: row.status,
+          categoryId: row.categoryId,
+          categoryName: row.categoryName,
+          categoryColor: row.categoryColor,
+        }
+
+        const existing = entriesByKey.get(key)
+        if (existing) {
+          existing.participations.push(participation)
+          if (row.createdAt > existing.createdAt) {
+            existing.createdAt = row.createdAt
+            existing.firstName = row.firstName
+            existing.lastName = row.lastName
+            existing.phone = row.phone ?? existing.phone
+            existing.country = row.country ?? existing.country
+            existing.profileImage = row.profileImage ?? existing.profileImage
+          }
+        } else {
+          entriesByKey.set(key, {
+            key,
+            firstName: row.firstName,
+            lastName: row.lastName,
+            email: row.email,
+            phone: row.phone,
+            country: row.country,
+            profileImage: row.profileImage,
+            createdAt: row.createdAt,
+            participations: [participation],
+          })
+        }
+      }
+
+      const allEntries = Array.from(entriesByKey.values()).sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+      )
+
+      const total = allEntries.length
+      const entries = allEntries.slice(input.offset, input.offset + input.limit)
+
+      return {
+        entries,
+        total,
+        hasMore: input.offset + entries.length < total,
+      }
+    }),
+
+  // Copy a guest's contact/personal info into a new event as a fresh guest
+  // record. The source guest is untouched; this creates an independent row
+  // in the target event (guests remain per-event by design).
+  addToEvent: protectedProcedure
+    .input(
+      z.object({
+        sourceGuestId: z.string().uuid(),
+        targetEventId: z.string().uuid(),
+        categoryId: z.string().uuid(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const sourceGuest = await db.query.guests.findFirst({
+        where: eq(guests.id, input.sourceGuestId),
+        with: { event: true },
+      })
+
+      if (!sourceGuest) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Guest not found" })
+      }
+
+      const targetEvent = await db.query.events.findFirst({
+        where: eq(events.id, input.targetEventId),
+      })
+
+      if (!targetEvent) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Target event not found" })
+      }
+
+      if (targetEvent.workspaceId !== sourceGuest.event.workspaceId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Target event is not in the same workspace as the source guest",
+        })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: targetEvent.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_GUESTS,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to manage guests",
+        })
+      }
+
+      const category = await db.query.guestCategories.findFirst({
+        where: and(
+          eq(guestCategories.id, input.categoryId),
+          eq(guestCategories.eventId, input.targetEventId)
+        ),
+      })
+
+      if (!category) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid category for the target event",
+        })
+      }
+
+      if (sourceGuest.email) {
+        const existingGuest = await db.query.guests.findFirst({
+          where: and(
+            eq(guests.eventId, input.targetEventId),
+            sql`LOWER(${guests.email}) = LOWER(${sourceGuest.email})`
+          ),
+        })
+
+        if (existingGuest) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "A guest with this email already exists in the target event",
+          })
+        }
+      }
+
+      const rsvpToken = crypto.randomUUID()
+      const { generateUniqueRsvpShortCode } = await import(
+        "@/lib/rsvp-short-code"
+      )
+      const rsvpShortCode = await generateUniqueRsvpShortCode(db)
+
+      let serialNumber: string | undefined
+      const vapp = targetEvent.settings?.vapp
+      if (vapp?.enabled && vapp?.matchCode) {
+        const sequence = (vapp.nextSequence ?? 1).toString().padStart(6, "0")
+        serialNumber = `${vapp.matchCode}-${sequence}`
+
+        await db
+          .update(events)
+          .set({
+            settings: {
+              ...targetEvent.settings,
+              vapp: { ...vapp, nextSequence: (vapp.nextSequence ?? 1) + 1 },
+            },
+          })
+          .where(eq(events.id, input.targetEventId))
+      }
+
+      const [newGuest] = await db
+        .insert(guests)
+        .values({
+          eventId: input.targetEventId,
+          categoryId: input.categoryId,
+          firstName: sourceGuest.firstName,
+          lastName: sourceGuest.lastName,
+          preferredName: sourceGuest.preferredName,
+          displayNameAr: sourceGuest.displayNameAr,
+          title: sourceGuest.title,
+          salutation: sourceGuest.salutation,
+          salutationAr: sourceGuest.salutationAr,
+          gender: sourceGuest.gender,
+          country: sourceGuest.country,
+          position: sourceGuest.position,
+          entity: sourceGuest.entity,
+          department: sourceGuest.department,
+          email: sourceGuest.email,
+          phone: sourceGuest.phone,
+          whatsapp: sourceGuest.whatsapp,
+          profileImage: sourceGuest.profileImage,
+          rsvpToken,
+          rsvpShortCode,
+          rsvpTokenExpiresAt: targetEvent.rsvpDeadline,
+          serialNumber,
+        })
+        .returning()
+
+      return newGuest
     }),
 })

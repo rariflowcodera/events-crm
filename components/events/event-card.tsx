@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useTranslations } from "next-intl"
 
 import { formatEventDateTime } from "@/lib/date-utils"
@@ -13,6 +14,7 @@ interface Event {
   name: string
   slug: string
   description: string | null
+  coverImage: string | null
   eventType: string | null
   venue: string | null
   startDate: Date | null
@@ -51,7 +53,18 @@ export function EventCard({ event }: EventCardProps) {
   const { label, variant } = statusConfig[event.status]
 
   return (
-    <Card className="group h-full transition-shadow hover:shadow-md">
+    <Card className="group h-full overflow-hidden transition-shadow hover:shadow-md">
+      {event.coverImage && (
+        <div className="bg-muted relative aspect-video w-full overflow-hidden">
+          <Image
+            src={event.coverImage}
+            alt=""
+            fill
+            className="object-cover"
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+          />
+        </div>
+      )}
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="line-clamp-1 text-lg">{event.name}</CardTitle>
