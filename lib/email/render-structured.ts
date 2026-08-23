@@ -45,6 +45,7 @@ export interface Guest {
   entity: string | null
   rsvpToken: string
   serialNumber?: string | null
+  referenceNumber?: string | null
   categoryId?: string | null
   category?: {
     name: string
@@ -186,6 +187,10 @@ export function buildVariableContext(
     "vapp.serialNumber": guest.serialNumber || "",
     "vapp.venueCode": event.settings?.vapp?.venueCode || "",
     "vapp.matchCode": event.settings?.vapp?.matchCode || "",
+
+    // Reference number / QR code variables
+    // Note: guest.qrCode is handled specially in processQrCodeVariable (renders an <img>)
+    "guest.referenceNumber": guest.referenceNumber || "",
   }
 }
 
@@ -584,6 +589,9 @@ export function renderStructuredEmail(options: RenderOptions): RenderResult {
   // 10. Handle VAPP link variables in the rendered HTML
   html = processVappLinkVariables(html, event, guest)
 
+  // 10a. Handle QR code variable in the rendered HTML
+  html = processQrCodeVariable(html, guest)
+
   // 10b. Handle hyperlink variables in the rendered HTML
   html = processHyperlinkVariables(html)
 
@@ -828,6 +836,28 @@ function processVappLinkVariables(
   result = result.replace(/\{\{vapp\.link\}\}/g, `<a href="${vappUrl}" style="color: #0066CC; -webkit-text-fill-color: #0066CC; text-decoration: underline;">${defaultText}</a>`)
 
   return result
+}
+
+// ============================================================================
+// QR Code Variable Processing
+// ============================================================================
+
+/**
+ * Process the QR code variable in rendered HTML.
+ * {{guest.qrCode}} renders as an <img> pointing at the server-generated QR
+ * PNG for this guest's reference number. Renders as empty if the guest has
+ * not confirmed attendance yet (no reference number assigned).
+ */
+function processQrCodeVariable(html: string, guest: Guest): string {
+  if (!guest.referenceNumber) {
+    return html.replace(/\{\{guest\.qrCode\}\}/g, "")
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || ""
+  const qrUrl = `${baseUrl}/api/qr/${guest.rsvpToken}`
+  const imgTag = `<img src="${qrUrl}" alt="QR Code" width="160" height="160" style="display: block; margin: 0 auto; max-width: 100%; height: auto;" />`
+
+  return html.replace(/\{\{guest\.qrCode\}\}/g, imgTag)
 }
 
 // ============================================================================

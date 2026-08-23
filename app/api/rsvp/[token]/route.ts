@@ -7,6 +7,7 @@ import { isResponseStatus } from "@/lib/guest-status"
 import { resolveBranding } from "@/lib/branding"
 import { addSingleEmailJob } from "@/lib/queue/queues"
 import type { EmailTemplateType } from "@/lib/schemas"
+import { ensureGuestReferenceNumber } from "@/lib/guest-reference"
 
 // GET: Fetch guest info by RSVP token (public, no auth required)
 export async function GET(
@@ -305,6 +306,11 @@ export async function POST(
   }
 
   await db.update(guests).set(updateData).where(eq(guests.id, guest.id))
+
+  // Generate a reference number + QR code once the guest confirms attendance
+  if (responseStatus === "confirmed") {
+    await ensureGuestReferenceNumber(db, guest, guest.event)
+  }
 
   // Send acknowledgement email if enabled
   const autoEnabled = guest.event.settings?.autoAcknowledgementEmails !== false

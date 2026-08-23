@@ -58,6 +58,7 @@ export type GuestColumnId =
   | "attendedAt" // Attendance timestamp
   | "attendedBy" // Who marked attendance
   | "serialNumber" // VAPP serial number
+  | "referenceNumber" // Guest reference number (PNR-style, generated on confirm)
   | "actions" // Row actions
 
 // ============================================================================
@@ -401,6 +402,16 @@ export const GUEST_COLUMNS: GuestColumnDefinition[] = [
     id: "serialNumber",
     label: "Serial Number",
     labelAr: "الرقم التسلسلي",
+    defaultVisible: false,
+    defaultWidth: 140,
+    sortable: true,
+    filterable: false,
+    group: "meta",
+  },
+  {
+    id: "referenceNumber",
+    label: "Reference Number",
+    labelAr: "الرقم المرجعي",
     defaultVisible: false,
     defaultWidth: 140,
     sortable: true,

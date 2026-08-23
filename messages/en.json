@@ -1114,6 +1114,17 @@
     "displayTextPlaceholder": "View Your Parking Permit",
     "displayTextHint": "Leave empty to use default text"
   },
+  "reference": {
+    "title": "Reference Number",
+    "qrCode": "QR Code",
+    "insertQrCode": "Insert QR Code",
+    "insertQrCodeDescription": "Insert the guest's reference number QR code or its text value",
+    "noReference": "Reference number not yet assigned — guest has not confirmed attendance",
+    "copyReference": "Copy reference number",
+    "generateReferences": "Generate Reference Numbers",
+    "generateReferencesDescription": "Generate reference numbers for confirmed guests without one",
+    "generateReferencesSuccess": "Reference numbers generated for {count} guest(s)"
+  },
   "hyperlink": {
     "insertLink": "Insert Link",
     "insertHyperlink": "Insert Hyperlink",

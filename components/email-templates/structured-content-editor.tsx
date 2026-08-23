@@ -54,6 +54,7 @@ import { ImageInserter } from "./image-inserter"
 import { MapInserter } from "./map-inserter"
 import { FormLinkInserter } from "./form-link-inserter"
 import { VappInserter } from "./vapp-inserter"
+import { QrCodeInserter } from "./qr-code-inserter"
 import { HyperlinkInserter } from "./hyperlink-inserter"
 import { cn } from "@/lib/utils"
 
@@ -623,6 +624,9 @@ function ParagraphEditor({
                   onInsert={insertAtCursor}
                 />
                 <VappInserter
+                  onInsert={insertAtCursor}
+                />
+                <QrCodeInserter
                   onInsert={insertAtCursor}
                 />
                 <VariableInserter

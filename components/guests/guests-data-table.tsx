@@ -101,6 +101,7 @@ interface Guest {
   attendedBy: string | null
   attendedByUser?: AttendedByUser | null
   serialNumber: string | null
+  referenceNumber: string | null
   category: GuestCategory
   createdAt: Date
 }
@@ -749,6 +750,20 @@ export function GuestsDataTable({
           )
         },
         size: getColumnWidth("serialNumber"),
+      },
+      {
+        id: "referenceNumber",
+        accessorKey: "referenceNumber",
+        header: "Reference #",
+        cell: ({ getValue }) => {
+          const value = getValue() as string | null
+          return (
+            <span className="font-mono text-xs" title={value ?? undefined}>
+              {value || ""}
+            </span>
+          )
+        },
+        size: getColumnWidth("referenceNumber"),
       },
       {
         id: "lastEmailSentAt",

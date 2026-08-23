@@ -126,6 +126,9 @@ export const guests = pgTable(
       onDelete: "set null",
     }),
 
+    // Reference Number / QR (generated once guest confirms attendance)
+    referenceNumber: text("reference_number"), // e.g., "GALA-7K3F9Q"
+
     createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -140,6 +143,7 @@ export const guests = pgTable(
     index("guest_email_idx").on(table.eventId, table.email),
     index("guest_attended_idx").on(table.eventId, table.attendedAt),
     uniqueIndex("guest_serial_number_event_idx").on(table.eventId, table.serialNumber),
+    uniqueIndex("guest_reference_number_event_idx").on(table.eventId, table.referenceNumber),
   ]
 )
 

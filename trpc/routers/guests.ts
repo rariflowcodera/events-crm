@@ -8,6 +8,7 @@ import {
   rsvpResponses,
 } from "@/server/db/schemas"
 import { hasPermission, PERMISSIONS } from "@/server/queries/permissions"
+import { ensureGuestReferenceNumber } from "@/lib/guest-reference"
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init"
 import { TRPCError } from "@trpc/server"
 import { and, asc, desc, eq, ilike, inArray, ne, or, sql } from "drizzle-orm"
@@ -497,6 +498,10 @@ export const guestsRouter = createTRPCRouter({
         .where(eq(guests.id, guestId))
         .returning()
 
+      if (updated && updated.status === "confirmed") {
+        await ensureGuestReferenceNumber(db, updated, guest.event)
+      }
+
       return updated
     }),
 
@@ -798,7 +803,17 @@ export const guestsRouter = createTRPCRouter({
             inArray(guests.id, input.guestIds)
           )
         )
-        .returning({ id: guests.id })
+        .returning({ id: guests.id, referenceNumber: guests.referenceNumber })
+
+      if (input.status === "confirmed") {
+        for (const g of updated) {
+          await ensureGuestReferenceNumber(
+            db,
+            { id: g.id, eventId: input.eventId, referenceNumber: g.referenceNumber },
+            event
+          )
+        }
+      }
 
       return { updatedCount: updated.length }
     }),
@@ -1389,6 +1404,48 @@ export const guestsRouter = createTRPCRouter({
         .where(eq(events.id, input.eventId))
 
       return { generatedCount: updates.length }
+    }),
+
+  // Backfill reference numbers for guests confirmed before this feature shipped
+  generateReferenceNumbers: protectedProcedure
+    .input(z.object({ eventId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const event = await db.query.events.findFirst({
+        where: eq(events.id, input.eventId),
+      })
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" })
+      }
+
+      const canManage = await hasPermission({
+        userId: ctx.user.id,
+        workspaceId: event.workspaceId,
+        permissionName: PERMISSIONS.MANAGE_GUESTS,
+      })
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to manage guests",
+        })
+      }
+
+      const guestsNeedingReference = await db.query.guests.findMany({
+        where: and(
+          eq(guests.eventId, input.eventId),
+          eq(guests.status, "confirmed"),
+          sql`${guests.referenceNumber} IS NULL`
+        ),
+        orderBy: [asc(guests.createdAt)],
+        columns: { id: true, eventId: true, referenceNumber: true },
+      })
+
+      for (const guest of guestsNeedingReference) {
+        await ensureGuestReferenceNumber(db, guest, event)
+      }
+
+      return { generatedCount: guestsNeedingReference.length }
     }),
 
   // Workspace-wide guest directory: aggregates per-event guest rows across

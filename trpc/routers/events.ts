@@ -459,6 +459,7 @@ export const eventsRouter = createTRPCRouter({
                 nextSequence: z.number().int().positive().optional(),
               })
               .optional(),
+            referencePrefix: z.string().max(10).optional(),
           })
           .optional(),
         rsvpFormConfig: z

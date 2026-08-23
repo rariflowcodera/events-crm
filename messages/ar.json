@@ -1112,6 +1112,17 @@
     "displayTextPlaceholder": "عرض تصريح الوقوف",
     "displayTextHint": "اتركه فارغاً لاستخدام النص الافتراضي"
   },
+  "reference": {
+    "title": "الرقم المرجعي",
+    "qrCode": "رمز الاستجابة السريعة",
+    "insertQrCode": "إدراج رمز الاستجابة السريعة",
+    "insertQrCodeDescription": "إدراج رمز الاستجابة السريعة للرقم المرجعي للضيف أو قيمته النصية",
+    "noReference": "لم يتم تعيين رقم مرجعي بعد — لم يؤكد الضيف حضوره",
+    "copyReference": "نسخ الرقم المرجعي",
+    "generateReferences": "إنشاء أرقام مرجعية",
+    "generateReferencesDescription": "إنشاء أرقام مرجعية للضيوف المؤكدين الذين لا يملكون رقماً",
+    "generateReferencesSuccess": "تم إنشاء أرقام مرجعية لـ {count} ضيف"
+  },
   "hyperlink": {
     "insertLink": "إدراج رابط",
     "insertHyperlink": "إدراج رابط تشعبي",

@@ -226,6 +226,7 @@ export const events = pgTable(
         matchCode?: string // e.g., "M21"
         nextSequence?: number // Auto-increment counter, starts at 1
       }
+      referencePrefix?: string // e.g., "GALA" — used to build guest reference numbers
     }>(),
 
     createdBy: text("created_by").references(() => users.id, {

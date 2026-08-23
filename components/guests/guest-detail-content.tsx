@@ -88,6 +88,7 @@ interface Guest {
   dietaryRequirements: string | null
   profileImage: string | null
   serialNumber: string | null
+  referenceNumber: string | null
   category: GuestCategory
   createdAt: Date
   rsvpRespondedAt: Date | null
@@ -306,6 +307,28 @@ export function GuestDetailContent({
             <p className="text-muted-foreground text-sm mt-1 font-mono">
               {guest.serialNumber}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Reference Number + QR Code Section */}
+      {guest.referenceNumber && (
+        <div className="rounded-lg border p-4">
+          <div className="flex items-center gap-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/qr/${guest.rsvpToken}`}
+              alt="QR Code"
+              width={80}
+              height={80}
+              className="rounded border"
+            />
+            <div>
+              <p className="text-sm font-medium">Reference Number</p>
+              <p className="text-muted-foreground text-sm mt-1 font-mono">
+                {guest.referenceNumber}
+              </p>
+            </div>
           </div>
         </div>
       )}
