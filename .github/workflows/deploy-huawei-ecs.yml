@@ -57,8 +57,11 @@ jobs:
         uses: easingthemes/ssh-deploy@main
         with:
           SSH_PRIVATE_KEY: ${{ secrets.HUAWEI_SSH_PRIVATE_KEY }}
-          # Exclude logs, node_modules, uploads, and local env file from being deleted on the server
-          ARGS: "-rlgoDzvc -i -s --delete --exclude=logs --exclude=node_modules --exclude=.env.local --exclude=uploads"
+          # Exclude logs, node_modules, uploads, and local env file from being deleted on the server.
+          # Protect old hashed static chunks from --delete: browser tabs left open across a deploy
+          # still reference the previous build's chunk hashes, and wiping them immediately causes
+          # ChunkLoadError for anyone mid-session. They're cleaned up on a delay below instead.
+          ARGS: "-rlgoDzvc -i -s --delete --exclude=logs --exclude=node_modules --exclude=.env.local --exclude=uploads --filter=\"P .next/static/chunks/**\""
           SOURCE: "deploy_package/"
           REMOTE_HOST: ${{ secrets.HUAWEI_SSH_HOST }}
           REMOTE_USER: ${{ secrets.HUAWEI_SSH_USER }}
@@ -79,5 +82,8 @@ jobs:
             echo "Reloading application (zero-downtime)..."
             pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
             pm2 save
+
+            echo "Cleaning up static chunks older than 1 day (kept around so in-flight sessions from the previous deploy don't hit ChunkLoadError)..."
+            find .next/static/chunks -type f -mtime +1 -delete || true
 
             echo "Deployment Complete!"
