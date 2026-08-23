@@ -7,6 +7,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app"
 
 import { configuration } from "@/lib/config"
 import { Toaster } from "@/components/ui/toaster"
+import { ChunkErrorHandler } from "@/components/providers/chunk-error-handler"
 import { GoogleMapsProvider } from "@/components/providers/google-maps-provider"
 import { ModalProvider } from "@/components/providers/modal-provider"
 import { ThemeProvider } from "@/components/providers/theme-provider"
@@ -23,6 +24,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <TRPCProvider>
       <Analytics />
+      <ChunkErrorHandler />
       <ThemeProvider attribute="class" defaultTheme={configuration.site.defaultTheme} enableSystem>
         <GoogleMapsProvider>
           <NuqsProvider>
